@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Business Dashboard — P&L, KPIs, Decisions</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    background: #0f1419;
+    color: #e6edf3;
+    line-height: 1.5;
+  }
+  .container { max-width: 1300px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.5px; }
+  .sub { color: #8b949e; margin-bottom: 24px; font-size: 14px; }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #30363d;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    color: #8b949e;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: #e6edf3; }
+  .tab.active { color: #2dd4bf; border-bottom-color: #2dd4bf; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 16px;
+    margin: 0 0 16px;
+    color: #2dd4bf;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .grid-3 { display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: #8b949e;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  input[type="number"], input[type="text"], select {
+    width: 100%;
+    padding: 8px 10px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #e6edf3;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #2dd4bf;
+    box-shadow: 0 0 0 2px rgba(45,212,191,0.15);
+  }
+  .prefix { position: relative; }
+  .prefix::before {
+    content: attr(data-prefix);
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8b949e;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .prefix input { padding-left: 24px; }
+
+  button.primary {
+    padding: 10px 20px;
+    background: #2dd4bf;
+    color: #0f1419;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+  }
+  button.primary:hover { background: #5eead4; }
+  button.secondary {
+    padding: 8px 14px;
+    background: #0d1117;
+    color: #8b949e;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  button.secondary:hover { color: #e6edf3; border-color: #2dd4bf; }
+  button.danger {
+    padding: 6px 10px;
+    background: #4d1314;
+    color: #ff7b72;
+    border: 1px solid #6e1318;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  button.danger:hover { background: #6e1318; }
+
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .summary {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .summary .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+  .summary .value { font-size: 24px; font-weight: 700; color: #2dd4bf; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .summary .delta { font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .summary .delta.up { color: #56d364; }
+  .summary .delta.down { color: #ff7b72; }
+  .summary.neutral .value { color: #e6edf3; }
+  .summary.warn .value { color: #e3b341; }
+  .summary.bad .value { color: #ff7b72; }
+  .summary.good .value { color: #56d364; }
+
+  .channel-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 30px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #21262d;
+  }
+  th {
+    color: #8b949e;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:hover td { background: #1a1f26; cursor: pointer; }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .pill.cut { background: #4d1314; color: #ff7b72; }
+  .pill.fix { background: #4d1314; color: #ff7b72; }
+  .pill.maintain { background: #3d2c0a; color: #e3b341; }
+  .pill.double-down { background: #0f3320; color: #56d364; }
+  .pill.ok { background: #0f3320; color: #56d364; }
+  .pill.warn { background: #3d2c0a; color: #e3b341; }
+  .pill.bad { background: #4d1314; color: #ff7b72; }
+
+  .decision-card {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .decision-card.double-down { border-left: 3px solid #56d364; }
+  .decision-card.maintain { border-left: 3px solid #e3b341; }
+  .decision-card.cut, .decision-card.fix { border-left: 3px solid #f85149; }
+  .decision-card .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .decision-card .name {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .decision-card .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+  .decision-card .metric {
+    background: #161b22;
+    padding: 8px 10px;
+    border-radius: 4px;
+  }
+  .decision-card .metric .lbl { color: #8b949e; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .decision-card .metric .val { color: #e6edf3; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .decision-card .action { font-size: 13px; color: #8b949e; line-height: 1.6; }
+
+  .chart-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .chart-card h3 {
+    font-size: 13px;
+    margin: 0 0 4px;
+    color: #e6edf3;
+    font-weight: 600;
+  }
+  .chart-card .legend {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: #8b949e;
+  }
+  .chart-card .legend-item { display: flex; align-items: center; gap: 4px; }
+  .chart-card .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .chart-card svg { width: 100%; height: auto; display: block; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8b949e;
+  }
+  .empty-state h3 { color: #e6edf3; margin: 0 0 8px; }
+
+  .master-toggle {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .master-toggle button {
+    padding: 8px 14px;
+    background: #0d1117;
+    color: #8b949e;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+  }
+  .master-toggle button:hover { color: #e6edf3; border-color: #2dd4bf; }
+  .master-toggle button.active {
+    background: var(--accent, #2dd4bf);
+    color: #0f1419;
+    border-color: var(--accent, #2dd4bf);
+    font-weight: 700;
+  }
+
+  .master-card { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border: 1px solid #2dd4bf; }
+
+  details summary {
+    cursor: pointer;
+    color: #8b949e;
+    font-size: 13px;
+    padding: 6px 0;
+    user-select: none;
+  }
+  details summary:hover { color: #e6edf3; }
+  details[open] summary { margin-bottom: 8px; }
+
+  .target-input { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .target-input label { margin: 0; font-size: 12px; flex: 1; }
+  .target-input input { width: 90px; padding: 4px 6px; font-size: 13px; }
+
+  @media (max-width: 800px) {
+    .summary-row, .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .channel-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1>Business Dashboard</h1>
+      <p class="sub">Monthly P&L → KPIs → Cut/Maintain/Double Down decisions. Revenue is vanity, profit is sanity, cash is reality.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:4px 8px">
+        <label style="margin:0;font-size:11px;color:#8b949e">View:</label>
+        <select id="display-currency" style="width:auto;padding:4px 6px;font-size:13px;background:transparent;border:none;color:#e6edf3">
+          <option value="GBP">£ GBP</option>
+          <option value="USD">$ USD</option>
+        </select>
+        <span style="font-size:11px;color:#6e7681">|</span>
+        <label style="margin:0;font-size:11px;color:#8b949e">1£ =</label>
+        <input type="number" id="exchange-rate" value="1.27" step="0.01" min="0" style="width:60px;padding:4px 6px;font-size:13px" />
+        <span style="font-size:11px;color:#8b949e">$</span>
+      </div>
+      <span id="save-status" style="font-size:12px;color:#8b949e">Auto-saved</span>
+      <button class="secondary" id="export-btn">Export JSON</button>
+      <button class="secondary" id="import-btn">Import JSON</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" />
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="entry">Monthly Entry</button>
+    <button class="tab" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="months">Months Review</button>
+    <button class="tab" data-tab="decisions">Decisions</button>
+    <button class="tab" data-tab="rules">Rules &amp; Targets</button>
+  </div>
+
+  <!-- ============ MONTHLY ENTRY ============ -->
+  <div class="panel active" id="panel-entry">
+    <div class="card">
+      <h2>Editing Month</h2>
+      <p class="sub" style="margin:-8px 0 12px;font-size:12px">All inputs in <strong>£ GBP</strong> — that's the source of truth. Use the currency toggle in the top bar to view dashboard/decisions in USD without changing your data.</p>
+      <div class="grid">
+        <div>
+          <label>Month</label>
+          <input type="month" id="entry-month" />
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px">
+          <button class="primary" id="save-month-btn">Save Month</button>
+          <button class="danger" id="delete-month-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Revenue &amp; Clients</h2>
+      <div class="grid">
+        <div><label>Revenue collected</label><div class="prefix" data-prefix="£"><input type="number" id="rev-collected" min="0" /></div></div>
+        <div><label>Refunds</label><div class="prefix" data-prefix="£"><input type="number" id="rev-refunds" min="0" /></div></div>
+        <div><label>Processor fees</label><div class="prefix" data-prefix="£"><input type="number" id="rev-fees" min="0" /></div></div>
+        <div><label>New clients</label><input type="number" id="cl-new" min="0" /></div>
+        <div><label>Active clients (end of month)</label><input type="number" id="cl-active" min="0" /></div>
+        <div><label>Churned clients</label><input type="number" id="cl-churned" min="0" /></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Acquisition Channels</h2>
+      <p class="sub" style="margin:-8px 0 12px">One row per channel — costs include all spend tied to that channel (tools, ads, dialers' time alloc, lists, VAs).</p>
+      <div id="channels-list"></div>
+      <button class="secondary" id="add-channel-btn" style="margin-top:8px">+ Add channel</button>
+    </div>
+
+    <div class="card">
+      <h2>Sales Costs</h2>
+      <div class="grid">
+        <div><label>Dialer salaries</label><div class="prefix" data-prefix="£"><input type="number" id="sales-dialer-sal" min="0" /></div></div>
+        <div><label>Dialer commissions</label><div class="prefix" data-prefix="£"><input type="number" id="sales-dialer-com" min="0" /></div></div>
+        <div><label>Sales rep salaries</label><div class="prefix" data-prefix="£"><input type="number" id="sales-rep-sal" min="0" /></div></div>
+        <div><label>Sales rep commissions</label><div class="prefix" data-prefix="£"><input type="number" id="sales-rep-com" min="0" /></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Delivery Costs (Direct Fulfillment)</h2>
+      <div class="grid">
+        <div><label>Delivery team payroll</label><div class="prefix" data-prefix="£"><input type="number" id="del-payroll" min="0" /></div></div>
+        <div><label>Delivery software (Zoom, LMS, etc.)</label><div class="prefix" data-prefix="£"><input type="number" id="del-software" min="0" /></div></div>
+        <div><label>Vendor / subcontractors</label><div class="prefix" data-prefix="£"><input type="number" id="del-vendor" min="0" /></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Overhead</h2>
+      <div class="grid">
+        <div><label>Founder pay</label><div class="prefix" data-prefix="£"><input type="number" id="oh-founder" min="0" /></div></div>
+        <div><label>Admin payroll</label><div class="prefix" data-prefix="£"><input type="number" id="oh-admin" min="0" /></div></div>
+        <div><label>General software (non-channel/fulfillment)</label><div class="prefix" data-prefix="£"><input type="number" id="oh-software" min="0" /></div></div>
+        <div><label>Office / other overhead</label><div class="prefix" data-prefix="£"><input type="number" id="oh-other" min="0" /></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Optional Context</h2>
+      <div class="grid">
+        <div><label>Total FTEs (for revenue/head metrics)</label><input type="number" id="ftes" min="0" step="0.5" /></div>
+      </div>
+    </div>
+
+    <div class="card" style="border-style:dashed">
+      <h2>Demo / Sample Data</h2>
+      <p class="sub" style="margin:-8px 0 12px">First time using this? Load a sample May 2026 month so you can see the dashboard's department breakdown and charts immediately. It only writes to <strong>2026-05</strong> — your other months are untouched.</p>
+      <button class="secondary" id="load-sample-btn">Load May 2026 Sample Data</button>
+    </div>
+
+    <div class="summary-row">
+      <div class="summary">
+        <div class="label">Adjusted revenue</div>
+        <div class="value" id="entry-adj-rev">—</div>
+        <div class="sub-value" style="font-size:12px;color:#8b949e;margin-top:2px">collected − refunds − fees</div>
+      </div>
+      <div class="summary">
+        <div class="label">Gross margin</div>
+        <div class="value" id="entry-gm">—</div>
+        <div class="sub-value" style="font-size:12px;color:#8b949e;margin-top:2px" id="entry-gm-pct">—</div>
+      </div>
+      <div class="summary">
+        <div class="label">Net profit</div>
+        <div class="value" id="entry-np">—</div>
+        <div class="sub-value" style="font-size:12px;color:#8b949e;margin-top:2px" id="entry-np-pct">—</div>
+      </div>
+      <div class="summary">
+        <div class="label">CAC</div>
+        <div class="value" id="entry-cac">—</div>
+        <div class="sub-value" style="font-size:12px;color:#8b949e;margin-top:2px">cost per new client</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="panel" id="panel-dashboard">
+    <div id="dashboard-content"></div>
+  </div>
+
+  <!-- ============ MONTHS REVIEW ============ -->
+  <div class="panel" id="panel-months">
+    <div class="card">
+      <h2>All Saved Months</h2>
+      <div id="months-table-container"></div>
+    </div>
+  </div>
+
+  <!-- ============ DECISIONS ============ -->
+  <div class="panel" id="panel-decisions">
+    <div id="decisions-content"></div>
+  </div>
+
+  <!-- ============ RULES ============ -->
+  <div class="panel" id="panel-rules">
+    <div class="card">
+      <h2>Decision Thresholds</h2>
+      <p class="sub" style="margin:-8px 0 12px">These drive the cut/maintain/double-down logic in the Decisions tab.</p>
+      <div class="grid">
+        <div>
+          <h3 style="font-size:13px;color:#2dd4bf;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.5px">LTV : CAC</h3>
+          <div class="target-input"><label>Double down ≥</label><input type="number" id="t-ltv-double" value="3" step="0.1" /><span>:1</span></div>
+          <div class="target-input"><label>Maintain ≥</label><input type="number" id="t-ltv-maintain" value="2" step="0.1" /><span>:1</span></div>
+          <div class="target-input"><label>Below this = cut/fix</label><input type="number" id="t-ltv-cut" value="2" step="0.1" disabled /><span>:1</span></div>
+        </div>
+        <div>
+          <h3 style="font-size:13px;color:#2dd4bf;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.5px">Payback (months)</h3>
+          <div class="target-input"><label>Double down ≤</label><input type="number" id="t-payback-double" value="3" step="0.5" /><span>mo</span></div>
+          <div class="target-input"><label>Cut/fix above</label><input type="number" id="t-payback-cut" value="6" step="0.5" /><span>mo</span></div>
+        </div>
+        <div>
+          <h3 style="font-size:13px;color:#2dd4bf;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.5px">Margins</h3>
+          <div class="target-input"><label>Min gross margin</label><input type="number" id="t-gm" value="60" step="1" /><span>%</span></div>
+          <div class="target-input"><label>Min net margin</label><input type="number" id="t-nm" value="25" step="1" /><span>%</span></div>
+        </div>
+        <div>
+          <h3 style="font-size:13px;color:#2dd4bf;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.5px">Other</h3>
+          <div class="target-input"><label>Max overhead %</label><input type="number" id="t-overhead" value="20" step="1" /><span>%</span></div>
+          <div class="target-input"><label>Max refund rate</label><input type="number" id="t-refund" value="10" step="1" /><span>%</span></div>
+          <div class="target-input"><label>Tax set-aside</label><input type="number" id="t-tax" value="32" step="1" /><span>%</span></div>
+          <div class="target-input"><label>Cash reserve target (months overhead)</label><input type="number" id="t-cash" value="3" step="0.5" /><span>mo</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Doctrine</h2>
+      <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.7;color:#8b949e">
+        <li>Default bias: <strong style="color:#e6edf3">protect margins, invest in growth</strong>. Don't hoard cash.</li>
+        <li>Judge channels and people by <strong style="color:#e6edf3">LTV:CAC</strong>, not feelings. Min 3:1, 5:1+ is great.</li>
+        <li>Scale only when gross profit per client and payback are healthy. Cash from one client should fund the next in <strong style="color:#e6edf3">~30 days</strong>.</li>
+        <li>Revenue is vanity, profit is sanity, <strong style="color:#e6edf3">cash is reality</strong>. Cut anything that doesn't protect profit or get/keep clients.</li>
+        <li>Invest in <strong style="color:#e6edf3">one-time builds</strong> (scripts, SOPs, automations) — high effort once, low effort forever.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+let months = []; // array of {id: 'YYYY-MM', ...} — all values stored in GBP
+let currentMonthId = null;
+let displayCurrency = 'GBP'; // 'GBP' or 'USD' — display only, doesn't change stored data
+let gbpToUsd = 1.27;
+let masterMetric = 'revenue'; // revenue | grossProfit | netProfit | expenses | newClients
+let masterYear = ''; // '' = all time, '2024' = specific year
+const STORAGE_KEY = 'businessDashboardState_v1';
+
+// ===================== HELPERS =====================
+const $ = id => document.getElementById(id);
+const num = id => parseFloat($(id).value) || 0;
+const fmt = n => Math.round(n).toLocaleString();
+const fmtMoney = (n) => {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  if (displayCurrency === 'USD') {
+    return sign + '$' + Math.round(abs * gbpToUsd).toLocaleString();
+  }
+  return sign + '£' + Math.round(abs).toLocaleString();
+};
+const fmtMoneyShort = (v) => {
+  // For chart Y-axis labels — like "£10k" or "$10k"
+  const symbol = displayCurrency === 'USD' ? '$' : '£';
+  const converted = displayCurrency === 'USD' ? v * gbpToUsd : v;
+  return symbol + (Math.abs(converted) >= 1000 ? Math.round(converted/1000) + 'k' : Math.round(converted));
+};
+const fmtPct = (n) => {
+  if (n === null || n === undefined || isNaN(n) || !isFinite(n)) return '—';
+  return n.toFixed(1) + '%';
+};
+const fmtRatio = (n) => {
+  if (!isFinite(n) || isNaN(n) || n === null) return '—';
+  return n.toFixed(2) + ':1';
+};
+
+function todayMonthId() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function monthLabel(id) {
+  const [y, m] = id.split('-');
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return monthNames[parseInt(m,10) - 1] + ' ' + y;
+}
+function shortMonthLabel(id) {
+  const [y, m] = id.split('-');
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return monthNames[parseInt(m,10) - 1] + ' \'' + y.slice(2);
+}
+
+// ===================== TABS =====================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'dashboard') renderDashboard();
+    if (tab.dataset.tab === 'months') renderMonthsTable();
+    if (tab.dataset.tab === 'decisions') renderDecisions();
+  });
+});
+
+// ===================== DERIVED METRICS =====================
+function calcMonth(m) {
+  if (!m) return null;
+  const adjRev = (m.revenueCollected || 0) - (m.refunds || 0) - (m.fees || 0);
+  const channels = m.channels || [];
+  const channelCost = channels.reduce((s, c) => s + (c.cost || 0), 0);
+  const channelClients = channels.reduce((s, c) => s + (c.newClients || 0), 0);
+  const salesCosts = (m.dialerSal || 0) + (m.dialerCom || 0) + (m.repSal || 0) + (m.repCom || 0);
+  const salesMarketingCosts = salesCosts + channelCost;
+  const deliveryCosts = (m.delPayroll || 0) + (m.delSoftware || 0) + (m.delVendor || 0);
+  const overheadCosts = (m.ohFounder || 0) + (m.ohAdmin || 0) + (m.ohSoftware || 0) + (m.ohOther || 0);
+  const totalExpenses = deliveryCosts + salesMarketingCosts + overheadCosts;
+  const grossProfit = adjRev - deliveryCosts;
+  const grossMarginPct = adjRev > 0 ? (grossProfit / adjRev) * 100 : 0;
+  const netProfit = adjRev - totalExpenses;
+  const netMarginPct = adjRev > 0 ? (netProfit / adjRev) * 100 : 0;
+  const newClients = m.newClients || 0;
+  const activeClients = m.activeClients || 0;
+  const churnedClients = m.churnedClients || 0;
+  const cacOverall = newClients > 0 ? salesMarketingCosts / newClients : null;
+  const refundRate = (m.revenueCollected || 0) > 0 ? ((m.refunds || 0) / m.revenueCollected) * 100 : 0;
+  const overheadPct = adjRev > 0 ? (overheadCosts / adjRev) * 100 : 0;
+  const churnRate = activeClients > 0 ? (churnedClients / activeClients) * 100 : 0;
+  const avgGpPerClient = activeClients > 0 ? grossProfit / activeClients : 0;
+  const ftes = m.ftes || 0;
+  const revPerFte = ftes > 0 ? adjRev / ftes : null;
+  const gpPerFte = ftes > 0 ? grossProfit / ftes : null;
+
+  // Per-channel CAC
+  const channelMetrics = channels.map(c => ({
+    name: c.name,
+    cost: c.cost || 0,
+    newClients: c.newClients || 0,
+    cac: c.newClients > 0 ? (c.cost || 0) / c.newClients : null
+  }));
+
+  return {
+    id: m.id,
+    adjRev, grossProfit, grossMarginPct, netProfit, netMarginPct,
+    salesCosts, salesMarketingCosts, channelCost, deliveryCosts, overheadCosts, totalExpenses,
+    newClients, activeClients, churnedClients, churnRate,
+    cacOverall, avgGpPerClient,
+    refundRate, overheadPct,
+    revPerFte, gpPerFte,
+    channelMetrics
+  };
+}
+
+// Department breakdown — categorizes spend and shows % of revenue going to each
+function calcDepartments(month) {
+  if (!month) return null;
+  const c = calcMonth(month);
+  const adjRev = c.adjRev;
+
+  const sales = {
+    label: 'Sales',
+    salaries: (month.dialerSal || 0) + (month.repSal || 0),
+    commissions: (month.dialerCom || 0) + (month.repCom || 0),
+    items: [
+      { label: 'Dialer salaries', value: month.dialerSal || 0 },
+      { label: 'Dialer commissions', value: month.dialerCom || 0 },
+      { label: 'Sales rep salaries', value: month.repSal || 0 },
+      { label: 'Sales rep commissions', value: month.repCom || 0 }
+    ],
+    total: c.salesCosts
+  };
+  const delivery = {
+    label: 'Delivery',
+    items: [
+      { label: 'Team payroll', value: month.delPayroll || 0 },
+      { label: 'Software', value: month.delSoftware || 0 },
+      { label: 'Vendor / subcontractors', value: month.delVendor || 0 }
+    ],
+    total: c.deliveryCosts
+  };
+  const marketing = {
+    label: 'Marketing / Acquisition',
+    items: (month.channels || []).map(ch => ({ label: ch.name, value: ch.cost || 0 })),
+    total: c.channelCost
+  };
+  const overhead = {
+    label: 'Admin / Overhead',
+    items: [
+      { label: 'Founder pay', value: month.ohFounder || 0 },
+      { label: 'Admin payroll', value: month.ohAdmin || 0 },
+      { label: 'General software', value: month.ohSoftware || 0 },
+      { label: 'Office / other', value: month.ohOther || 0 }
+    ],
+    total: c.overheadCosts
+  };
+
+  const pct = (n) => adjRev > 0 ? (n / adjRev) * 100 : 0;
+
+  // Total commissions and salaries summary across departments
+  const totalCommissions = sales.commissions;
+  const totalSalaries = sales.salaries + (month.delPayroll || 0) + (month.ohFounder || 0) + (month.ohAdmin || 0);
+  const totalPayroll = totalCommissions + totalSalaries; // all human cost
+
+  return {
+    adjRev,
+    sales: { ...sales, pctRev: pct(sales.total), salaryPct: pct(sales.salaries), commissionPct: pct(sales.commissions) },
+    delivery: { ...delivery, pctRev: pct(delivery.total) },
+    marketing: { ...marketing, pctRev: pct(marketing.total) },
+    overhead: { ...overhead, pctRev: pct(overhead.total) },
+    totalCommissions, commissionPctRev: pct(totalCommissions),
+    totalSalaries, salaryPctRev: pct(totalSalaries),
+    totalPayroll, payrollPctRev: pct(totalPayroll)
+  };
+}
+
+function calcAggregates(monthsToUse) {
+  // Aggregate metrics across multiple months for LTV calc
+  if (!monthsToUse.length) return null;
+  const totals = monthsToUse.reduce((acc, m) => {
+    const c = calcMonth(m);
+    if (!c) return acc;
+    acc.adjRev += c.adjRev;
+    acc.grossProfit += c.grossProfit;
+    acc.netProfit += c.netProfit;
+    acc.totalExpenses += c.totalExpenses;
+    acc.salesMarketingCosts += c.salesMarketingCosts;
+    acc.deliveryCosts += c.deliveryCosts;
+    acc.overheadCosts += c.overheadCosts;
+    acc.newClients += c.newClients;
+    acc.churnedClients += c.churnedClients;
+    acc.activeClientMonths += c.activeClients;
+    acc.refunds += (m.refunds || 0);
+    acc.revenueCollected += (m.revenueCollected || 0);
+    return acc;
+  }, { adjRev:0, grossProfit:0, netProfit:0, totalExpenses:0, salesMarketingCosts:0, deliveryCosts:0, overheadCosts:0, newClients:0, churnedClients:0, activeClientMonths:0, refunds:0, revenueCollected:0 });
+
+  const avgActive = totals.activeClientMonths / monthsToUse.length;
+  const avgGpPerClient = avgActive > 0 ? (totals.grossProfit / monthsToUse.length) / avgActive : 0;
+  const monthlyChurnRate = avgActive > 0 ? (totals.churnedClients / monthsToUse.length) / avgActive : 0;
+  const lifespanMonths = monthlyChurnRate > 0 ? 1 / monthlyChurnRate : (monthsToUse.length); // fallback: assume at least span
+  const ltvGross = avgGpPerClient * lifespanMonths;
+  const cacOverall = totals.newClients > 0 ? totals.salesMarketingCosts / totals.newClients : null;
+  const ltvToCac = (cacOverall && cacOverall > 0) ? ltvGross / cacOverall : null;
+  const paybackMonths = avgGpPerClient > 0 && cacOverall ? cacOverall / avgGpPerClient : null;
+  const grossMarginPct = totals.adjRev > 0 ? (totals.grossProfit / totals.adjRev) * 100 : 0;
+  const netMarginPct = totals.adjRev > 0 ? (totals.netProfit / totals.adjRev) * 100 : 0;
+  const overheadPct = totals.adjRev > 0 ? (totals.overheadCosts / totals.adjRev) * 100 : 0;
+  const refundRate = totals.revenueCollected > 0 ? (totals.refunds / totals.revenueCollected) * 100 : 0;
+
+  // Channel aggregates
+  const channelMap = new Map();
+  monthsToUse.forEach(m => {
+    (m.channels || []).forEach(c => {
+      if (!channelMap.has(c.name)) channelMap.set(c.name, { name: c.name, cost: 0, newClients: 0 });
+      const agg = channelMap.get(c.name);
+      agg.cost += c.cost || 0;
+      agg.newClients += c.newClients || 0;
+    });
+  });
+  const channels = Array.from(channelMap.values()).map(c => {
+    const cac = c.newClients > 0 ? c.cost / c.newClients : null;
+    const ltvCac = (cac && cac > 0) ? ltvGross / cac : null;
+    const payback = (cac && avgGpPerClient > 0) ? cac / avgGpPerClient : null;
+    return { ...c, cac, ltvCac, payback };
+  });
+
+  return {
+    totals, monthsCount: monthsToUse.length,
+    avgGpPerClient, lifespanMonths, ltvGross, cacOverall, ltvToCac, paybackMonths,
+    grossMarginPct, netMarginPct, overheadPct, refundRate, monthlyChurnRate,
+    channels
+  };
+}
+
+// ===================== ENTRY FORM =====================
+function renderChannels(channels) {
+  const container = $('channels-list');
+  container.innerHTML = '';
+  channels.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'channel-row';
+    row.innerHTML = `
+      <input type="text" placeholder="Channel name (e.g. LinkedIn)" value="${c.name || ''}" data-idx="${i}" data-field="name" />
+      <div class="prefix" data-prefix="£"><input type="number" placeholder="Costs (GBP)" value="${c.cost || 0}" min="0" data-idx="${i}" data-field="cost" /></div>
+      <input type="number" placeholder="New clients" value="${c.newClients || 0}" min="0" data-idx="${i}" data-field="newClients" />
+      <button class="danger" data-remove="${i}">×</button>
+    `;
+    container.appendChild(row);
+  });
+  // Wire input changes
+  container.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const idx = parseInt(e.target.dataset.idx, 10);
+      const field = e.target.dataset.field;
+      const val = field === 'name' ? e.target.value : (parseFloat(e.target.value) || 0);
+      currentChannels[idx][field] = val;
+      recomputeEntryDerived();
+    });
+  });
+  container.querySelectorAll('button[data-remove]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.target.dataset.remove, 10);
+      currentChannels.splice(idx, 1);
+      renderChannels(currentChannels);
+      recomputeEntryDerived();
+    });
+  });
+}
+
+let currentChannels = [];
+
+function loadEntryForm(monthId) {
+  const m = months.find(x => x.id === monthId) || {};
+  $('entry-month').value = monthId;
+  $('rev-collected').value = m.revenueCollected || '';
+  $('rev-refunds').value = m.refunds || '';
+  $('rev-fees').value = m.fees || '';
+  $('cl-new').value = m.newClients || '';
+  $('cl-active').value = m.activeClients || '';
+  $('cl-churned').value = m.churnedClients || '';
+  $('sales-dialer-sal').value = m.dialerSal || '';
+  $('sales-dialer-com').value = m.dialerCom || '';
+  $('sales-rep-sal').value = m.repSal || '';
+  $('sales-rep-com').value = m.repCom || '';
+  $('del-payroll').value = m.delPayroll || '';
+  $('del-software').value = m.delSoftware || '';
+  $('del-vendor').value = m.delVendor || '';
+  $('oh-founder').value = m.ohFounder || '';
+  $('oh-admin').value = m.ohAdmin || '';
+  $('oh-software').value = m.ohSoftware || '';
+  $('oh-other').value = m.ohOther || '';
+  $('ftes').value = m.ftes || '';
+  currentChannels = m.channels ? JSON.parse(JSON.stringify(m.channels)) : [
+    { name: 'LinkedIn', cost: 0, newClients: 0 },
+    { name: 'Email', cost: 0, newClients: 0 }
+  ];
+  renderChannels(currentChannels);
+  recomputeEntryDerived();
+}
+
+function readEntryForm() {
+  return {
+    id: $('entry-month').value,
+    revenueCollected: num('rev-collected'),
+    refunds: num('rev-refunds'),
+    fees: num('rev-fees'),
+    newClients: num('cl-new'),
+    activeClients: num('cl-active'),
+    churnedClients: num('cl-churned'),
+    dialerSal: num('sales-dialer-sal'),
+    dialerCom: num('sales-dialer-com'),
+    repSal: num('sales-rep-sal'),
+    repCom: num('sales-rep-com'),
+    delPayroll: num('del-payroll'),
+    delSoftware: num('del-software'),
+    delVendor: num('del-vendor'),
+    ohFounder: num('oh-founder'),
+    ohAdmin: num('oh-admin'),
+    ohSoftware: num('oh-software'),
+    ohOther: num('oh-other'),
+    ftes: num('ftes'),
+    channels: JSON.parse(JSON.stringify(currentChannels))
+  };
+}
+
+function recomputeEntryDerived() {
+  const m = readEntryForm();
+  const c = calcMonth(m);
+  if (!c) return;
+  $('entry-adj-rev').textContent = fmtMoney(c.adjRev);
+  $('entry-gm').textContent = fmtMoney(c.grossProfit);
+  $('entry-gm-pct').textContent = fmtPct(c.grossMarginPct) + ' margin';
+  $('entry-np').textContent = fmtMoney(c.netProfit);
+  $('entry-np-pct').textContent = fmtPct(c.netMarginPct) + ' margin';
+  $('entry-cac').textContent = c.cacOverall ? fmtMoney(c.cacOverall) : '—';
+}
+
+[
+  'rev-collected','rev-refunds','rev-fees','cl-new','cl-active','cl-churned',
+  'sales-dialer-sal','sales-dialer-com','sales-rep-sal','sales-rep-com',
+  'del-payroll','del-software','del-vendor',
+  'oh-founder','oh-admin','oh-software','oh-other','ftes'
+].forEach(id => $(id).addEventListener('input', recomputeEntryDerived));
+
+$('entry-month').addEventListener('change', () => {
+  currentMonthId = $('entry-month').value;
+  loadEntryForm(currentMonthId);
+});
+
+$('load-sample-btn').addEventListener('click', () => {
+  const sample = {
+    id: '2026-05',
+    revenueCollected: 180000,
+    refunds: 8000,
+    fees: 5000,
+    newClients: 12,
+    activeClients: 45,
+    churnedClients: 2,
+    dialerSal: 8000,
+    dialerCom: 3000,
+    repSal: 12000,
+    repCom: 18000,
+    delPayroll: 25000,
+    delSoftware: 1200,
+    delVendor: 4000,
+    ohFounder: 15000,
+    ohAdmin: 6000,
+    ohSoftware: 2500,
+    ohOther: 3500,
+    ftes: 8,
+    channels: [
+      { name: 'LinkedIn', cost: 8000, newClients: 5 },
+      { name: 'Email', cost: 3000, newClients: 4 },
+      { name: 'Referral', cost: 0, newClients: 3 }
+    ]
+  };
+  const existing = months.find(m => m.id === '2026-05');
+  if (existing && !confirm('May 2026 already exists. Replace it with sample data?')) return;
+  months = months.filter(m => m.id !== '2026-05');
+  months.push(sample);
+  months.sort((a, b) => a.id.localeCompare(b.id));
+  saveState();
+  currentMonthId = '2026-05';
+  loadEntryForm('2026-05');
+  flashSaveStatus('Sample loaded — open Dashboard tab');
+});
+
+$('add-channel-btn').addEventListener('click', () => {
+  currentChannels.push({ name: '', cost: 0, newClients: 0 });
+  renderChannels(currentChannels);
+});
+
+$('save-month-btn').addEventListener('click', () => {
+  const m = readEntryForm();
+  if (!m.id) { alert('Pick a month first.'); return; }
+  // Strip empty channels
+  m.channels = m.channels.filter(c => c.name && c.name.trim());
+  const idx = months.findIndex(x => x.id === m.id);
+  if (idx >= 0) months[idx] = m;
+  else months.push(m);
+  months.sort((a, b) => a.id.localeCompare(b.id));
+  saveState();
+  flashSaveStatus('Month saved ✓');
+});
+
+$('delete-month-btn').addEventListener('click', () => {
+  const id = $('entry-month').value;
+  if (!confirm(`Delete data for ${monthLabel(id)}?`)) return;
+  months = months.filter(x => x.id !== id);
+  saveState();
+  loadEntryForm(id);
+  flashSaveStatus('Deleted');
+});
+
+// ===================== SVG CHARTS =====================
+function lineChart(series, options = {}) {
+  // series: [{ name, color, data: [{x, y}] }]
+  const w = options.width || 600;
+  const h = options.height || 200;
+  const pad = { top: 14, right: 16, bottom: 28, left: 56 };
+  const labels = (series[0]?.data || []).map(d => d.x);
+  const allY = series.flatMap(s => s.data.map(d => d.y).filter(y => y !== null && y !== undefined && !isNaN(y)));
+  if (!allY.length) return `<svg viewBox="0 0 ${w} ${h}"></svg>`;
+  let yMin = Math.min(...allY, options.targetLine ?? Infinity);
+  let yMax = Math.max(...allY, options.targetLine ?? -Infinity);
+  if (yMin === yMax) { yMin -= 1; yMax += 1; }
+  // Pad y range a bit
+  const yRange = yMax - yMin;
+  yMin -= yRange * 0.1;
+  yMax += yRange * 0.1;
+  if (options.zeroBased && yMin > 0) yMin = 0;
+
+  const xScale = i => pad.left + (i / Math.max(1, labels.length - 1)) * (w - pad.left - pad.right);
+  const yScale = y => pad.top + (1 - (y - yMin) / (yMax - yMin)) * (h - pad.top - pad.bottom);
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  // Gridlines
+  for (let i = 0; i <= 4; i++) {
+    const yv = yMin + (yMax - yMin) * (i / 4);
+    const yp = yScale(yv);
+    svg += `<line x1="${pad.left}" y1="${yp}" x2="${w - pad.right}" y2="${yp}" stroke="#21262d" stroke-width="1"/>`;
+    svg += `<text x="${pad.left - 8}" y="${yp + 4}" fill="#6e7681" font-size="10" text-anchor="end" font-family="ui-monospace,monospace">${options.yFormat ? options.yFormat(yv) : Math.round(yv).toLocaleString()}</text>`;
+  }
+  // X labels (skip some if too many)
+  const labelStep = Math.max(1, Math.ceil(labels.length / 6));
+  labels.forEach((label, i) => {
+    if (i % labelStep === 0 || i === labels.length - 1) {
+      svg += `<text x="${xScale(i)}" y="${h - pad.bottom + 16}" fill="#6e7681" font-size="10" text-anchor="middle">${label}</text>`;
+    }
+  });
+  // Target line
+  if (options.targetLine !== undefined && options.targetLine !== null) {
+    const tp = yScale(options.targetLine);
+    svg += `<line x1="${pad.left}" y1="${tp}" x2="${w - pad.right}" y2="${tp}" stroke="#e3b341" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>`;
+    svg += `<text x="${w - pad.right - 4}" y="${tp - 4}" fill="#e3b341" font-size="10" text-anchor="end">target ${options.targetLabel || options.targetLine}</text>`;
+  }
+  // Lines
+  series.forEach(s => {
+    const validData = s.data.map((d, i) => ({ ...d, i })).filter(d => d.y !== null && d.y !== undefined && !isNaN(d.y));
+    if (!validData.length) return;
+    const points = validData.map(d => `${xScale(d.i)},${yScale(d.y)}`).join(' ');
+    // Area fill
+    if (s.fill) {
+      const firstX = xScale(validData[0].i);
+      const lastX = xScale(validData[validData.length - 1].i);
+      const baseY = yScale(yMin);
+      svg += `<polygon points="${firstX},${baseY} ${points} ${lastX},${baseY}" fill="${s.color}" opacity="0.1"/>`;
+    }
+    svg += `<polyline points="${points}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    // Points
+    validData.forEach(d => {
+      svg += `<circle cx="${xScale(d.i)}" cy="${yScale(d.y)}" r="3" fill="${s.color}"/>`;
+    });
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  const container = $('dashboard-content');
+  if (!months.length) {
+    container.innerHTML = `<div class="empty-state"><h3>No data yet</h3><p>Save your first month in the <strong>Monthly Entry</strong> tab to see the dashboard.</p></div>`;
+    return;
+  }
+  const sorted = months.slice().sort((a, b) => a.id.localeCompare(b.id));
+  const last = sorted[sorted.length - 1];
+  const prev = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
+  const currentYear = sorted[sorted.length - 1].id.slice(0, 4);
+  const ytdMonths = sorted.filter(m => m.id.startsWith(currentYear));
+  const trailing12 = sorted.slice(-12);
+
+  const lastCalc = calcMonth(last);
+  const prevCalc = prev ? calcMonth(prev) : null;
+  const ytdAgg = calcAggregates(ytdMonths);
+  const t12Agg = calcAggregates(trailing12);
+
+  const delta = (cur, prev, fmt) => {
+    if (!prev) return '';
+    const diff = cur - prev;
+    const sign = diff >= 0 ? '+' : '';
+    const cls = diff >= 0 ? 'up' : 'down';
+    return `<div class="delta ${cls}">${sign}${fmt(diff)} vs prev</div>`;
+  };
+
+  // ==== MASTER VIEW (top of dashboard) ====
+  const allYears = Array.from(new Set(sorted.map(m => m.id.slice(0, 4)))).sort();
+  if (!allYears.includes(masterYear) && masterYear !== '') masterYear = allYears[allYears.length - 1] || '';
+
+  const masterMetrics = {
+    revenue:     { label: 'Revenue',        color: '#2dd4bf', isMoney: true,  getValue: (m, c) => c.adjRev,                  desc: 'Adjusted revenue (collected − refunds − fees)' },
+    grossProfit: { label: 'Gross Profit',   color: '#56d364', isMoney: true,  getValue: (m, c) => c.grossProfit,             desc: 'Revenue minus delivery costs' },
+    netProfit:   { label: 'Net Profit',     color: '#79c0ff', isMoney: true,  getValue: (m, c) => c.netProfit,               desc: 'Revenue minus all costs (delivery + sales + overhead)' },
+    expenses:    { label: 'Expenses',       color: '#ff7b72', isMoney: true,  getValue: (m, c) => c.totalExpenses,           desc: 'Total expenses (delivery + sales/marketing + overhead)' },
+    newClients:  { label: 'New Clients',    color: '#d2a8ff', isMoney: false, getValue: (m, c) => c.newClients,              desc: 'New clients acquired' }
+  };
+  const mm = masterMetrics[masterMetric] || masterMetrics.revenue;
+  const masterMonthsToShow = masterYear ? sorted.filter(m => m.id.startsWith(masterYear)) : sorted;
+  const masterData = masterMonthsToShow.map(m => {
+    const c = calcMonth(m);
+    return { id: m.id, x: shortMonthLabel(m.id), y: mm.getValue(m, c) };
+  });
+
+  // Stats for selected period
+  const masterValues = masterData.map(d => d.y);
+  const masterTotal = masterValues.reduce((a, b) => a + b, 0);
+  const masterAvg = masterValues.length ? masterTotal / masterValues.length : 0;
+  let bestMonth = null, worstMonth = null;
+  if (masterData.length) {
+    bestMonth = masterData.reduce((a, b) => b.y > a.y ? b : a);
+    worstMonth = masterData.reduce((a, b) => b.y < a.y ? b : a);
+  }
+  const trendPct = (masterValues.length >= 2 && masterValues[0] !== 0)
+    ? ((masterValues[masterValues.length - 1] - masterValues[0]) / Math.abs(masterValues[0])) * 100
+    : null;
+
+  const fmtVal = mm.isMoney ? fmtMoney : (v) => Math.round(v).toLocaleString();
+  const fmtValShort = mm.isMoney ? fmtMoneyShort : (v) => Math.round(v).toLocaleString();
+
+  let html = `
+    <div class="card master-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+        <div>
+          <h2 style="margin:0;color:${mm.color}">Master View</h2>
+          <p class="sub" style="margin:4px 0 0;font-size:12px">${mm.desc}</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="margin:0;font-size:11px;color:#8b949e">Year:</label>
+          <select id="master-year" style="width:auto;padding:6px 10px;font-size:13px">
+            <option value="">All time</option>
+            ${allYears.map(y => `<option value="${y}" ${y === masterYear ? 'selected' : ''}>${y}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="master-toggle" style="--accent:${mm.color}">
+        ${Object.entries(masterMetrics).map(([k, v]) => `
+          <button data-metric="${k}" class="${k === masterMetric ? 'active' : ''}" style="${k === masterMetric ? `background:${v.color};border-color:${v.color}` : ''}">${v.label}</button>
+        `).join('')}
+      </div>
+      <div style="margin-top:16px">
+        ${lineChart([
+          { name: mm.label, color: mm.color, data: masterData, fill: true }
+        ], { height: 300, yFormat: fmtValShort, zeroBased: true })}
+      </div>
+      <div class="summary-row" style="margin-top:16px;margin-bottom:0">
+        <div class="summary"><div class="label">${masterYear || 'All time'} total</div><div class="value" style="color:${mm.color}">${fmtVal(masterTotal)}</div><div class="delta">${masterData.length} months</div></div>
+        <div class="summary"><div class="label">Avg per month</div><div class="value" style="color:${mm.color}">${fmtVal(masterAvg)}</div></div>
+        <div class="summary"><div class="label">Best month</div><div class="value" style="color:#56d364">${bestMonth ? fmtVal(bestMonth.y) : '—'}</div><div class="delta">${bestMonth ? monthLabel(bestMonth.id) : ''}</div></div>
+        <div class="summary"><div class="label">Trend</div><div class="value" style="color:${trendPct === null ? '#8b949e' : trendPct >= 0 ? '#56d364' : '#ff7b72'}">${trendPct === null ? '—' : (trendPct >= 0 ? '+' : '') + trendPct.toFixed(1) + '%'}</div><div class="delta">first → last month</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>${monthLabel(last.id)} Snapshot</h2>
+      <div class="summary-row">
+        <div class="summary"><div class="label">Adjusted revenue</div><div class="value">${fmtMoney(lastCalc.adjRev)}</div>${delta(lastCalc.adjRev, prevCalc?.adjRev, fmtMoney)}</div>
+        <div class="summary ${lastCalc.grossMarginPct < num('t-gm') ? 'warn' : 'good'}"><div class="label">Gross margin</div><div class="value">${fmtPct(lastCalc.grossMarginPct)}</div>${delta(lastCalc.grossMarginPct, prevCalc?.grossMarginPct, x => x.toFixed(1) + '%')}</div>
+        <div class="summary ${lastCalc.netMarginPct < num('t-nm') ? 'warn' : 'good'}"><div class="label">Net profit</div><div class="value">${fmtMoney(lastCalc.netProfit)}</div><div class="delta">${fmtPct(lastCalc.netMarginPct)} margin</div></div>
+        <div class="summary"><div class="label">CAC</div><div class="value">${lastCalc.cacOverall ? fmtMoney(lastCalc.cacOverall) : '—'}</div>${delta(lastCalc.cacOverall, prevCalc?.cacOverall, fmtMoney)}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Year-to-Date (${currentYear})</h2>
+      <div class="summary-row">
+        <div class="summary"><div class="label">YTD revenue</div><div class="value">${fmtMoney(ytdAgg.totals.adjRev)}</div><div class="delta">${ytdMonths.length} months</div></div>
+        <div class="summary"><div class="label">YTD net profit</div><div class="value">${fmtMoney(ytdAgg.totals.netProfit)}</div><div class="delta">${fmtPct(ytdAgg.netMarginPct)} margin</div></div>
+        <div class="summary"><div class="label">YTD new clients</div><div class="value">${fmt(ytdAgg.totals.newClients)}</div><div class="delta">CAC: ${ytdAgg.cacOverall ? fmtMoney(ytdAgg.cacOverall) : '—'}</div></div>
+        <div class="summary ${ytdAgg.ltvToCac && ytdAgg.ltvToCac >= 3 ? 'good' : ytdAgg.ltvToCac && ytdAgg.ltvToCac >= 2 ? 'warn' : 'bad'}"><div class="label">LTV : CAC</div><div class="value">${fmtRatio(ytdAgg.ltvToCac)}</div><div class="delta">payback: ${ytdAgg.paybackMonths !== null ? ytdAgg.paybackMonths.toFixed(1) + 'mo' : '—'}</div></div>
+      </div>
+    </div>
+  `;
+
+  // ==== DEPARTMENT BREAKDOWN ====
+  const dept = calcDepartments(last);
+  const deptColor = (pct, lowGood, midOk) => {
+    if (pct <= lowGood) return 'good';
+    if (pct <= midOk) return 'warn';
+    return 'bad';
+  };
+
+  const deptCard = (d, color) => `
+    <div class="card" style="margin-bottom:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:14px;font-weight:600;color:${color}">${d.label}</div>
+        <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px">% of revenue</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+        <div style="font-size:24px;font-weight:700;color:${color};font-variant-numeric:tabular-nums">${fmtMoney(d.total)}</div>
+        <div style="font-size:22px;font-weight:600;color:${color};font-variant-numeric:tabular-nums">${fmtPct(d.pctRev)}</div>
+      </div>
+      <div style="height:6px;background:#21262d;border-radius:3px;overflow:hidden;margin-bottom:12px">
+        <div style="height:100%;width:${Math.min(100, d.pctRev)}%;background:${color}"></div>
+      </div>
+      <div style="font-size:12px">
+        ${d.items.filter(i => i.value > 0).map(i => `
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #21262d">
+            <span style="color:#8b949e">${i.label}</span>
+            <span style="font-variant-numeric:tabular-nums">${fmtMoney(i.value)} <span style="color:#6e7681">(${fmtPct(dept.adjRev > 0 ? (i.value/dept.adjRev)*100 : 0)})</span></span>
+          </div>
+        `).join('') || '<div style="color:#6e7681;font-size:11px;font-style:italic">No spend recorded</div>'}
+      </div>
+    </div>
+  `;
+
+  html += `
+    <h2 style="color:#2dd4bf;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;margin:24px 0 12px">Department Spend Breakdown — ${monthLabel(last.id)}</h2>
+    <div class="grid-4" style="margin-bottom:16px">
+      ${deptCard(dept.sales, '#79c0ff')}
+      ${deptCard(dept.delivery, '#56d364')}
+      ${deptCard(dept.marketing, '#d2a8ff')}
+      ${deptCard(dept.overhead, '#f0883e')}
+    </div>
+
+    <div class="card">
+      <h2>Compensation Summary — ${monthLabel(last.id)}</h2>
+      <div class="summary-row">
+        <div class="summary"><div class="label">Total Salaries</div><div class="value" style="color:#79c0ff">${fmtMoney(dept.totalSalaries)}</div><div class="delta">${fmtPct(dept.salaryPctRev)} of revenue</div></div>
+        <div class="summary"><div class="label">Total Commissions</div><div class="value" style="color:#56d364">${fmtMoney(dept.totalCommissions)}</div><div class="delta">${fmtPct(dept.commissionPctRev)} of revenue</div></div>
+        <div class="summary"><div class="label">Total Payroll Cost</div><div class="value">${fmtMoney(dept.totalPayroll)}</div><div class="delta">${fmtPct(dept.payrollPctRev)} of revenue</div></div>
+        <div class="summary"><div class="label">Sales Comp Mix</div><div class="value" style="font-size:18px">${dept.sales.salaries > 0 ? Math.round((dept.sales.salaries / (dept.sales.salaries + dept.sales.commissions)) * 100) : 0}/${dept.sales.commissions > 0 ? Math.round((dept.sales.commissions / (dept.sales.salaries + dept.sales.commissions)) * 100) : 0}</div><div class="delta">salary / commission</div></div>
+      </div>
+    </div>
+  `;
+
+  // Department trend chart (% of revenue over time)
+  const deptTrendData = sorted.map(m => {
+    const d = calcDepartments(m);
+    return { id: m.id, sales: d.sales.pctRev, delivery: d.delivery.pctRev, marketing: d.marketing.pctRev, overhead: d.overhead.pctRev, comm: d.commissionPctRev, sal: d.salaryPctRev };
+  });
+  html += `
+    <div class="grid-3" style="margin-bottom:16px">
+      <div class="chart-card" style="grid-column: span 2">
+        <h3>Department % of Revenue Over Time</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#79c0ff"></div>Sales</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#56d364"></div>Delivery</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div>Marketing</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div>Overhead</div>
+        </div>
+        ${lineChart([
+          { name: 'Sales', color: '#79c0ff', data: deptTrendData.map(d => ({ x: shortMonthLabel(d.id), y: d.sales })) },
+          { name: 'Delivery', color: '#56d364', data: deptTrendData.map(d => ({ x: shortMonthLabel(d.id), y: d.delivery })) },
+          { name: 'Marketing', color: '#d2a8ff', data: deptTrendData.map(d => ({ x: shortMonthLabel(d.id), y: d.marketing })) },
+          { name: 'Overhead', color: '#f0883e', data: deptTrendData.map(d => ({ x: shortMonthLabel(d.id), y: d.overhead })) }
+        ], { yFormat: v => v.toFixed(0) + '%', zeroBased: true })}
+      </div>
+      <div class="chart-card">
+        <h3>Salary vs Commission (% of revenue)</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#79c0ff"></div>Salaries</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#56d364"></div>Commissions</div>
+        </div>
+        ${lineChart([
+          { name: 'Salaries', color: '#79c0ff', data: deptTrendData.map(d => ({ x: shortMonthLabel(d.id), y: d.sal })), fill: true },
+          { name: 'Commissions', color: '#56d364', data: deptTrendData.map(d => ({ x: shortMonthLabel(d.id), y: d.comm })) }
+        ], { yFormat: v => v.toFixed(0) + '%', zeroBased: true })}
+      </div>
+    </div>
+  `;
+
+  // Chart row 1: Revenue & Profit
+  const revData = sorted.map(m => ({ x: shortMonthLabel(m.id), y: calcMonth(m).adjRev }));
+  const npData = sorted.map(m => ({ x: shortMonthLabel(m.id), y: calcMonth(m).netProfit }));
+  const gpData = sorted.map(m => ({ x: shortMonthLabel(m.id), y: calcMonth(m).grossProfit }));
+  html += `
+    <div class="grid-3" style="margin-bottom:16px">
+      <div class="chart-card">
+        <h3>Revenue & Profit Trend</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2dd4bf"></div>Adj revenue</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#56d364"></div>Gross profit</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#79c0ff"></div>Net profit</div>
+        </div>
+        ${lineChart([
+          { name: 'Adj revenue', color: '#2dd4bf', data: revData, fill: true },
+          { name: 'Gross profit', color: '#56d364', data: gpData },
+          { name: 'Net profit', color: '#79c0ff', data: npData }
+        ], { yFormat: fmtMoneyShort, zeroBased: true })}
+      </div>
+
+      <div class="chart-card">
+        <h3>Margins (Gross & Net %)</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#56d364"></div>Gross %</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#79c0ff"></div>Net %</div>
+          <div class="legend-item"><div style="width:8px;height:2px;background:#e3b341"></div>Targets</div>
+        </div>
+        ${lineChart([
+          { name: 'Gross margin %', color: '#56d364', data: sorted.map(m => ({ x: shortMonthLabel(m.id), y: calcMonth(m).grossMarginPct })) },
+          { name: 'Net margin %', color: '#79c0ff', data: sorted.map(m => ({ x: shortMonthLabel(m.id), y: calcMonth(m).netMarginPct })) }
+        ], { yFormat: v => v.toFixed(0) + '%', targetLine: num('t-gm'), targetLabel: 'GM ' + num('t-gm') + '%' })}
+      </div>
+
+      <div class="chart-card">
+        <h3>LTV : CAC (rolling 6mo)</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2dd4bf"></div>LTV : CAC</div>
+          <div class="legend-item"><div style="width:8px;height:2px;background:#e3b341"></div>Target ${num('t-ltv-double')}:1</div>
+        </div>
+        ${lineChart([
+          {
+            name: 'LTV:CAC',
+            color: '#2dd4bf',
+            data: sorted.map((m, i) => {
+              const window = sorted.slice(Math.max(0, i - 5), i + 1);
+              const agg = calcAggregates(window);
+              return { x: shortMonthLabel(m.id), y: agg.ltvToCac };
+            }),
+            fill: true
+          }
+        ], { yFormat: v => v.toFixed(1), targetLine: num('t-ltv-double'), zeroBased: true })}
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="chart-card">
+        <h3>New vs Churned Clients</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#56d364"></div>New</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ff7b72"></div>Churned</div>
+        </div>
+        ${lineChart([
+          { name: 'New', color: '#56d364', data: sorted.map(m => ({ x: shortMonthLabel(m.id), y: m.newClients || 0 })) },
+          { name: 'Churned', color: '#ff7b72', data: sorted.map(m => ({ x: shortMonthLabel(m.id), y: m.churnedClients || 0 })) }
+        ], { yFormat: v => Math.round(v), zeroBased: true })}
+      </div>
+
+      <div class="chart-card">
+        <h3>Refund Rate</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#ff7b72"></div>Refund %</div>
+          <div class="legend-item"><div style="width:8px;height:2px;background:#e3b341"></div>Threshold ${num('t-refund')}%</div>
+        </div>
+        ${lineChart([
+          { name: 'Refund %', color: '#ff7b72', data: sorted.map(m => ({ x: shortMonthLabel(m.id), y: calcMonth(m).refundRate })), fill: true }
+        ], { yFormat: v => v.toFixed(1) + '%', targetLine: num('t-refund'), zeroBased: true })}
+      </div>
+
+      <div class="chart-card">
+        <h3>Overhead %</h3>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div>Overhead %</div>
+          <div class="legend-item"><div style="width:8px;height:2px;background:#e3b341"></div>Max ${num('t-overhead')}%</div>
+        </div>
+        ${lineChart([
+          { name: 'Overhead %', color: '#d2a8ff', data: sorted.map(m => ({ x: shortMonthLabel(m.id), y: calcMonth(m).overheadPct })), fill: true }
+        ], { yFormat: v => v.toFixed(0) + '%', targetLine: num('t-overhead'), zeroBased: true })}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>Cash Set-Aside Reminders</h2>
+      <div class="grid-3">
+        <div class="summary"><div class="label">YTD net profit</div><div class="value">${fmtMoney(ytdAgg.totals.netProfit)}</div></div>
+        <div class="summary"><div class="label">Tax set-aside (${num('t-tax')}%)</div><div class="value" style="color:#e3b341">${fmtMoney(Math.max(0, ytdAgg.totals.netProfit) * num('t-tax') / 100)}</div><div class="delta">on net profit + draws — confirm with CPA</div></div>
+        <div class="summary"><div class="label">Cash reserve target</div><div class="value">${fmtMoney(ytdAgg.totals.overheadCosts / Math.max(1, ytdMonths.length) * num('t-cash'))}</div><div class="delta">${num('t-cash')} months of avg overhead</div></div>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+
+  // Wire master view interactions (must run after innerHTML)
+  container.querySelectorAll('[data-metric]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      masterMetric = btn.dataset.metric;
+      saveState();
+      renderDashboard();
+    });
+  });
+  const yearSel = document.getElementById('master-year');
+  if (yearSel) {
+    yearSel.addEventListener('change', () => {
+      masterYear = yearSel.value;
+      saveState();
+      renderDashboard();
+    });
+  }
+}
+
+// ===================== MONTHS REVIEW =====================
+function renderMonthsTable() {
+  const container = $('months-table-container');
+  if (!months.length) {
+    container.innerHTML = '<div class="empty-state"><p>No saved months yet.</p></div>';
+    return;
+  }
+  const sorted = months.slice().sort((a, b) => b.id.localeCompare(a.id));
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th class="num">Adj Rev</th>
+          <th class="num">Gross %</th>
+          <th class="num">Net Profit</th>
+          <th class="num">Net %</th>
+          <th class="num">New</th>
+          <th class="num">Churned</th>
+          <th class="num">CAC</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  sorted.forEach(m => {
+    const c = calcMonth(m);
+    html += `
+      <tr data-id="${m.id}">
+        <td><strong>${monthLabel(m.id)}</strong></td>
+        <td class="num">${fmtMoney(c.adjRev)}</td>
+        <td class="num">${fmtPct(c.grossMarginPct)}</td>
+        <td class="num"><strong>${fmtMoney(c.netProfit)}</strong></td>
+        <td class="num">${fmtPct(c.netMarginPct)}</td>
+        <td class="num">${c.newClients}</td>
+        <td class="num">${c.churnedClients}</td>
+        <td class="num">${c.cacOverall ? fmtMoney(c.cacOverall) : '—'}</td>
+        <td><button class="secondary" data-edit="${m.id}">Edit</button></td>
+      </tr>
+    `;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  container.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = e.target.dataset.edit;
+      currentMonthId = id;
+      loadEntryForm(id);
+      document.querySelector('.tab[data-tab="entry"]').click();
+    });
+  });
+  container.querySelectorAll('tr[data-id]').forEach(row => {
+    row.addEventListener('click', () => {
+      const id = row.dataset.id;
+      currentMonthId = id;
+      loadEntryForm(id);
+      document.querySelector('.tab[data-tab="entry"]').click();
+    });
+  });
+}
+
+// ===================== DECISIONS =====================
+function decisionForChannel(ch) {
+  const tDouble = num('t-ltv-double');
+  const tMaintain = num('t-ltv-maintain');
+  const tPaybackDouble = num('t-payback-double');
+  const tPaybackCut = num('t-payback-cut');
+  if (!ch.ltvCac) return { action: 'fix', label: 'NO DATA', why: 'No new clients in this period — can\'t calculate LTV:CAC. Either generate volume or pause spend.' };
+  if (ch.ltvCac >= tDouble && (ch.payback === null || ch.payback <= tPaybackDouble)) {
+    return { action: 'double-down', label: 'DOUBLE DOWN', why: `LTV:CAC ${ch.ltvCac.toFixed(1)}:1 ≥ ${tDouble}:1 target and payback under ${tPaybackDouble}mo. Increase volume — more outbound, more lists, more reps — until sales calendar and fulfillment hit capacity.` };
+  }
+  if (ch.ltvCac >= tMaintain) {
+    return { action: 'maintain', label: 'MAINTAIN', why: `LTV:CAC ${ch.ltvCac.toFixed(1)}:1 is in the maintain zone (${tMaintain}–${tDouble}:1). Optimize copy, targeting, and follow-up. Don't scale spend until ratio improves.` };
+  }
+  if (ch.payback !== null && ch.payback > tPaybackCut) {
+    return { action: 'fix', label: 'FIX OR CUT', why: `Payback period of ${ch.payback.toFixed(1)}mo exceeds ${tPaybackCut}mo limit. Test offer/hook, targeting, and sales process. Don't add spend until you can recoup faster.` };
+  }
+  return { action: 'fix', label: 'FIX OR CUT', why: `LTV:CAC ${ch.ltvCac.toFixed(1)}:1 below ${tMaintain}:1 floor. Test offer/hook, targeting, and sales process before scaling.` };
+}
+
+function renderDecisions() {
+  const container = $('decisions-content');
+  if (!months.length) {
+    container.innerHTML = '<div class="empty-state"><h3>No data yet</h3><p>Save at least 1 month to see decisions.</p></div>';
+    return;
+  }
+  const sorted = months.slice().sort((a, b) => a.id.localeCompare(b.id));
+  const trailing3 = sorted.slice(-3);
+  const trailing12 = sorted.slice(-12);
+  const aggT3 = calcAggregates(trailing3);
+  const aggT12 = calcAggregates(trailing12);
+
+  const tGm = num('t-gm');
+  const tNm = num('t-nm');
+  const tOh = num('t-overhead');
+  const tRefund = num('t-refund');
+
+  let html = '<h2 style="color:#2dd4bf;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 12px">Channel Decisions</h2>';
+  if (aggT12.channels.length === 0) {
+    html += '<div class="card"><p style="color:#8b949e;margin:0">No channel data tracked. Add channels in Monthly Entry.</p></div>';
+  } else {
+    aggT12.channels.forEach(ch => {
+      const dec = decisionForChannel(ch);
+      html += `
+        <div class="decision-card ${dec.action}">
+          <div class="head">
+            <div class="name">${ch.name}</div>
+            <div class="pill ${dec.action}">${dec.label}</div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><div class="lbl">Total spend</div><div class="val">${fmtMoney(ch.cost)}</div></div>
+            <div class="metric"><div class="lbl">New clients</div><div class="val">${ch.newClients}</div></div>
+            <div class="metric"><div class="lbl">CAC</div><div class="val">${ch.cac ? fmtMoney(ch.cac) : '—'}</div></div>
+            <div class="metric"><div class="lbl">LTV : CAC</div><div class="val">${fmtRatio(ch.ltvCac)}</div></div>
+            <div class="metric"><div class="lbl">Payback</div><div class="val">${ch.payback !== null ? ch.payback.toFixed(1) + 'mo' : '—'}</div></div>
+          </div>
+          <div class="action">${dec.why}</div>
+        </div>
+      `;
+    });
+  }
+
+  html += '<h2 style="color:#2dd4bf;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;margin:24px 0 12px">Margin & Cost Decisions (trailing 3mo)</h2>';
+  // Gross margin
+  const gmDec = aggT3.grossMarginPct < tGm ?
+    { action: 'fix', label: 'FIX BEFORE SCALING', why: `Gross margin ${aggT3.grossMarginPct.toFixed(1)}% below ${tGm}% target. Either raise prices or cut delivery cost. DON'T scale acquisition yet — you'll just bleed faster.` } :
+    { action: 'double-down', label: 'HEALTHY', why: `Gross margin ${aggT3.grossMarginPct.toFixed(1)}% above ${tGm}% threshold. Delivery economics are sound.` };
+  html += `<div class="decision-card ${gmDec.action}">
+    <div class="head"><div class="name">Gross Margin</div><div class="pill ${gmDec.action}">${gmDec.label}</div></div>
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Trailing 3mo</div><div class="val">${fmtPct(aggT3.grossMarginPct)}</div></div>
+      <div class="metric"><div class="lbl">Target</div><div class="val">${tGm}%</div></div>
+      <div class="metric"><div class="lbl">Trailing 12mo</div><div class="val">${fmtPct(aggT12.grossMarginPct)}</div></div>
+    </div>
+    <div class="action">${gmDec.why}</div>
+  </div>`;
+
+  // Net margin
+  const nmDec = aggT3.netMarginPct < tNm ?
+    { action: 'fix', label: 'NO NEW HIRES', why: `Net margin ${aggT3.netMarginPct.toFixed(1)}% below ${tNm}% target. Don't add fixed headcount until pricing/fulfillment is fixed. New salaries will tank you further.` } :
+    { action: 'double-down', label: 'HEALTHY', why: `Net margin ${aggT3.netMarginPct.toFixed(1)}% above ${tNm}% threshold. You can invest in growth.` };
+  html += `<div class="decision-card ${nmDec.action}">
+    <div class="head"><div class="name">Net Margin</div><div class="pill ${nmDec.action}">${nmDec.label}</div></div>
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Trailing 3mo</div><div class="val">${fmtPct(aggT3.netMarginPct)}</div></div>
+      <div class="metric"><div class="lbl">Target</div><div class="val">${tNm}%</div></div>
+      <div class="metric"><div class="lbl">Trailing 12mo</div><div class="val">${fmtPct(aggT12.netMarginPct)}</div></div>
+    </div>
+    <div class="action">${nmDec.why}</div>
+  </div>`;
+
+  // Overhead
+  const ohDec = aggT3.overheadPct > tOh ?
+    { action: 'fix', label: 'CUT OVERHEAD', why: `Overhead ${aggT3.overheadPct.toFixed(1)}% of revenue exceeds ${tOh}% ceiling. Cut lowest-impact tools and non-client-facing roles until under 15%. If a tool/vendor doesn't tie to more appointments, higher close/show rate, or smoother delivery — it's a cut candidate.` } :
+    { action: 'maintain', label: 'IN RANGE', why: `Overhead ${aggT3.overheadPct.toFixed(1)}% under ${tOh}% ceiling. Audit annually but no urgency.` };
+  html += `<div class="decision-card ${ohDec.action}">
+    <div class="head"><div class="name">Overhead</div><div class="pill ${ohDec.action}">${ohDec.label}</div></div>
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Trailing 3mo</div><div class="val">${fmtPct(aggT3.overheadPct)}</div></div>
+      <div class="metric"><div class="lbl">Max</div><div class="val">${tOh}%</div></div>
+      <div class="metric"><div class="lbl">Avg cost</div><div class="val">${fmtMoney(aggT3.totals.overheadCosts / aggT3.monthsCount)}/mo</div></div>
+    </div>
+    <div class="action">${ohDec.why}</div>
+  </div>`;
+
+  // Refund rate
+  const rfDec = aggT3.refundRate > tRefund ?
+    { action: 'fix', label: 'FIX OFFER/DELIVERY', why: `Refund rate ${aggT3.refundRate.toFixed(1)}% exceeds ${tRefund}% threshold. Bottleneck is offer alignment or delivery — fix expectations and fulfillment before scaling lead volume.` } :
+    { action: 'maintain', label: 'IN RANGE', why: `Refund rate ${aggT3.refundRate.toFixed(1)}% under ${tRefund}% threshold. Healthy.` };
+  html += `<div class="decision-card ${rfDec.action}">
+    <div class="head"><div class="name">Refund Rate</div><div class="pill ${rfDec.action}">${rfDec.label}</div></div>
+    <div class="metrics">
+      <div class="metric"><div class="lbl">Trailing 3mo</div><div class="val">${fmtPct(aggT3.refundRate)}</div></div>
+      <div class="metric"><div class="lbl">Max</div><div class="val">${tRefund}%</div></div>
+      <div class="metric"><div class="lbl">Total refunds 3mo</div><div class="val">${fmtMoney(aggT3.totals.refunds)}</div></div>
+    </div>
+    <div class="action">${rfDec.why}</div>
+  </div>`;
+
+  // Top bottleneck
+  html += '<h2 style="color:#2dd4bf;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;margin:24px 0 12px">Biggest 30-Day Move</h2>';
+  const issues = [];
+  aggT12.channels.forEach(ch => {
+    const dec = decisionForChannel(ch);
+    if (dec.action === 'fix' || dec.action === 'cut') issues.push({ priority: 1, name: `Fix/cut ${ch.name} channel`, detail: dec.why });
+    if (dec.action === 'double-down') issues.push({ priority: 2, name: `Scale ${ch.name}`, detail: dec.why });
+  });
+  if (aggT3.grossMarginPct < tGm) issues.unshift({ priority: 0, name: 'Fix gross margin first', detail: `${aggT3.grossMarginPct.toFixed(1)}% trailing 3mo. Pricing or delivery cost. This blocks everything else.` });
+  if (aggT3.refundRate > tRefund) issues.unshift({ priority: 0, name: 'Fix refund rate', detail: `${aggT3.refundRate.toFixed(1)}% — your offer is misaligned with delivery. Fix this before adding more leads.` });
+  if (aggT3.netMarginPct < tNm) issues.push({ priority: 1, name: 'Freeze hiring', detail: `Net margin ${aggT3.netMarginPct.toFixed(1)}% below ${tNm}%. Don't add headcount until profitability is restored.` });
+  if (aggT3.overheadPct > tOh) issues.push({ priority: 1, name: 'Cut overhead', detail: `Overhead ${aggT3.overheadPct.toFixed(1)}% — audit tools/roles for ROI proof.` });
+  issues.sort((a, b) => a.priority - b.priority);
+  if (issues.length === 0) {
+    html += '<div class="card"><p style="margin:0;color:#56d364">All systems green. Your bottleneck is now <strong>volume</strong> — push more activity through the proven channels.</p></div>';
+  } else {
+    html += '<div class="card"><ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.7">';
+    issues.slice(0, 3).forEach(iss => {
+      html += `<li style="margin-bottom:8px"><strong>${iss.name}</strong> — <span style="color:#8b949e">${iss.detail}</span></li>`;
+    });
+    html += '</ol></div>';
+  }
+
+  container.innerHTML = html;
+}
+
+// ===================== PERSISTENCE =====================
+const targetIds = ['t-ltv-double','t-ltv-maintain','t-ltv-cut','t-payback-double','t-payback-cut','t-gm','t-nm','t-overhead','t-refund','t-tax','t-cash'];
+
+function saveState() {
+  const state = {
+    months,
+    targets: Object.fromEntries(targetIds.map(id => [id, $(id).value])),
+    displayCurrency,
+    gbpToUsd,
+    masterMetric,
+    masterYear,
+    activeTab: document.querySelector('.tab.active').dataset.tab
+  };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); flashSaveStatus(); } catch (e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    if (state.months && Array.isArray(state.months)) months = state.months;
+    if (state.targets) {
+      targetIds.forEach(id => {
+        if (state.targets[id] !== undefined) $(id).value = state.targets[id];
+      });
+    }
+    if (state.displayCurrency) {
+      displayCurrency = state.displayCurrency;
+      $('display-currency').value = displayCurrency;
+    }
+    if (state.gbpToUsd) {
+      gbpToUsd = state.gbpToUsd;
+      $('exchange-rate').value = gbpToUsd;
+    }
+    if (state.masterMetric) masterMetric = state.masterMetric;
+    if (state.masterYear !== undefined) masterYear = state.masterYear;
+    if (state.activeTab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      const tab = document.querySelector(`.tab[data-tab="${state.activeTab}"]`);
+      const panel = $(`panel-${state.activeTab}`);
+      if (tab && panel) { tab.classList.add('active'); panel.classList.add('active'); }
+    }
+  } catch (e) {}
+}
+
+let saveTimer, statusTimer;
+function flashSaveStatus(msg) {
+  const el = $('save-status');
+  el.textContent = msg || 'Saved ✓';
+  el.style.color = '#3fb950';
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { el.textContent = 'Auto-saved'; el.style.color = '#8b949e'; }, 1500);
+}
+function debouncedSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveState, 250); }
+
+targetIds.forEach(id => $(id).addEventListener('input', debouncedSave));
+
+// Currency toggle
+function applyCurrencyChange() {
+  displayCurrency = $('display-currency').value;
+  gbpToUsd = parseFloat($('exchange-rate').value) || 1.27;
+  // Re-render whatever's visible
+  recomputeEntryDerived();
+  const activeTab = document.querySelector('.tab.active').dataset.tab;
+  if (activeTab === 'dashboard') renderDashboard();
+  if (activeTab === 'months') renderMonthsTable();
+  if (activeTab === 'decisions') renderDecisions();
+  saveState();
+}
+$('display-currency').addEventListener('change', applyCurrencyChange);
+$('exchange-rate').addEventListener('input', applyCurrencyChange);
+
+// Export / Import
+$('export-btn').addEventListener('click', () => {
+  const state = { months, targets: Object.fromEntries(targetIds.map(id => [id, $(id).value])) };
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `business-dashboard-${todayMonthId()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+$('import-btn').addEventListener('click', () => $('import-file').click());
+$('import-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const state = JSON.parse(ev.target.result);
+      if (!confirm(`Import ${state.months?.length || 0} months? This replaces your current data.`)) return;
+      if (state.months) months = state.months;
+      if (state.targets) {
+        targetIds.forEach(id => {
+          if (state.targets[id] !== undefined) $(id).value = state.targets[id];
+        });
+      }
+      saveState();
+      currentMonthId = todayMonthId();
+      loadEntryForm(currentMonthId);
+      flashSaveStatus('Imported ✓');
+    } catch (err) {
+      alert('Invalid JSON file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+// ===================== INIT =====================
+loadState();
+currentMonthId = todayMonthId();
+loadEntryForm(currentMonthId);
+</script>
+</body>
+</html>
