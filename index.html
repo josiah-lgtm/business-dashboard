@@ -396,6 +396,71 @@
 
   .help { color: var(--muted); font-size: 12px; margin-top: 4px; }
 
+  /* Expense category buckets */
+  .bucket {
+    background: var(--surface-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .bucket-head {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 1fr 200px 140px 24px;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 14px;
+    text-align: left;
+    font-family: inherit;
+  }
+  .bucket-head:hover { background: rgba(255,255,255,0.02); border-color: var(--accent); }
+  .bucket-name { font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .bucket-bar {
+    background: rgba(255,255,255,0.05);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bucket-fill { height: 100%; border-radius: 4px; transition: width 0.25s ease; }
+  .bucket-total { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; }
+  .bucket-caret { color: var(--muted-2); text-align: center; }
+  .bucket-body {
+    padding: 4px 16px 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .vendor-row {
+    display: grid;
+    grid-template-columns: 1fr 200px 100px;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 13px;
+  }
+  .vendor-row:last-child { border-bottom: none; }
+  .vrow-name { font-weight: 500; }
+  .vrow-meta { color: var(--muted); font-size: 11px; }
+  .vrow-total { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .vrow-items { grid-column: 1/-1; padding-left: 8px; }
+  .vrow-items summary { font-size: 11px; padding: 4px 0; }
+  .vrow-items table tr td { padding: 4px 6px; border-bottom: 1px solid var(--border-soft); font-size: 12px; }
+
+  .autocomplete-list .ac-header {
+    padding: 6px 10px;
+    font-size: 10px;
+    color: var(--muted-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border-soft);
+  }
+
   /* Kanban */
   .kanban {
     display: grid;
@@ -611,17 +676,11 @@
       </div>
 
       <div class="card">
-        <h3>Quick add — recurring vendors not yet in <span id="qa-month-label">—</span></h3>
-        <div id="recurring-quick-add" class="recurring-grid"></div>
-        <div class="help" id="qa-empty-help" style="display:none">All recurring vendors are already entered for this month. Add manually below.</div>
-      </div>
-
-      <div class="card">
-        <h3>Add a new expense</h3>
+        <h3>Add expense</h3>
         <form id="expense-form" class="grid grid-auto" style="align-items:flex-end">
           <div class="autocomplete">
-            <label for="exp-vendor">Vendor</label>
-            <input id="exp-vendor" type="text" placeholder="e.g. Notion" autocomplete="off" required />
+            <label for="exp-vendor">Vendor <span style="color:var(--muted-2);font-weight:400">(type to search — recurring vendors show first)</span></label>
+            <input id="exp-vendor" type="text" placeholder="Start typing… e.g. Not" autocomplete="off" required />
             <div class="autocomplete-list" id="exp-vendor-list"></div>
           </div>
           <div>
@@ -654,17 +713,6 @@
             <label>Filter month</label>
             <select id="exp-filter-month"></select>
           </div>
-          <div>
-            <label>Category</label>
-            <select id="exp-filter-category">
-              <option value="">All categories</option>
-              <option value="Base Software">Base Software</option>
-              <option value="LinkedIn Channel">LinkedIn Channel</option>
-              <option value="Email Channel">Email Channel</option>
-              <option value="SMS">SMS</option>
-              <option value="One off">One off</option>
-            </select>
-          </div>
           <div class="grow">
             <label>Search vendor</label>
             <input id="exp-filter-search" type="text" placeholder="type to filter" />
@@ -674,7 +722,7 @@
             <button id="exp-export-btn" class="ghost small">Export CSV</button>
           </div>
         </div>
-        <div id="expenses-table-wrap"></div>
+        <div id="expenses-buckets-wrap"></div>
       </div>
     </section>
 
@@ -888,9 +936,11 @@
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
-          <div>
-            <label>Link vendor (optional)</label>
-            <select id="task-vendor"><option value="">— none —</option></select>
+          <div class="autocomplete">
+            <label>Link vendor (optional — type to search)</label>
+            <input id="task-vendor-input" type="text" placeholder="Start typing…" autocomplete="off" />
+            <input id="task-vendor" type="hidden" value="" />
+            <div class="autocomplete-list" id="task-vendor-list"></div>
           </div>
           <div>
             <label>Action</label>
@@ -1075,6 +1125,7 @@ const BACKFILL = {"months":{"2026-01":{"revenue":34339.53,"merchantFees":0,"sala
 const STORAGE_KEY = 'businessDashboard_v2';
 const DEFAULT_TARGETS = {
   gmPct: 60, nmPct: 25, taxPct: 15, cashMonths: 3,
+  founderTaxPct: 20,
   refundPctMax: 10, overheadPctMax: 20,
   ltvCacDouble: 3, ltvCacMaintain: 2,
   paybackDouble: 3, paybackCut: 6,
@@ -1122,6 +1173,7 @@ function makeInitialState() {
       commissionsTotal: m.commissionsTotal || 0,
       referralPayoutsTotal: m.referralPayoutsTotal || 0,
       refundsTotal: m.refundsTotal || 0,
+      founderComp: 0,
       taxPct: m.taxPct ?? 15,
       newClients: 0,
       activeClients: 0,
@@ -1164,7 +1216,14 @@ function loadState() {
       s.business = { ...structuredClone(DEFAULT_BUSINESS), ...s.business };
       s.business.banks = { ...DEFAULT_BUSINESS.banks, ...(s.business.banks || {}) };
     }
-    s.team.forEach(t => { if (t.monthlySalary == null) t.monthlySalary = 0; });
+    s.team.forEach(t => {
+      if (t.monthlySalary == null) t.monthlySalary = 0;
+      if (t.commissionAmount == null) t.commissionAmount = 0;
+      delete t.commissionPct;  // old field, replaced with cash amount
+    });
+    // Founder comp fields per month
+    Object.values(s.months || {}).forEach(m => { if (m.founderComp == null) m.founderComp = 0; });
+    if (s.targets.founderTaxPct == null) s.targets.founderTaxPct = 20;
     return s;
   } catch (e) {
     console.error('loadState failed:', e);
@@ -1296,6 +1355,9 @@ function calcMonth(monthId) {
   const overheadPct = adjRev > 0 ? (overheadCosts / adjRev) * 100 : 0;
   const refundPct = (m.revenue > 0) ? (refundsTotal / m.revenue) * 100 : 0;
   const taxReserve = Math.max(0, netProfit) * (m.taxPct || 0) / 100;
+  const founderComp = m.founderComp || 0;
+  const founderTaxReserve = founderComp * (state.targets.founderTaxPct || 0) / 100;
+  const totalToSetAside = taxReserve + founderTaxReserve;
   const cacOverall = m.newClients > 0 ? marketingCosts / m.newClients : null;
   const avgGpPerClient = m.activeClients > 0 ? grossProfit / m.activeClients : null;
   const churnRate = m.activeClients > 0 ? (m.churnedClients / m.activeClients) * 100 : 0;
@@ -1306,6 +1368,7 @@ function calcMonth(monthId) {
     grossMarginPct, netMarginPct,
     marketingCosts, deliveryCosts, overheadCosts, totalExpenses,
     refundsTotal, refundPct, overheadPct, taxReserve,
+    founderComp, founderTaxReserve, totalToSetAside,
     categories: cat,
     cacOverall, avgGpPerClient, churnRate,
     raw: m,
@@ -1451,10 +1514,20 @@ function renderOverview() {
       </div>
       <div class="kpi">
         <div class="lbl">Cash to set aside</div>
-        <div class="val warn">${money(c.taxReserve)}</div>
-        <div class="sub">${c.raw.taxPct}% of net profit (tax)</div>
+        <div class="val warn">${money(c.totalToSetAside)}</div>
+        <div class="sub">${money(c.taxReserve)} corp tax + ${money(c.founderTaxReserve)} founder tax</div>
       </div>
     </div>
+
+    ${(c.founderComp > 0 || c.founderTaxReserve > 0) ? `
+    <div class="card">
+      <h3>Founder compensation — ${fmtMonth(monthId)}</h3>
+      <div class="grid grid-3">
+        <div class="kpi"><div class="lbl">Draw / salary</div><div class="val">${money(c.founderComp)}</div></div>
+        <div class="kpi"><div class="lbl">Tax due (${state.targets.founderTaxPct}%)</div><div class="val warn">${money(c.founderTaxReserve)}</div></div>
+        <div class="kpi"><div class="lbl">Net to you after tax</div><div class="val good">${money(c.founderComp - c.founderTaxReserve)}</div></div>
+      </div>
+    </div>` : ''}
 
     <div class="card">
       <h3>Where the money went — ${fmtMonth(monthId)}</h3>
@@ -1550,54 +1623,101 @@ function renderTrendChart(points, color, color2) {
 }
 
 // ---------- Expenses ----------
-let expenseSortField = 'date';
-let expenseSortDir = -1;
+const CATEGORY_ORDER = ['Base Software', 'LinkedIn Channel', 'Email Channel', 'SMS', 'One off'];
+const expandedCats = new Set();  // remember which buckets are open
 
 function renderExpenses() {
-  renderRecurringQuickAdd();
-  renderExpensesTable();
-  document.getElementById('qa-month-label').textContent = fmtMonth(state.meta.activeMonth);
-  // pre-fill date in form to today (or first of active month if no today)
+  renderExpenseBuckets();
+  // pre-fill date in form to today
   const dateInput = document.getElementById('exp-date');
   if (!dateInput.value) dateInput.value = isoDate(new Date());
 }
 
-function renderRecurringQuickAdd() {
-  const monthId = state.meta.activeMonth;
-  const entered = new Set(expensesForMonth(monthId).map(e => `${e.vendor}__${e.category}`));
-  const recurring = state.vendors.filter(v => v.recurring);
-  const wrap = document.getElementById('recurring-quick-add');
-  const emptyHelp = document.getElementById('qa-empty-help');
-  if (!recurring.length) {
-    wrap.innerHTML = '';
-    emptyHelp.style.display = 'block';
-    emptyHelp.textContent = 'No recurring vendors yet — mark vendors as recurring on the Vendors page.';
+function renderExpenseBuckets() {
+  const filterMonth = document.getElementById('exp-filter-month').value;
+  const search = document.getElementById('exp-filter-search').value.trim().toLowerCase();
+  let rows = state.expenses.slice();
+  if (filterMonth) rows = rows.filter(e => (e.month || monthOf(e.date)) === filterMonth);
+  if (search) rows = rows.filter(e => e.vendor.toLowerCase().includes(search));
+
+  // Bucket by category
+  const buckets = {};
+  CATEGORY_ORDER.forEach(c => { buckets[c] = { total: 0, count: 0, vendors: {} }; });
+  rows.forEach(e => {
+    const b = buckets[e.category] || (buckets[e.category] = { total: 0, count: 0, vendors: {} });
+    b.total += e.amount;
+    b.count++;
+    const key = e.vendor;
+    if (!b.vendors[key]) b.vendors[key] = { total: 0, count: 0, items: [] };
+    b.vendors[key].total += e.amount;
+    b.vendors[key].count++;
+    b.vendors[key].items.push(e);
+  });
+
+  const wrap = document.getElementById('expenses-buckets-wrap');
+  const grandTotal = Object.values(buckets).reduce((s, b) => s + b.total, 0);
+  const grandCount = Object.values(buckets).reduce((s, b) => s + b.count, 0);
+  if (!grandCount) {
+    wrap.innerHTML = '<div class="empty"><h3>No expenses match</h3><p>Clear filters or add a new expense above.</p></div>';
     return;
   }
-  const chips = recurring.map(v => {
-    const isAdded = entered.has(`${v.name}__${v.category}`);
-    return `<div class="recurring-chip ${isAdded ? 'added' : ''}" data-vendor-id="${v.id}">
-      <span class="name" title="${escapeHtml(v.name)}">${escapeHtml(v.name)}</span>
-      <span class="amt">${money(v.typicalAmount)}${isAdded ? ' ✓' : ''}</span>
-    </div>`;
-  }).join('');
-  wrap.innerHTML = chips;
-  const allAdded = recurring.every(v => entered.has(`${v.name}__${v.category}`));
-  emptyHelp.style.display = allAdded ? 'block' : 'none';
-  if (allAdded) emptyHelp.textContent = 'All recurring vendors are already entered for this month.';
-
-  wrap.querySelectorAll('.recurring-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      if (chip.classList.contains('added')) return;
-      const v = state.vendors.find(x => x.id === chip.dataset.vendorId);
-      if (!v) return;
-      // add an expense dated today (or 1st of selected month)
-      const d = new Date();
-      const monthDate = state.meta.activeMonth === isoMonth(d) ? isoDate(d) : `${state.meta.activeMonth}-01`;
-      state.expenses.push({
-        id: uid(), date: monthDate, vendor: v.name, category: v.category,
-        amount: v.typicalAmount, month: state.meta.activeMonth,
-      });
+  const monthLabel = filterMonth ? fmtMonth(filterMonth) : 'all months';
+  wrap.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--surface-2);border-radius:6px">
+      <div style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600">${monthLabel} total · ${grandCount} items</div>
+      <div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">${money(grandTotal)}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${CATEGORY_ORDER.map(cat => {
+        const b = buckets[cat];
+        if (!b || b.count === 0) return '';
+        const widthPct = grandTotal > 0 ? (b.total / grandTotal) * 100 : 0;
+        const isOpen = expandedCats.has(cat);
+        const vendors = Object.entries(b.vendors).sort((a, b) => b[1].total - a[1].total);
+        return `<div class="bucket" data-cat="${cat}">
+          <button type="button" class="bucket-head" data-act="toggle-bucket">
+            <span class="bucket-name"><span class="pill ${catClass(cat)}">${cat}</span> <span style="color:var(--muted)">${b.count} items · ${vendors.length} vendor${vendors.length === 1 ? '' : 's'}</span></span>
+            <div class="bucket-bar"><div class="bucket-fill" style="width:${widthPct.toFixed(1)}%;background:var(--accent)"></div></div>
+            <span class="bucket-total">${money(b.total)} <span style="color:var(--muted-2);font-size:11px">${widthPct.toFixed(0)}%</span></span>
+            <span class="bucket-caret">${isOpen ? '▾' : '▸'}</span>
+          </button>
+          ${isOpen ? `<div class="bucket-body">
+            ${vendors.map(([vName, vData]) => `<div class="vendor-row">
+              <div class="vrow-name">${escapeHtml(vName)}</div>
+              <div class="vrow-meta">${vData.count}× · ${fmtDate(vData.items.sort((a,b)=>b.date.localeCompare(a.date))[0].date)} most recent</div>
+              <div class="vrow-total">${money(vData.total)}</div>
+              <details class="vrow-items">
+                <summary>${vData.count > 1 ? `Show ${vData.count} items` : 'Show'}</summary>
+                <table style="margin-top:4px">
+                  <tbody>
+                    ${vData.items.sort((a,b)=>b.date.localeCompare(a.date)).map(e => `<tr data-id="${e.id}">
+                      <td style="width:90px">${fmtDate(e.date)}</td>
+                      <td>${escapeHtml(e.vendor)}</td>
+                      <td class="num">${money(e.amount)}</td>
+                      <td class="actions"><button class="small ghost" data-act="del-expense">×</button></td>
+                    </tr>`).join('')}
+                  </tbody>
+                </table>
+              </details>
+            </div>`).join('')}
+          </div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+  wrap.querySelectorAll('button[data-act="toggle-bucket"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.closest('.bucket').dataset.cat;
+      if (expandedCats.has(cat)) expandedCats.delete(cat); else expandedCats.add(cat);
+      renderExpenseBuckets();
+    });
+  });
+  wrap.querySelectorAll('button[data-act="del-expense"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.closest('tr').dataset.id;
+      if (!confirm('Delete this expense?')) return;
+      state.expenses = state.expenses.filter(x => x.id !== id);
       saveState();
       renderExpenses();
       renderOverviewIfActive();
@@ -1605,75 +1725,52 @@ function renderRecurringQuickAdd() {
   });
 }
 
-function renderExpensesTable() {
-  const filterMonth = document.getElementById('exp-filter-month').value;
-  const filterCat = document.getElementById('exp-filter-category').value;
-  const search = document.getElementById('exp-filter-search').value.trim().toLowerCase();
-  let rows = state.expenses.slice();
-  if (filterMonth) rows = rows.filter(e => (e.month || monthOf(e.date)) === filterMonth);
-  if (filterCat) rows = rows.filter(e => e.category === filterCat);
-  if (search) rows = rows.filter(e => e.vendor.toLowerCase().includes(search));
-  rows.sort((a, b) => {
-    const dir = expenseSortDir;
-    const fa = a[expenseSortField], fb = b[expenseSortField];
-    if (fa === fb) return 0;
-    return fa < fb ? -dir : dir;
-  });
-  const total = rows.reduce((s, e) => s + e.amount, 0);
-
-  const wrap = document.getElementById('expenses-table-wrap');
-  if (!rows.length) {
-    wrap.innerHTML = '<div class="empty"><h3>No expenses match</h3><p>Try clearing filters or add a new expense above.</p></div>';
-    return;
+// Generic vendor picker: text input + hidden value input that holds vendor id.
+// Lets user clear by emptying the field. Recurring vendors shown first when empty.
+function setupVendorAutocomplete(inputId, hiddenId, listId) {
+  const input = document.getElementById(inputId);
+  const hidden = document.getElementById(hiddenId);
+  const list = document.getElementById(listId);
+  if (!input || !hidden || !list) return;
+  let activeIdx = -1, candidates = [];
+  function update() {
+    const q = input.value.trim().toLowerCase();
+    if (!q) {
+      candidates = state.vendors.filter(v => v.recurring).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 12);
+    } else {
+      candidates = state.vendors.filter(v => v.name.toLowerCase().includes(q)).slice(0, 12);
+    }
+    if (!candidates.length) { list.classList.remove('open'); return; }
+    list.innerHTML = (q ? '' : `<div class="ac-header">Recurring vendors</div>`) +
+      candidates.map((v, i) =>
+        `<div class="item ${i===activeIdx?'active':''}" data-i="${i}">
+          <span>${escapeHtml(v.name)} <span class="meta">${v.category}</span></span>
+        </div>`).join('');
+    list.classList.add('open');
+    list.querySelectorAll('.item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); pick(parseInt(el.dataset.i, 10)); });
+    });
   }
-  wrap.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th data-sort="date" class="${expenseSortField==='date' ? (expenseSortDir>0?'sort-asc':'sort-desc') : ''}">Date</th>
-          <th data-sort="vendor" class="${expenseSortField==='vendor' ? (expenseSortDir>0?'sort-asc':'sort-desc') : ''}">Vendor</th>
-          <th data-sort="category" class="${expenseSortField==='category' ? (expenseSortDir>0?'sort-asc':'sort-desc') : ''}">Category</th>
-          <th data-sort="amount" class="num ${expenseSortField==='amount' ? (expenseSortDir>0?'sort-asc':'sort-desc') : ''}">Amount</th>
-          <th class="actions"></th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map(e => `
-          <tr data-id="${e.id}">
-            <td>${fmtDate(e.date)}</td>
-            <td>${escapeHtml(e.vendor)}</td>
-            <td><span class="pill ${catClass(e.category)}">${e.category}</span></td>
-            <td class="num">${money(e.amount)}</td>
-            <td class="actions"><button class="small ghost" data-act="del-expense">Delete</button></td>
-          </tr>
-        `).join('')}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3" style="text-align:right;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.4px">Total (${rows.length})</td>
-          <td class="num" style="font-weight:700;font-size:14px">${money(total)}</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
-  `;
-  wrap.querySelectorAll('th[data-sort]').forEach(th => {
-    th.addEventListener('click', () => {
-      const f = th.dataset.sort;
-      if (expenseSortField === f) expenseSortDir = -expenseSortDir;
-      else { expenseSortField = f; expenseSortDir = (f === 'amount' || f === 'date') ? -1 : 1; }
-      renderExpensesTable();
-    });
+  function pick(i) {
+    const v = candidates[i];
+    if (!v) return;
+    input.value = v.name;
+    hidden.value = v.id;
+    list.classList.remove('open');
+  }
+  input.addEventListener('input', () => {
+    activeIdx = -1;
+    if (!input.value.trim()) hidden.value = '';  // clearing input clears link
+    update();
   });
-  wrap.querySelectorAll('button[data-act="del-expense"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.closest('tr').dataset.id;
-      if (!confirm('Delete this expense?')) return;
-      state.expenses = state.expenses.filter(e => e.id !== id);
-      saveState();
-      renderExpenses();
-      renderOverviewIfActive();
-    });
+  input.addEventListener('focus', update);
+  input.addEventListener('blur', () => setTimeout(() => list.classList.remove('open'), 150));
+  input.addEventListener('keydown', e => {
+    if (!candidates.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx+1, candidates.length-1); update(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx-1, 0); update(); }
+    else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); pick(activeIdx); }
+    else if (e.key === 'Escape') { list.classList.remove('open'); }
   });
 }
 
@@ -1687,13 +1784,30 @@ function setupExpenseAutocomplete() {
 
   function update() {
     const q = input.value.trim().toLowerCase();
-    candidates = state.vendors.filter(v => v.name.toLowerCase().includes(q)).slice(0, 12);
-    if (!q || !candidates.length) { list.classList.remove('open'); return; }
-    list.innerHTML = candidates.map((v, i) =>
-      `<div class="item ${i===activeIdx?'active':''}" data-i="${i}">
-        <span>${escapeHtml(v.name)} <span class="meta">${v.category}</span></span>
-        <span class="meta">${money(v.typicalAmount)}</span>
-      </div>`).join('');
+    const monthId = state.meta.activeMonth;
+    const entered = new Set(expensesForMonth(monthId).map(e => `${e.vendor}__${e.category}`));
+    if (!q) {
+      // No query: suggest recurring vendors not yet in active month
+      candidates = state.vendors
+        .filter(v => v.recurring && !entered.has(`${v.name}__${v.category}`))
+        .sort((a, b) => b.typicalAmount - a.typicalAmount)
+        .slice(0, 12);
+      if (!candidates.length) { list.classList.remove('open'); return; }
+      list.innerHTML = `<div class="ac-header">Recurring · not yet in ${fmtMonth(monthId)}</div>` +
+        candidates.map((v, i) =>
+          `<div class="item ${i===activeIdx?'active':''}" data-i="${i}">
+            <span><b>${escapeHtml(v.name)}</b> <span class="meta">${v.category}</span></span>
+            <span class="meta">${money(v.typicalAmount)}</span>
+          </div>`).join('');
+    } else {
+      candidates = state.vendors.filter(v => v.name.toLowerCase().includes(q)).slice(0, 12);
+      if (!candidates.length) { list.classList.remove('open'); return; }
+      list.innerHTML = candidates.map((v, i) =>
+        `<div class="item ${i===activeIdx?'active':''}" data-i="${i}">
+          <span>${escapeHtml(v.name)} <span class="meta">${v.category}</span></span>
+          <span class="meta">${money(v.typicalAmount)}</span>
+        </div>`).join('');
+    }
     list.classList.add('open');
     list.querySelectorAll('.item').forEach(el => {
       el.addEventListener('mousedown', e => { e.preventDefault(); pick(parseInt(el.dataset.i, 10)); });
@@ -1710,7 +1824,7 @@ function setupExpenseAutocomplete() {
   }
   input.addEventListener('input', () => { activeIdx = -1; update(); });
   input.addEventListener('focus', update);
-  input.addEventListener('blur', () => setTimeout(() => list.classList.remove('open'), 100));
+  input.addEventListener('blur', () => setTimeout(() => list.classList.remove('open'), 150));
   input.addEventListener('keydown', e => {
     if (!candidates.length) return;
     if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx+1, candidates.length-1); update(); }
@@ -1737,9 +1851,10 @@ function renderRevenue() {
     ['merchantFees', 'Merchant / Stripe fees', '£'],
     ['salariesTotal', 'Team salaries — fixed pay', '£'],
     ['commissionsTotal', 'Setter & sales commissions', '£'],
+    ['founderComp', 'Founder compensation (your draw / salary)', '£'],
     ['referralPayoutsTotal', 'Referral payouts', '£'],
     ['refundsTotal', 'Refunds (override — defaults to sum from Refunds page)', '£'],
-    ['taxPct', 'Tax % (for set-aside)', '%'],
+    ['taxPct', 'Corporate tax % (for set-aside)', '%'],
   ];
   const clientFields = [
     ['newClients', 'New clients this month'],
@@ -1938,38 +2053,93 @@ function renderDaily() {
     wrap.innerHTML = '<div class="empty"><h3>No expenses in range</h3></div>';
     return;
   }
+  // Compute trend (3-bucket trailing average)
+  const avg = totalRange / Math.max(1, keys.length);
+  // For trend indicator: compare first half avg vs second half avg
+  const half = Math.floor(keys.length / 2);
+  const firstAvg = half > 0 ? keys.slice(0, half).reduce((s, k) => s + groups[k].total, 0) / half : 0;
+  const secondAvg = (keys.length - half) > 0 ? keys.slice(half).reduce((s, k) => s + groups[k].total, 0) / (keys.length - half) : 0;
+  const trendPct = firstAvg > 0 ? ((secondAvg - firstAvg) / firstAvg) * 100 : 0;
+  const trendUp = trendPct > 0;
+  const trendCls = trendPct > 5 ? 'bad' : trendPct < -5 ? 'good' : 'warn';
+
   wrap.innerHTML = `
-    <div class="grid grid-3" style="margin-bottom:14px">
-      <div class="kpi"><div class="lbl">Total in range</div><div class="val">${money(totalRange)}</div><div class="sub">${exps.length} items</div></div>
-      <div class="kpi"><div class="lbl">${bucket === 'day' ? 'Per day' : bucket === 'week' ? 'Per week' : 'Per month'} avg</div><div class="val">${money(totalRange / Math.max(1, keys.length))}</div></div>
-      <div class="kpi"><div class="lbl">Highest bucket</div><div class="val">${money(maxBucket)}</div></div>
+    <div class="grid grid-4" style="margin-bottom:18px">
+      <div class="kpi"><div class="lbl">Total spend</div><div class="val">${money(totalRange)}</div><div class="sub">${exps.length} items</div></div>
+      <div class="kpi"><div class="lbl">${bucket === 'day' ? 'Per day' : bucket === 'week' ? 'Per week' : 'Per month'} avg</div><div class="val">${money(avg)}</div></div>
+      <div class="kpi"><div class="lbl">Peak ${bucket}</div><div class="val">${money(maxBucket)}</div></div>
+      <div class="kpi"><div class="lbl">Trend</div><div class="val ${trendCls}">${trendUp ? '↑' : trendPct < 0 ? '↓' : '→'} ${Math.abs(trendPct).toFixed(0)}%</div><div class="sub">2nd half vs 1st</div></div>
     </div>
-    <table>
-      <thead><tr><th>${bucket === 'day' ? 'Day' : bucket === 'week' ? 'Week' : 'Month'}</th><th class="num">Items</th><th class="num">Total</th><th>By category</th></tr></thead>
+    ${renderDailyChart(keys, groups, bucket, bucketLabel)}
+    <table style="margin-top:18px">
+      <thead><tr><th>${bucket === 'day' ? 'Day' : bucket === 'week' ? 'Week' : 'Month'}</th><th class="num">Items</th><th>Top category</th><th class="num">Total</th></tr></thead>
       <tbody>
-        ${keys.map(k => {
+        ${keys.slice().reverse().map(k => {
           const g = groups[k];
-          const bars = Object.entries(g.byCat).sort((a,b) => b[1]-a[1]).map(([cat, val]) =>
-            `<span class="pill ${catClass(cat)}" title="${cat}: ${money(val)}">${cat.split(' ')[0]} ${moneyShort(val)}</span>`
-          ).join(' ');
-          const widthPct = (g.total / maxBucket) * 100;
+          const topCat = Object.entries(g.byCat).sort((a,b) => b[1]-a[1])[0];
           return `<tr>
             <td>${bucketLabel(k)}</td>
-            <td class="num">${g.count}</td>
-            <td class="num">
-              <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
-                <div style="background:var(--surface-2);width:80px;height:6px;border-radius:3px;overflow:hidden">
-                  <div style="background:var(--accent);height:100%;width:${widthPct}%"></div>
-                </div>
-                ${money(g.total)}
-              </div>
-            </td>
-            <td>${bars}</td>
+            <td class="num" style="color:var(--muted)">${g.count}</td>
+            <td>${topCat ? `<span class="pill ${catClass(topCat[0])}">${topCat[0]}</span> <span style="color:var(--muted);font-size:11px">${money(topCat[1])}</span>` : '—'}</td>
+            <td class="num" style="font-weight:600">${money(g.total)}</td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>
   `;
+}
+
+// Big stacked-bar chart by bucket, color-coded by category
+function renderDailyChart(keys, groups, bucket, bucketLabel) {
+  if (!keys.length) return '';
+  const w = 900, h = 220;
+  const padL = 40, padR = 10, padT = 16, padB = 36;
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
+  const max = Math.max(...keys.map(k => groups[k].total)) || 1;
+  const niceMax = Math.ceil(max / 100) * 100;
+  const barW = Math.min(innerW / keys.length - 4, 60);
+  const xStep = innerW / keys.length;
+  const colors = {
+    'Base Software': '#58a6ff',
+    'LinkedIn Channel': '#d2a8ff',
+    'Email Channel': '#79c0ff',
+    'SMS': '#ffa657',
+    'One off': '#f0883e',
+  };
+  // y axis ticks
+  const ticks = [0, niceMax * 0.25, niceMax * 0.5, niceMax * 0.75, niceMax];
+  // label every Nth bucket if many
+  const labelStep = Math.max(1, Math.ceil(keys.length / 12));
+  const cats = CATEGORY_ORDER;
+  const bars = keys.map((k, i) => {
+    const g = groups[k];
+    const x = padL + i * xStep + (xStep - barW) / 2;
+    let yAcc = padT + innerH;
+    return cats.map(cat => {
+      const v = g.byCat[cat] || 0;
+      if (v === 0) return '';
+      const hSeg = (v / niceMax) * innerH;
+      yAcc -= hSeg;
+      return `<rect x="${x.toFixed(1)}" y="${yAcc.toFixed(1)}" width="${barW.toFixed(1)}" height="${hSeg.toFixed(1)}" fill="${colors[cat] || '#888'}" opacity="0.9"><title>${cat}: ${money(v)}</title></rect>`;
+    }).join('') + `<text x="${(x + barW/2).toFixed(1)}" y="${(padT + innerH - g.total/niceMax * innerH - 4).toFixed(1)}" text-anchor="middle" fill="var(--text)" font-size="10" font-weight="600">${moneyShort(g.total)}</text>`;
+  }).join('');
+  const xLabels = keys.map((k, i) => i % labelStep === 0 ? `<text x="${(padL + i * xStep + xStep/2).toFixed(1)}" y="${h - 14}" text-anchor="middle" fill="var(--muted)" font-size="10">${bucketLabel(k).replace('Week of ', '')}</text>` : '').join('');
+  const gridLines = ticks.map(t => {
+    const y = padT + innerH - (t / niceMax) * innerH;
+    return `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="var(--border-soft)" stroke-dasharray="2,3" />
+            <text x="${padL - 6}" y="${y + 3}" text-anchor="end" fill="var(--muted-2)" font-size="9">${moneyShort(t)}</text>`;
+  }).join('');
+  // legend
+  const legend = cats.map(cat => `<span style="font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:4px;margin-right:14px"><span style="width:10px;height:10px;background:${colors[cat]};border-radius:2px;display:inline-block"></span>${cat}</span>`).join('');
+  return `<div style="background:var(--surface-2);border-radius:8px;padding:14px 16px">
+    <div style="margin-bottom:8px">${legend}</div>
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:220px">
+      ${gridLines}
+      ${bars}
+      ${xLabels}
+    </svg>
+  </div>`;
 }
 
 // ---------- Projections ----------
@@ -2198,16 +2368,14 @@ function renderVendors() {
 }
 
 // ---------- Team ----------
-// Compute pay for the active month
+// Compute pay for the active month — commissions are flat £ amounts per person
 function calcTeamPayForMonth(monthId) {
-  const m = state.months[monthId];
-  const rev = m ? m.revenue || 0 : 0;
   let salaries = 0, commissions = 0;
   const breakdown = [];
   state.team.forEach(t => {
     if (t.active === false) return;
     const sal = t.monthlySalary || 0;
-    const com = (t.commissionPct || 0) > 0 ? rev * (t.commissionPct / 100) : 0;
+    const com = t.commissionAmount || 0;
     salaries += sal;
     commissions += com;
     if (sal || com) breakdown.push({ name: t.name, role: t.role, sal, com, total: sal + com });
@@ -2224,12 +2392,10 @@ function renderTeam() {
   const sorted = state.team.slice().sort((a,b) => a.name.localeCompare(b.name));
   const pay = calcTeamPayForMonth(state.meta.activeMonth);
   const monthLabel = fmtMonth(state.meta.activeMonth);
-  const monthRev = (state.months[state.meta.activeMonth] || {}).revenue || 0;
-
   wrap.innerHTML = `
     <div class="grid grid-3" style="margin-bottom:14px">
       <div class="kpi"><div class="lbl">Salaries / mo</div><div class="val">${money(pay.salaries)}</div></div>
-      <div class="kpi"><div class="lbl">Commissions (${monthLabel})</div><div class="val">${money(pay.commissions)}</div><div class="sub">at ${money(monthRev)} revenue</div></div>
+      <div class="kpi"><div class="lbl">Commissions / mo</div><div class="val">${money(pay.commissions)}</div></div>
       <div class="kpi"><div class="lbl">Total pay (${monthLabel})</div><div class="val">${money(pay.total)}</div><div class="sub">${sorted.filter(t => t.active !== false).length} active</div></div>
     </div>
     <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
@@ -2242,20 +2408,20 @@ function renderTeam() {
       <thead><tr>
         <th>Name</th><th>Role</th>
         <th class="num">Monthly salary (£)</th>
-        <th class="num">Commission %</th>
-        <th class="num">This month £</th>
+        <th class="num">Commission (£)</th>
+        <th class="num">Total / mo</th>
         <th>Active</th>
         <th class="actions"></th>
       </tr></thead>
       <tbody>
         ${sorted.map(t => {
           const sal = t.monthlySalary || 0;
-          const com = (t.commissionPct || 0) > 0 ? monthRev * (t.commissionPct / 100) : 0;
+          const com = t.commissionAmount || 0;
           return `<tr data-id="${t.id}">
             <td><input type="text" data-tfield="name" value="${escapeHtml(t.name)}" style="padding:4px 6px;font-size:13px" /></td>
             <td><input type="text" data-tfield="role" value="${escapeHtml(t.role || '')}" placeholder="e.g. SALES REP" style="padding:4px 6px;font-size:13px" /></td>
             <td class="num"><input type="number" step="0.01" min="0" data-tfield="monthlySalary" value="${sal}" style="padding:4px 6px;font-size:13px;width:100px;text-align:right" /></td>
-            <td class="num"><input type="number" step="0.1" min="0" data-tfield="commissionPct" value="${t.commissionPct || 0}" placeholder="0" style="padding:4px 6px;font-size:13px;width:70px;text-align:right" /></td>
+            <td class="num"><input type="number" step="0.01" min="0" data-tfield="commissionAmount" value="${com}" placeholder="0" style="padding:4px 6px;font-size:13px;width:100px;text-align:right" /></td>
             <td class="num" style="color:var(--muted);font-size:12px">${money(sal + com)}</td>
             <td><input type="checkbox" data-tfield="active" ${t.active !== false ? 'checked' : ''} style="width:auto" /></td>
             <td class="actions"><button class="small ghost" data-act="del-team">×</button></td>
@@ -2263,7 +2429,7 @@ function renderTeam() {
         }).join('')}
       </tbody>
     </table>
-    <div class="help" style="margin-top:10px">Commission % is applied to the active month's <b>revenue</b>. Set 0 for salary-only roles. Set salary to 0 for commission-only roles.</div>
+    <div class="help" style="margin-top:10px">Both are flat £ amounts. Salary-only? Leave commission at 0. Commission-only? Leave salary at 0. Edit the cash number for each person here, then click <b>Apply both</b> to push to the active month.</div>
   `;
   document.getElementById('team-sync-all').addEventListener('click', () => {
     const m = currentMonth(); if (!m) return alert('No active month');
@@ -2294,7 +2460,7 @@ function renderTeam() {
       el.addEventListener('change', () => {
         const k = el.dataset.tfield;
         if (k === 'active') t[k] = el.checked;
-        else if (k === 'monthlySalary' || k === 'commissionPct') t[k] = parseFloat(el.value) || 0;
+        else if (k === 'monthlySalary' || k === 'commissionAmount') t[k] = parseFloat(el.value) || 0;
         else t[k] = el.value;
         saveState();
         if (k !== 'name' && k !== 'role') renderTeam();
@@ -2316,12 +2482,6 @@ function renderTasks() {
   const grouped = {};
   TASK_STATUSES.forEach(s => { grouped[s.id] = []; });
   state.tasks.forEach(t => { (grouped[t.status] || (grouped[t.status] = [])).push(t); });
-  // populate vendor select in form
-  const vsel = document.getElementById('task-vendor');
-  if (vsel) {
-    const sorted = state.vendors.slice().sort((a,b) => a.name.localeCompare(b.name));
-    vsel.innerHTML = '<option value="">— none —</option>' + sorted.map(v => `<option value="${v.id}">${escapeHtml(v.name)} (${v.category})</option>`).join('');
-  }
   board.innerHTML = TASK_STATUSES.map(s => {
     const items = grouped[s.id] || [];
     return `<div class="kanban-column" data-status="${s.id}">
@@ -2690,7 +2850,8 @@ function renderSettings() {
   const fields = [
     ['gmPct', 'Gross margin target (%)'],
     ['nmPct', 'Net margin target (%)'],
-    ['taxPct', 'Default tax % (set-aside)'],
+    ['taxPct', 'Default corporate tax % (set-aside)'],
+    ['founderTaxPct', 'Founder personal tax % (on draws/comp)'],
     ['cashMonths', 'Cash reserve target (× overhead)'],
     ['refundPctMax', 'Max refund rate alert (%)'],
     ['overheadPctMax', 'Max overhead/rev alert (%)'],
@@ -2747,7 +2908,7 @@ function addMonth() {
   if (state.months[input]) { alert('That month already exists'); return; }
   state.months[input] = {
     revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0,
-    referralPayoutsTotal: 0, refundsTotal: 0, taxPct: 15,
+    referralPayoutsTotal: 0, refundsTotal: 0, founderComp: 0, taxPct: 15,
     newClients: 0, activeClients: 0, churnedClients: 0,
   };
   state.meta.activeMonth = input;
@@ -2860,10 +3021,9 @@ function wireUp() {
   });
   document.getElementById('exp-filter-month').addEventListener('change', e => {
     e.target.dataset.value = e.target.value;
-    renderExpensesTable();
+    renderExpenseBuckets();
   });
-  document.getElementById('exp-filter-category').addEventListener('change', renderExpensesTable);
-  document.getElementById('exp-filter-search').addEventListener('input', debounce(renderExpensesTable, 200));
+  document.getElementById('exp-filter-search').addEventListener('input', debounce(renderExpenseBuckets, 200));
   document.getElementById('exp-export-btn').addEventListener('click', exportExpensesCsv);
 
   // Refund form
@@ -2936,7 +3096,7 @@ function wireUp() {
     };
     state.months[state.meta.activeMonth] = {
       revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0,
-      referralPayoutsTotal: 0, refundsTotal: 0, taxPct: 15,
+      referralPayoutsTotal: 0, refundsTotal: 0, founderComp: 0, taxPct: 15,
       newClients: 0, activeClients: 0, churnedClients: 0,
     };
     saveState();
@@ -2944,6 +3104,7 @@ function wireUp() {
   });
 
   // ---- Tasks (Kanban) ----
+  setupVendorAutocomplete('task-vendor-input', 'task-vendor', 'task-vendor-list');
   document.getElementById('task-add-btn').addEventListener('click', () => {
     document.getElementById('task-form-card').style.display = 'block';
     document.getElementById('task-title').focus();
@@ -2951,6 +3112,8 @@ function wireUp() {
   document.getElementById('task-form-cancel').addEventListener('click', () => {
     document.getElementById('task-form-card').style.display = 'none';
     document.getElementById('task-form').reset();
+    document.getElementById('task-vendor').value = '';
+    document.getElementById('task-vendor-input').value = '';
   });
   document.getElementById('task-form').addEventListener('submit', e => {
     e.preventDefault();
@@ -2966,6 +3129,8 @@ function wireUp() {
     });
     saveState();
     document.getElementById('task-form').reset();
+    document.getElementById('task-vendor').value = '';
+    document.getElementById('task-vendor-input').value = '';
     document.getElementById('task-form-card').style.display = 'none';
     renderTasks();
     updateNavCounts();
