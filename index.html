@@ -1436,17 +1436,13 @@ function renderOverview() {
     return `<div class="sub" style="color:var(--${d >= 0 ? 'good' : 'bad'})">${d >= 0 ? '+' : ''}${pctC.toFixed(1)}% vs ${fmtMonthShort(ids[idx-1])}</div>`;
   }
   const aggregates3 = calcAggregates(ids.slice(-3));
+  // The 3 numbers that matter most, big and clean
   const html = `
-    <div class="grid grid-4">
+    <div class="grid grid-3">
       <div class="kpi">
-        <div class="lbl">Adjusted Revenue</div>
+        <div class="lbl">Revenue</div>
         <div class="val">${money(c.adjRev)}</div>
         ${prev ? delta(c.adjRev, prev.adjRev) : ''}
-      </div>
-      <div class="kpi">
-        <div class="lbl">Gross Profit</div>
-        <div class="val ${c.grossProfit >= 0 ? 'good' : 'bad'}">${money(c.grossProfit)}</div>
-        <div class="sub">${pct(c.grossMarginPct)} margin</div>
       </div>
       <div class="kpi">
         <div class="lbl">Net Profit</div>
@@ -1454,124 +1450,101 @@ function renderOverview() {
         <div class="sub">${pct(c.netMarginPct)} margin</div>
       </div>
       <div class="kpi">
-        <div class="lbl">Total Expenses</div>
-        <div class="val">${money(c.totalExpenses)}</div>
-        ${prev ? delta(c.totalExpenses, prev.totalExpenses) : ''}
+        <div class="lbl">Cash to set aside</div>
+        <div class="val warn">${money(c.taxReserve)}</div>
+        <div class="sub">${c.raw.taxPct}% of net profit (tax)</div>
       </div>
     </div>
 
     <div class="card">
-      <h3>Expense breakdown — ${fmtMonth(monthId)}</h3>
-      <div class="grid grid-auto">
-        ${Object.entries(c.categories).map(([cat, val]) => `
-          <div class="kpi">
-            <div class="lbl"><span class="pill ${catClass(cat)}">${cat}</span></div>
-            <div class="val">${money(val)}</div>
-            <div class="sub">${c.adjRev > 0 ? ((val/c.adjRev)*100).toFixed(1) + '% of rev' : '—'}</div>
-          </div>
-        `).join('')}
-        <div class="kpi">
-          <div class="lbl">Commissions</div>
-          <div class="val">${money(c.raw.commissionsTotal)}</div>
-          <div class="sub">${c.adjRev > 0 ? ((c.raw.commissionsTotal/c.adjRev)*100).toFixed(1) + '% of rev' : '—'}</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">Salaries</div>
-          <div class="val">${money(c.raw.salariesTotal)}</div>
-          <div class="sub">${c.adjRev > 0 ? ((c.raw.salariesTotal/c.adjRev)*100).toFixed(1) + '% of rev' : '—'}</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">Refunds</div>
-          <div class="val">${money(c.refundsTotal)}</div>
-          <div class="sub">${pct(c.refundPct)} of gross</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid grid-2">
-      <div class="card">
-        <h3>Trend — Adjusted Revenue</h3>
-        ${renderTrendChart(ids.map(id => ({ id, val: calcMonth(id).adjRev })), 'var(--accent)')}
-      </div>
-      <div class="card">
-        <h3>Trend — Net Profit</h3>
-        ${renderTrendChart(ids.map(id => ({ id, val: calcMonth(id).netProfit })), 'var(--good)')}
-      </div>
+      <h3>Where the money went — ${fmtMonth(monthId)}</h3>
+      ${renderSpendBars(c)}
     </div>
 
     <div class="card">
-      <h3>Rolling 3-month KPIs</h3>
-      <div class="grid grid-auto">
-        <div class="kpi">
-          <div class="lbl">Revenue (sum)</div>
-          <div class="val">${money(aggregates3.revenue)}</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">Net Profit (sum)</div>
-          <div class="val ${aggregates3.netProfit >= 0 ? 'good' : 'bad'}">${money(aggregates3.netProfit)}</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">Marketing Spend</div>
-          <div class="val">${money(aggregates3.marketing)}</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">CAC</div>
-          <div class="val">${aggregates3.cac == null ? '—' : money(aggregates3.cac)}</div>
-          <div class="sub">requires client counts</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">LTV:CAC</div>
-          <div class="val ${aggregates3.ltvCac >= state.targets.ltvCacDouble ? 'good' : aggregates3.ltvCac < state.targets.ltvCacMaintain ? 'bad' : 'warn'}">${aggregates3.ltvCac == null ? '—' : aggregates3.ltvCac.toFixed(1) + 'x'}</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">Payback</div>
-          <div class="val">${aggregates3.payback == null ? '—' : aggregates3.payback.toFixed(1) + ' mo'}</div>
-        </div>
-      </div>
+      <h3>Trend</h3>
+      ${renderTrendChart(ids.map(id => ({ id, val: calcMonth(id).adjRev, val2: calcMonth(id).netProfit })), 'var(--accent)', 'var(--good)')}
+      <div class="chart-legend" style="margin-top:8px;justify-content:center"><span><span class="dot" style="background:var(--accent)"></span>Revenue</span><span><span class="dot" style="background:var(--good)"></span>Net profit</span></div>
     </div>
 
-    <div class="card">
-      <h3>Cash reminders</h3>
-      <div class="grid grid-2">
-        <div class="kpi">
-          <div class="lbl">Tax set-aside (this month)</div>
-          <div class="val warn">${money(c.taxReserve)}</div>
-          <div class="sub">${c.raw.taxPct}% of net profit</div>
+    <details>
+      <summary>Show 3-month rolling KPIs (CAC, LTV:CAC, payback)</summary>
+      <div class="card" style="margin-top:8px">
+        <div class="grid grid-3">
+          <div class="kpi"><div class="lbl">Revenue (3 mo)</div><div class="val">${money(aggregates3.revenue)}</div></div>
+          <div class="kpi"><div class="lbl">Net profit (3 mo)</div><div class="val ${aggregates3.netProfit >= 0 ? 'good' : 'bad'}">${money(aggregates3.netProfit)}</div></div>
+          <div class="kpi"><div class="lbl">Marketing spend</div><div class="val">${money(aggregates3.marketing)}</div></div>
+          <div class="kpi"><div class="lbl">CAC</div><div class="val">${aggregates3.cac == null ? '—' : money(aggregates3.cac)}</div></div>
+          <div class="kpi"><div class="lbl">LTV:CAC</div><div class="val ${aggregates3.ltvCac >= state.targets.ltvCacDouble ? 'good' : aggregates3.ltvCac < state.targets.ltvCacMaintain ? 'bad' : 'warn'}">${aggregates3.ltvCac == null ? '—' : aggregates3.ltvCac.toFixed(1) + 'x'}</div></div>
+          <div class="kpi"><div class="lbl">Payback</div><div class="val">${aggregates3.payback == null ? '—' : aggregates3.payback.toFixed(1) + ' mo'}</div></div>
         </div>
-        <div class="kpi">
-          <div class="lbl">Cash reserve target</div>
-          <div class="val">${money((c.overheadCosts || 0) * state.targets.cashMonths)}</div>
-          <div class="sub">${state.targets.cashMonths}× overhead</div>
-        </div>
+        ${aggregates3.cac == null ? '<div class="help" style="margin-top:8px;color:var(--warn)">CAC / LTV require client counts — fill them on Revenue & Team.</div>' : ''}
       </div>
-    </div>
+    </details>
   `;
   document.getElementById('overview-content').innerHTML = html;
 }
 
-function renderTrendChart(points, color) {
+// Horizontal bar chart of spend by category (clearer than KPI tiles)
+function renderSpendBars(c) {
+  const items = [
+    ...Object.entries(c.categories).map(([cat, val]) => ({ label: cat, val, cls: catClass(cat) })),
+    { label: 'Commissions', val: c.raw.commissionsTotal, cls: '' },
+    { label: 'Salaries', val: c.raw.salariesTotal, cls: '' },
+    { label: 'Refunds', val: c.refundsTotal, cls: '' },
+  ].filter(i => i.val > 0).sort((a, b) => b.val - a.val);
+  if (!items.length) return '<div class="help">No spend yet for this month.</div>';
+  const max = items[0].val;
+  const total = items.reduce((s, i) => s + i.val, 0);
+  return `<div style="display:flex;flex-direction:column;gap:6px">
+    ${items.map(i => {
+      const pct = (i.val / max) * 100;
+      const sharePct = total > 0 ? (i.val / total) * 100 : 0;
+      return `<div style="display:grid;grid-template-columns:160px 1fr 90px;gap:10px;align-items:center;font-size:13px">
+        <div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.cls ? `<span class="pill ${i.cls}">${i.label}</span>` : i.label}</div>
+        <div style="background:var(--surface-2);height:18px;border-radius:4px;position:relative;overflow:hidden">
+          <div style="background:linear-gradient(90deg,var(--accent),var(--accent-hover));height:100%;width:${pct}%;border-radius:4px"></div>
+        </div>
+        <div style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text)">${money(i.val)} <span style="color:var(--muted-2);font-size:11px">${sharePct.toFixed(0)}%</span></div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderTrendChart(points, color, color2) {
   if (!points.length) return '<div class="empty"><p>No data</p></div>';
-  const w = 600, h = 160, pad = 30;
-  const vals = points.map(p => p.val);
+  const w = 600, h = 180, pad = 30;
+  const has2 = color2 && points[0].val2 !== undefined;
+  const vals = points.flatMap(p => has2 ? [p.val, p.val2] : [p.val]);
   const min = Math.min(0, ...vals);
   const max = Math.max(0, ...vals);
   const range = max - min || 1;
   const xStep = points.length > 1 ? (w - pad*2) / (points.length - 1) : 0;
-  const pathD = points.map((p, i) => {
-    const x = pad + i * xStep;
-    const y = h - pad - ((p.val - min) / range) * (h - pad*2);
-    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+  function path(key) {
+    return points.map((p, i) => {
+      const x = pad + i * xStep;
+      const y = h - pad - ((p[key] - min) / range) * (h - pad*2);
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
   const yZero = h - pad - ((0 - min) / range) * (h - pad*2);
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:160px">
+  function dots(key, col) {
+    return points.map((p, i) => {
+      const x = pad + i * xStep;
+      const y = h - pad - ((p[key] - min) / range) * (h - pad*2);
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${col}" />
+              <text x="${x.toFixed(1)}" y="${(y-8).toFixed(1)}" text-anchor="middle" fill="${col}" font-size="10">${moneyShort(p[key])}</text>`;
+    }).join('');
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:180px">
     <line x1="${pad}" y1="${yZero}" x2="${w-pad}" y2="${yZero}" stroke="var(--border)" stroke-dasharray="2,3" />
-    <path d="${pathD}" stroke="${color}" stroke-width="2" fill="none" />
+    <path d="${path('val')}" stroke="${color}" stroke-width="2" fill="none" />
+    ${has2 ? `<path d="${path('val2')}" stroke="${color2}" stroke-width="2" fill="none" />` : ''}
+    ${dots('val', color)}
+    ${has2 ? dots('val2', color2) : ''}
     ${points.map((p, i) => {
       const x = pad + i * xStep;
-      const y = h - pad - ((p.val - min) / range) * (h - pad*2);
-      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${color}" />
-              <text x="${x.toFixed(1)}" y="${h - 6}" text-anchor="middle" fill="var(--muted)" font-size="10">${fmtMonthShort(p.id)}</text>
-              <text x="${x.toFixed(1)}" y="${(y-8).toFixed(1)}" text-anchor="middle" fill="var(--text)" font-size="10">${moneyShort(p.val)}</text>`;
+      return `<text x="${x.toFixed(1)}" y="${h - 6}" text-anchor="middle" fill="var(--muted)" font-size="10">${fmtMonthShort(p.id)}</text>`;
     }).join('')}
   </svg>`;
 }
@@ -1774,28 +1747,36 @@ function renderRevenue() {
     ['churnedClients', 'Churned this month'],
   ];
 
+  const pay = calcTeamPayForMonth(monthId);
   wrap.innerHTML = `
     <div class="card">
       <h3>${fmtMonth(monthId)} — top-line</h3>
       <div class="grid grid-2">
-        ${fields.map(([k, label, unit]) => `
-          <div>
-            <label>${label}</label>
-            <input type="number" step="0.01" min="0" data-month-field="${k}" value="${m[k] ?? 0}" />
-          </div>
-        `).join('')}
+        ${fields.map(([k, label, unit]) => {
+          const isTeamPay = k === 'salariesTotal' || k === 'commissionsTotal';
+          const teamCalc = k === 'salariesTotal' ? pay.salaries : k === 'commissionsTotal' ? pay.commissions : null;
+          return `
+            <div>
+              <label>${label}</label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="number" step="0.01" min="0" data-month-field="${k}" value="${m[k] ?? 0}" style="flex:1" />
+                ${isTeamPay ? `<button type="button" class="small ghost" data-sync-from-team="${k}" title="Apply team-page calc: ${money(teamCalc)}">↻ ${money(teamCalc)}</button>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
-    </div>
-    <div class="card">
-      <h3>Client counts (optional — required for CAC / LTV math)</h3>
-      <div class="grid grid-3">
-        ${clientFields.map(([k, label]) => `
-          <div>
-            <label>${label}</label>
-            <input type="number" step="1" min="0" data-month-field="${k}" value="${m[k] ?? 0}" />
-          </div>
-        `).join('')}
-      </div>
+      <details style="margin-top:14px">
+        <summary>Client counts (optional — for CAC / LTV math)</summary>
+        <div class="grid grid-3" style="margin-top:10px">
+          ${clientFields.map(([k, label]) => `
+            <div>
+              <label>${label}</label>
+              <input type="number" step="1" min="0" data-month-field="${k}" value="${m[k] ?? 0}" />
+            </div>
+          `).join('')}
+        </div>
+      </details>
     </div>
     <div class="card">
       <h3>All months — at a glance</h3>
@@ -1828,6 +1809,15 @@ function renderRevenue() {
       const k = inp.dataset.monthField;
       m[k] = parseFloat(inp.value) || 0;
       saveState();
+      renderOverviewIfActive();
+    });
+  });
+  wrap.querySelectorAll('button[data-sync-from-team]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.syncFromTeam;
+      m[k] = k === 'salariesTotal' ? pay.salaries : pay.commissions;
+      saveState();
+      renderRevenue();
       renderOverviewIfActive();
     });
   });
@@ -2208,6 +2198,23 @@ function renderVendors() {
 }
 
 // ---------- Team ----------
+// Compute pay for the active month
+function calcTeamPayForMonth(monthId) {
+  const m = state.months[monthId];
+  const rev = m ? m.revenue || 0 : 0;
+  let salaries = 0, commissions = 0;
+  const breakdown = [];
+  state.team.forEach(t => {
+    if (t.active === false) return;
+    const sal = t.monthlySalary || 0;
+    const com = (t.commissionPct || 0) > 0 ? rev * (t.commissionPct / 100) : 0;
+    salaries += sal;
+    commissions += com;
+    if (sal || com) breakdown.push({ name: t.name, role: t.role, sal, com, total: sal + com });
+  });
+  return { salaries, commissions, total: salaries + commissions, breakdown };
+}
+
 function renderTeam() {
   const wrap = document.getElementById('team-table-wrap');
   if (!state.team.length) {
@@ -2215,36 +2222,69 @@ function renderTeam() {
     return;
   }
   const sorted = state.team.slice().sort((a,b) => a.name.localeCompare(b.name));
-  const activeMonthlyTotal = sorted.filter(t => t.active !== false).reduce((s, t) => s + (t.monthlySalary || 0), 0);
+  const pay = calcTeamPayForMonth(state.meta.activeMonth);
+  const monthLabel = fmtMonth(state.meta.activeMonth);
+  const monthRev = (state.months[state.meta.activeMonth] || {}).revenue || 0;
+
   wrap.innerHTML = `
     <div class="grid grid-3" style="margin-bottom:14px">
-      <div class="kpi"><div class="lbl">Total active salaries / mo</div><div class="val">${money(activeMonthlyTotal)}</div><div class="sub">sum of all active monthlySalary fields</div></div>
-      <div class="kpi"><div class="lbl">Active headcount</div><div class="val">${sorted.filter(t => t.active !== false).length}</div></div>
-      <div class="kpi"><div class="lbl">Total roster</div><div class="val">${sorted.length}</div></div>
+      <div class="kpi"><div class="lbl">Salaries / mo</div><div class="val">${money(pay.salaries)}</div></div>
+      <div class="kpi"><div class="lbl">Commissions (${monthLabel})</div><div class="val">${money(pay.commissions)}</div><div class="sub">at ${money(monthRev)} revenue</div></div>
+      <div class="kpi"><div class="lbl">Total pay (${monthLabel})</div><div class="val">${money(pay.total)}</div><div class="sub">${sorted.filter(t => t.active !== false).length} active</div></div>
     </div>
-    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button id="team-sync-month" class="small">Apply ${money(activeMonthlyTotal)} to ${fmtMonth(state.meta.activeMonth)} salaries</button>
-      <div class="help" style="margin:0">Writes the total to the active month's Salaries field on the Revenue page.</div>
+    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="team-sync-all" class="primary small">Apply both to ${monthLabel}</button>
+      <button id="team-sync-sal" class="small">Salaries only →</button>
+      <button id="team-sync-com" class="small">Commissions only →</button>
+      <span class="help" style="margin:0;align-self:center">Writes to the active month on Revenue & Team</span>
     </div>
     <table>
-      <thead><tr><th>Name</th><th>Role</th><th class="num">Monthly salary (£)</th><th>Active</th><th class="actions"></th></tr></thead>
+      <thead><tr>
+        <th>Name</th><th>Role</th>
+        <th class="num">Monthly salary (£)</th>
+        <th class="num">Commission %</th>
+        <th class="num">This month £</th>
+        <th>Active</th>
+        <th class="actions"></th>
+      </tr></thead>
       <tbody>
-        ${sorted.map(t => `<tr data-id="${t.id}">
-          <td><input type="text" data-tfield="name" value="${escapeHtml(t.name)}" style="padding:4px 6px;font-size:13px" /></td>
-          <td><input type="text" data-tfield="role" value="${escapeHtml(t.role || '')}" placeholder="e.g. SALES REP" style="padding:4px 6px;font-size:13px" /></td>
-          <td class="num"><input type="number" step="0.01" min="0" data-tfield="monthlySalary" value="${t.monthlySalary || 0}" style="padding:4px 6px;font-size:13px;width:110px;text-align:right" /></td>
-          <td><input type="checkbox" data-tfield="active" ${t.active !== false ? 'checked' : ''} style="width:auto" /></td>
-          <td class="actions"><button class="small ghost" data-act="del-team">Delete</button></td>
-        </tr>`).join('')}
+        ${sorted.map(t => {
+          const sal = t.monthlySalary || 0;
+          const com = (t.commissionPct || 0) > 0 ? monthRev * (t.commissionPct / 100) : 0;
+          return `<tr data-id="${t.id}">
+            <td><input type="text" data-tfield="name" value="${escapeHtml(t.name)}" style="padding:4px 6px;font-size:13px" /></td>
+            <td><input type="text" data-tfield="role" value="${escapeHtml(t.role || '')}" placeholder="e.g. SALES REP" style="padding:4px 6px;font-size:13px" /></td>
+            <td class="num"><input type="number" step="0.01" min="0" data-tfield="monthlySalary" value="${sal}" style="padding:4px 6px;font-size:13px;width:100px;text-align:right" /></td>
+            <td class="num"><input type="number" step="0.1" min="0" data-tfield="commissionPct" value="${t.commissionPct || 0}" placeholder="0" style="padding:4px 6px;font-size:13px;width:70px;text-align:right" /></td>
+            <td class="num" style="color:var(--muted);font-size:12px">${money(sal + com)}</td>
+            <td><input type="checkbox" data-tfield="active" ${t.active !== false ? 'checked' : ''} style="width:auto" /></td>
+            <td class="actions"><button class="small ghost" data-act="del-team">×</button></td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>
+    <div class="help" style="margin-top:10px">Commission % is applied to the active month's <b>revenue</b>. Set 0 for salary-only roles. Set salary to 0 for commission-only roles.</div>
   `;
-  document.getElementById('team-sync-month').addEventListener('click', () => {
-    const m = currentMonth();
-    if (!m) { alert('No active month selected'); return; }
-    m.salariesTotal = activeMonthlyTotal;
+  document.getElementById('team-sync-all').addEventListener('click', () => {
+    const m = currentMonth(); if (!m) return alert('No active month');
+    m.salariesTotal = pay.salaries;
+    m.commissionsTotal = pay.commissions;
     saveState();
-    alert(`Set ${fmtMonth(state.meta.activeMonth)} salaries to ${money(activeMonthlyTotal)}`);
+    alert(`${monthLabel}: salaries set to ${money(pay.salaries)}, commissions to ${money(pay.commissions)}`);
+    renderOverviewIfActive();
+  });
+  document.getElementById('team-sync-sal').addEventListener('click', () => {
+    const m = currentMonth(); if (!m) return alert('No active month');
+    m.salariesTotal = pay.salaries;
+    saveState();
+    alert(`${monthLabel} salaries set to ${money(pay.salaries)}`);
+    renderOverviewIfActive();
+  });
+  document.getElementById('team-sync-com').addEventListener('click', () => {
+    const m = currentMonth(); if (!m) return alert('No active month');
+    m.commissionsTotal = pay.commissions;
+    saveState();
+    alert(`${monthLabel} commissions set to ${money(pay.commissions)}`);
     renderOverviewIfActive();
   });
   wrap.querySelectorAll('tr[data-id]').forEach(row => {
@@ -2254,10 +2294,10 @@ function renderTeam() {
       el.addEventListener('change', () => {
         const k = el.dataset.tfield;
         if (k === 'active') t[k] = el.checked;
-        else if (k === 'monthlySalary') t[k] = parseFloat(el.value) || 0;
+        else if (k === 'monthlySalary' || k === 'commissionPct') t[k] = parseFloat(el.value) || 0;
         else t[k] = el.value;
         saveState();
-        if (k === 'monthlySalary' || k === 'active') renderTeam();  // refresh totals
+        if (k !== 'name' && k !== 'role') renderTeam();
       });
     });
     row.querySelector('button[data-act="del-team"]').addEventListener('click', () => {
