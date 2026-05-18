@@ -1097,19 +1097,8 @@ const DEFAULT_BUSINESS = {
   },
 };
 
-// Default Agency Advanta AA logo — gold monogram inline SVG
-const AA_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 260">
-  <defs>
-    <linearGradient id="aaGold" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#d4a017"/>
-      <stop offset="35%" stop-color="#eecf6d"/>
-      <stop offset="65%" stop-color="#b3852b"/>
-      <stop offset="100%" stop-color="#8a651e"/>
-    </linearGradient>
-  </defs>
-  <text x="140" y="180" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="220" font-weight="300" letter-spacing="-22" fill="url(#aaGold)">AA</text>
-  <text x="140" y="232" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="20" letter-spacing="4" fill="url(#aaGold)" font-weight="500">AGENCY ADVANTA</text>
-</svg>`;
+// Default Agency Advanta AA logo — bundled logo.png in the repo
+const AA_LOGO_SVG = `<img src="logo.png" alt="Agency Advanta" style="max-width:100%;max-height:100%;object-fit:contain" />`;
 
 const TASK_STATUSES = [
   { id: 'todo', label: 'To do' },
