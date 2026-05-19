@@ -26,6 +26,24 @@
       "referralPayoutsTotal": 0.0,
       "refundsTotal": 754.97,
       "taxPct": 15
+    },
+    "2026-04": {
+      "revenue": 54297.0,
+      "merchantFees": 0,
+      "salariesTotal": 2489.47,
+      "commissionsTotal": 9906.69,
+      "referralPayoutsTotal": 0.0,
+      "refundsTotal": 0.0,
+      "taxPct": 15
+    },
+    "2026-05": {
+      "revenue": 28348.0,
+      "merchantFees": 0,
+      "salariesTotal": 0.0,
+      "commissionsTotal": 0.0,
+      "referralPayoutsTotal": 0.0,
+      "refundsTotal": 0.0,
+      "taxPct": 15
     }
   },
   "expenses": [
@@ -1246,43 +1264,526 @@
       "category": "One off",
       "amount": 165.06,
       "month": "2026-03"
+    },
+    {
+      "date": "2026-04-02",
+      "vendor": "Skool",
+      "category": "Base Software",
+      "amount": 122.36,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-15",
+      "vendor": "Supabase",
+      "category": "LinkedIn Channel",
+      "amount": 21.81,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-08",
+      "vendor": "Clay",
+      "category": "Email Channel",
+      "amount": 732.86,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-02",
+      "vendor": "Verkaufstunnel",
+      "category": "One off",
+      "amount": 17.46,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-01",
+      "vendor": "Google Workspace",
+      "category": "Base Software",
+      "amount": 248.23,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-07",
+      "vendor": "Bahvin Mehta",
+      "category": "LinkedIn Channel",
+      "amount": 1155.55,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-15",
+      "vendor": "Plusvibe Pipl Software",
+      "category": "Email Channel",
+      "amount": 5.0,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-15",
+      "vendor": "Rodliffe (UK)",
+      "category": "One off",
+      "amount": 500.17,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-03",
+      "vendor": "Notion",
+      "category": "Base Software",
+      "amount": 357.42,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-02",
+      "vendor": "HighLevel",
+      "category": "LinkedIn Channel",
+      "amount": 317.38,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-14",
+      "vendor": "OpenAI (chatGPT)",
+      "category": "Email Channel",
+      "amount": 48.32,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-07",
+      "vendor": "Social Services",
+      "category": "One off",
+      "amount": 551.15,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-03",
+      "vendor": "ExpressVPN",
+      "category": "Base Software",
+      "amount": 11.31,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-11",
+      "vendor": "Wavv",
+      "category": "LinkedIn Channel",
+      "amount": 360.43,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-10",
+      "vendor": "Manus AI",
+      "category": "One off",
+      "amount": 30.92,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-04",
+      "vendor": "Zapier",
+      "category": "Base Software",
+      "amount": 344.94,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-02",
+      "vendor": "Lead Sourcing (Wizleads)",
+      "category": "Email Channel",
+      "amount": 1690.55,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-05",
+      "vendor": "Loom",
+      "category": "Base Software",
+      "amount": 108.64,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-01",
+      "vendor": "GoLogin",
+      "category": "Email Channel",
+      "amount": 26.03,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-11",
+      "vendor": "Nespresso",
+      "category": "One off",
+      "amount": 19.9,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-05",
+      "vendor": "Calendly",
+      "category": "Base Software",
+      "amount": 107.95,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-13",
+      "vendor": "Go Daddy",
+      "category": "One off",
+      "amount": 16.3,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-13",
+      "vendor": "Million Verifier",
+      "category": "One off",
+      "amount": 61.13,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-16",
+      "vendor": "tldv",
+      "category": "Base Software",
+      "amount": 25.38,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-14",
+      "vendor": "Typeform",
+      "category": "One off",
+      "amount": 2.42,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-14",
+      "vendor": "Payfunnels",
+      "category": "Base Software",
+      "amount": 21.63,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-14",
+      "vendor": "Yourbusinessnumber",
+      "category": "One off",
+      "amount": 9.64,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-22",
+      "vendor": "Audible",
+      "category": "Base Software",
+      "amount": 8.99,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-15",
+      "vendor": "In Coastal  Web Team",
+      "category": "One off",
+      "amount": 74.24,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-10",
+      "vendor": "Slack",
+      "category": "Base Software",
+      "amount": 317.59,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-16",
+      "vendor": "Flowing Air Studios",
+      "category": "One off",
+      "amount": 72.73,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-03-02",
+      "vendor": "Accountant",
+      "category": "Base Software",
+      "amount": 60.84,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-16",
+      "vendor": "Make",
+      "category": "One off",
+      "amount": 13.96,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-10",
+      "vendor": "Revolut Business Fee",
+      "category": "Base Software",
+      "amount": 8.72,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-19",
+      "vendor": "Baltona Duty Free",
+      "category": "One off",
+      "amount": 62.59,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-15",
+      "vendor": "Youtube",
+      "category": "Base Software",
+      "amount": 16.27,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-20",
+      "vendor": "Upscale",
+      "category": "One off",
+      "amount": 1230.56,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-15",
+      "vendor": "Miro",
+      "category": "Base Software",
+      "amount": 8.91,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-20",
+      "vendor": "Claude",
+      "category": "One off",
+      "amount": 37.18,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-18",
+      "vendor": "Row Zero",
+      "category": "Base Software",
+      "amount": 7.52,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-22",
+      "vendor": "Contabo",
+      "category": "One off",
+      "amount": 29.58,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-24",
+      "vendor": "LinkedIn Ads",
+      "category": "One off",
+      "amount": 218.81,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-11",
+      "vendor": "Blooio imessage",
+      "category": "Base Software",
+      "amount": 217.0,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-16",
+      "vendor": "Claudeai",
+      "category": "Base Software",
+      "amount": 154.15,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-14",
+      "vendor": "Typeform",
+      "category": "Base Software",
+      "amount": 43.79,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-04-16",
+      "vendor": "Make",
+      "category": "Base Software",
+      "amount": 13.96,
+      "month": "2026-04"
+    },
+    {
+      "date": "2026-05-02",
+      "vendor": "Skool",
+      "category": "Base Software",
+      "amount": 73.39,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-01",
+      "vendor": "Lovable",
+      "category": "One off",
+      "amount": 74.31,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-01",
+      "vendor": "Google Workspace",
+      "category": "Base Software",
+      "amount": 291.99,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-01",
+      "vendor": "Lemon Squeezt",
+      "category": "One off",
+      "amount": 21.48,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-03",
+      "vendor": "Notion",
+      "category": "Base Software",
+      "amount": 150.0,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-11",
+      "vendor": "GoLogin",
+      "category": "SMS",
+      "amount": 16.37,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-01",
+      "vendor": "Contabo",
+      "category": "One off",
+      "amount": 5.72,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-03",
+      "vendor": "ExpressVPN",
+      "category": "Base Software",
+      "amount": 11.25,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-02",
+      "vendor": "esignatures",
+      "category": "One off",
+      "amount": 37.01,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-04",
+      "vendor": "Zapier",
+      "category": "Base Software",
+      "amount": 43.84,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-11",
+      "vendor": "Upscale Systems",
+      "category": "Email Channel",
+      "amount": 1011.59,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-02",
+      "vendor": "Verkaufstunnel",
+      "category": "One off",
+      "amount": 20.0,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-03",
+      "vendor": "Pipl Software",
+      "category": "One off",
+      "amount": 271.43,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-05",
+      "vendor": "Calendly",
+      "category": "Base Software",
+      "amount": 133.79,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-05",
+      "vendor": "Atlassian",
+      "category": "One off",
+      "amount": 266.63,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-06",
+      "vendor": "Mella",
+      "category": "One off",
+      "amount": 0.1,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-09",
+      "vendor": "Gavriel Anna Pharmacy",
+      "category": "One off",
+      "amount": 29.88,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-09",
+      "vendor": "iStorm",
+      "category": "One off",
+      "amount": 101.08,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-12",
+      "vendor": "Apple",
+      "category": "One off",
+      "amount": 8.73,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-02",
+      "vendor": "Slack",
+      "category": "Base Software",
+      "amount": 81.34,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-13",
+      "vendor": "Social Insurance",
+      "category": "One off",
+      "amount": 306.23,
+      "month": "2026-05"
+    },
+    {
+      "date": "2026-05-09",
+      "vendor": "Revolut Business Fee",
+      "category": "Base Software",
+      "amount": 10.0,
+      "month": "2026-05"
     }
   ],
   "vendors": [
     {
       "name": "Accountant",
       "category": "Base Software",
-      "typicalAmount": 121.68,
+      "typicalAmount": 101.4,
       "recurring": true,
-      "occurrences": 2
+      "occurrences": 3
     },
     {
       "name": "Audible",
       "category": "Base Software",
       "typicalAmount": 8.99,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 4
     },
     {
       "name": "Blooio imessage",
       "category": "Base Software",
-      "typicalAmount": 216.38,
-      "recurring": false,
-      "occurrences": 1
+      "typicalAmount": 216.69,
+      "recurring": true,
+      "occurrences": 2
     },
     {
       "name": "Calendly",
       "category": "Base Software",
-      "typicalAmount": 99.75,
+      "typicalAmount": 108.2,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 5
+    },
+    {
+      "name": "Claudeai",
+      "category": "Base Software",
+      "typicalAmount": 154.15,
+      "recurring": false,
+      "occurrences": 1
     },
     {
       "name": "ExpressVPN",
       "category": "Base Software",
-      "typicalAmount": 10.76,
+      "typicalAmount": 10.97,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 5
     },
     {
       "name": "FanBasis",
@@ -1294,23 +1795,30 @@
     {
       "name": "Google Workspace",
       "category": "Base Software",
-      "typicalAmount": 227.42,
+      "typicalAmount": 244.5,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 5
     },
     {
       "name": "Loom",
       "category": "Base Software",
-      "typicalAmount": 57.51,
+      "typicalAmount": 70.29,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 4
+    },
+    {
+      "name": "Make",
+      "category": "Base Software",
+      "typicalAmount": 13.96,
+      "recurring": false,
+      "occurrences": 1
     },
     {
       "name": "Miro",
       "category": "Base Software",
-      "typicalAmount": 10.47,
+      "typicalAmount": 9.95,
       "recurring": true,
-      "occurrences": 2
+      "occurrences": 3
     },
     {
       "name": "Missive",
@@ -1322,9 +1830,9 @@
     {
       "name": "Notion",
       "category": "Base Software",
-      "typicalAmount": 63.06,
+      "typicalAmount": 139.32,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 5
     },
     {
       "name": "Opus Clip",
@@ -1336,37 +1844,37 @@
     {
       "name": "Payfunnels",
       "category": "Base Software",
-      "typicalAmount": 24.11,
+      "typicalAmount": 23.49,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 4
     },
     {
       "name": "Revolut Business Fee",
       "category": "Base Software",
-      "typicalAmount": 10.0,
+      "typicalAmount": 9.74,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 5
     },
     {
       "name": "Row Zero",
       "category": "Base Software",
-      "typicalAmount": 8.73,
-      "recurring": false,
-      "occurrences": 1
+      "typicalAmount": 8.12,
+      "recurring": true,
+      "occurrences": 2
     },
     {
       "name": "Skool",
       "category": "Base Software",
-      "typicalAmount": 125.15,
+      "typicalAmount": 114.24,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 5
     },
     {
       "name": "Slack",
       "category": "Base Software",
-      "typicalAmount": 140.96,
+      "typicalAmount": 164.36,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 5
     },
     {
       "name": "TaxForAll",
@@ -1376,18 +1884,25 @@
       "occurrences": 1
     },
     {
+      "name": "Typeform",
+      "category": "Base Software",
+      "typicalAmount": 43.79,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Youtube",
       "category": "Base Software",
-      "typicalAmount": 16.46,
+      "typicalAmount": 16.4,
       "recurring": true,
-      "occurrences": 2
+      "occurrences": 3
     },
     {
       "name": "Zapier",
       "category": "Base Software",
-      "typicalAmount": 121.57,
+      "typicalAmount": 150.7,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 5
     },
     {
       "name": "iclosecapital",
@@ -1399,21 +1914,28 @@
     {
       "name": "tldv",
       "category": "Base Software",
-      "typicalAmount": 25.41,
+      "typicalAmount": 25.4,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 4
     },
     {
       "name": "Clay",
       "category": "Email Channel",
-      "typicalAmount": 316.84,
+      "typicalAmount": 455.51,
       "recurring": true,
-      "occurrences": 2
+      "occurrences": 3
     },
     {
       "name": "Findymail",
       "category": "Email Channel",
       "typicalAmount": 1068.91,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "GoLogin",
+      "category": "Email Channel",
+      "typicalAmount": 26.03,
       "recurring": false,
       "occurrences": 1
     },
@@ -1425,6 +1947,13 @@
       "occurrences": 2
     },
     {
+      "name": "Lead Sourcing (Wizleads)",
+      "category": "Email Channel",
+      "typicalAmount": 1690.55,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Million verifier",
       "category": "Email Channel",
       "typicalAmount": 355.41,
@@ -1434,9 +1963,16 @@
     {
       "name": "OpenAI (chatGPT)",
       "category": "Email Channel",
-      "typicalAmount": 438.75,
+      "typicalAmount": 341.14,
       "recurring": true,
-      "occurrences": 3
+      "occurrences": 4
+    },
+    {
+      "name": "Plusvibe Pipl Software",
+      "category": "Email Channel",
+      "typicalAmount": 5.0,
+      "recurring": false,
+      "occurrences": 1
     },
     {
       "name": "Premium Inboxes",
@@ -1469,9 +2005,9 @@
     {
       "name": "Upscale Systems",
       "category": "Email Channel",
-      "typicalAmount": 1389.92,
+      "typicalAmount": 1263.81,
       "recurring": true,
-      "occurrences": 2
+      "occurrences": 3
     },
     {
       "name": "AI Avatars",
@@ -1484,6 +2020,13 @@
       "name": "Apify",
       "category": "LinkedIn Channel",
       "typicalAmount": 837.57,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Bahvin Mehta",
+      "category": "LinkedIn Channel",
+      "typicalAmount": 1155.55,
       "recurring": false,
       "occurrences": 1
     },
@@ -1523,6 +2066,13 @@
       "occurrences": 1
     },
     {
+      "name": "HighLevel",
+      "category": "LinkedIn Channel",
+      "typicalAmount": 317.38,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Linkedin Sales Nav Accounts (sahiba)",
       "category": "LinkedIn Channel",
       "typicalAmount": 818.5,
@@ -1558,11 +2108,25 @@
       "occurrences": 1
     },
     {
+      "name": "Supabase",
+      "category": "LinkedIn Channel",
+      "typicalAmount": 21.81,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Vayne - Leads",
       "category": "LinkedIn Channel",
       "typicalAmount": 132.13,
       "recurring": true,
       "occurrences": 2
+    },
+    {
+      "name": "Wavv",
+      "category": "LinkedIn Channel",
+      "typicalAmount": 360.43,
+      "recurring": false,
+      "occurrences": 1
     },
     {
       "name": "AI Avatars",
@@ -1621,9 +2185,30 @@
       "occurrences": 1
     },
     {
+      "name": "Apple",
+      "category": "One off",
+      "typicalAmount": 8.73,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Atlassian",
+      "category": "One off",
+      "typicalAmount": 266.63,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Bahvin Mehta",
       "category": "One off",
       "typicalAmount": 1174.0,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Baltona Duty Free",
+      "category": "One off",
+      "typicalAmount": 62.59,
       "recurring": false,
       "occurrences": 1
     },
@@ -1663,6 +2248,13 @@
       "occurrences": 1
     },
     {
+      "name": "Claude",
+      "category": "One off",
+      "typicalAmount": 37.18,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Claude AI",
       "category": "One off",
       "typicalAmount": 4.39,
@@ -1675,6 +2267,13 @@
       "typicalAmount": 265.24,
       "recurring": false,
       "occurrences": 1
+    },
+    {
+      "name": "Contabo",
+      "category": "One off",
+      "typicalAmount": 17.65,
+      "recurring": true,
+      "occurrences": 2
     },
     {
       "name": "Datablist",
@@ -1742,9 +2341,16 @@
     {
       "name": "Flowing Air Studios",
       "category": "One off",
-      "typicalAmount": 74.07,
+      "typicalAmount": 73.63,
       "recurring": true,
-      "occurrences": 2
+      "occurrences": 3
+    },
+    {
+      "name": "Gavriel Anna Pharmacy",
+      "category": "One off",
+      "typicalAmount": 29.88,
+      "recurring": false,
+      "occurrences": 1
     },
     {
       "name": "Generect",
@@ -1763,9 +2369,9 @@
     {
       "name": "Go Daddy",
       "category": "One off",
-      "typicalAmount": 92.96,
-      "recurring": false,
-      "occurrences": 1
+      "typicalAmount": 54.63,
+      "recurring": true,
+      "occurrences": 2
     },
     {
       "name": "GoLogin",
@@ -1789,6 +2395,13 @@
       "occurrences": 1
     },
     {
+      "name": "In Coastal  Web Team",
+      "category": "One off",
+      "typicalAmount": 74.24,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Kieran Varnava",
       "category": "One off",
       "typicalAmount": 17.73,
@@ -1803,11 +2416,32 @@
       "occurrences": 1
     },
     {
+      "name": "Lemon Squeezt",
+      "category": "One off",
+      "typicalAmount": 21.48,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Lemon Squeezy",
       "category": "One off",
       "typicalAmount": 30.17,
       "recurring": true,
       "occurrences": 2
+    },
+    {
+      "name": "LinkedIn Ads",
+      "category": "One off",
+      "typicalAmount": 218.81,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Lovable",
+      "category": "One off",
+      "typicalAmount": 74.31,
+      "recurring": false,
+      "occurrences": 1
     },
     {
       "name": "M papadimitrou Dental",
@@ -1820,6 +2454,13 @@
       "name": "Mail Tester Ninja",
       "category": "One off",
       "typicalAmount": 14.87,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Make",
+      "category": "One off",
+      "typicalAmount": 13.96,
       "recurring": false,
       "occurrences": 1
     },
@@ -1840,7 +2481,21 @@
     {
       "name": "Manus AI",
       "category": "One off",
-      "typicalAmount": 35.75,
+      "typicalAmount": 33.34,
+      "recurring": true,
+      "occurrences": 2
+    },
+    {
+      "name": "Mella",
+      "category": "One off",
+      "typicalAmount": 0.1,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Million Verifier",
+      "category": "One off",
+      "typicalAmount": 61.13,
       "recurring": false,
       "occurrences": 1
     },
@@ -1855,6 +2510,20 @@
       "name": "National Car pArks",
       "category": "One off",
       "typicalAmount": 10.0,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Nespresso",
+      "category": "One off",
+      "typicalAmount": 19.9,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Pipl Software",
+      "category": "One off",
+      "typicalAmount": 271.43,
       "recurring": false,
       "occurrences": 1
     },
@@ -1894,6 +2563,13 @@
       "occurrences": 1
     },
     {
+      "name": "Rodliffe (UK)",
+      "category": "One off",
+      "typicalAmount": 500.17,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Row Zero",
       "category": "One off",
       "typicalAmount": 7.42,
@@ -1911,6 +2587,20 @@
       "name": "Scraper City",
       "category": "One off",
       "typicalAmount": 36.6,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Social Insurance",
+      "category": "One off",
+      "typicalAmount": 306.23,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
+      "name": "Social Services",
+      "category": "One off",
+      "typicalAmount": 551.15,
       "recurring": false,
       "occurrences": 1
     },
@@ -1945,7 +2635,14 @@
     {
       "name": "Typeform",
       "category": "One off",
-      "typicalAmount": 39.5,
+      "typicalAmount": 20.96,
+      "recurring": true,
+      "occurrences": 2
+    },
+    {
+      "name": "Upscale",
+      "category": "One off",
+      "typicalAmount": 1230.56,
       "recurring": false,
       "occurrences": 1
     },
@@ -1959,9 +2656,9 @@
     {
       "name": "Verkaufstunnel",
       "category": "One off",
-      "typicalAmount": 17.37,
+      "typicalAmount": 18.05,
       "recurring": true,
-      "occurrences": 2
+      "occurrences": 4
     },
     {
       "name": "Verkaufstunnel.com",
@@ -2020,6 +2717,13 @@
       "occurrences": 1
     },
     {
+      "name": "Yourbusinessnumber",
+      "category": "One off",
+      "typicalAmount": 9.64,
+      "recurring": false,
+      "occurrences": 1
+    },
+    {
       "name": "Youtube",
       "category": "One off",
       "typicalAmount": 18.72,
@@ -2029,16 +2733,16 @@
     {
       "name": "esignatures",
       "category": "One off",
-      "typicalAmount": 38.03,
-      "recurring": false,
-      "occurrences": 1
+      "typicalAmount": 37.52,
+      "recurring": true,
+      "occurrences": 2
     },
     {
       "name": "iStorm",
       "category": "One off",
-      "typicalAmount": 33.36,
-      "recurring": false,
-      "occurrences": 1
+      "typicalAmount": 67.22,
+      "recurring": true,
+      "occurrences": 2
     },
     {
       "name": "GoHighLevel",
@@ -2057,9 +2761,9 @@
     {
       "name": "GoLogin",
       "category": "SMS",
-      "typicalAmount": 73.43,
-      "recurring": false,
-      "occurrences": 1
+      "typicalAmount": 44.9,
+      "recurring": true,
+      "occurrences": 2
     },
     {
       "name": "RapidAPI EMAIL API",
@@ -2123,6 +2827,10 @@
       "role": ""
     },
     {
+      "name": "Harun",
+      "role": ""
+    },
+    {
       "name": "Jan",
       "role": ""
     },
@@ -2133,6 +2841,10 @@
     {
       "name": "Johanna",
       "role": "OPS VA"
+    },
+    {
+      "name": "John Heatly",
+      "role": "SETTER"
     },
     {
       "name": "Joshua Williams",
@@ -2159,6 +2871,10 @@
       "role": ""
     },
     {
+      "name": "Rhys",
+      "role": ""
+    },
+    {
       "name": "Ronnah",
       "role": ""
     },
@@ -2171,7 +2887,15 @@
       "role": "SETTER MAN"
     },
     {
+      "name": "Severus",
+      "role": ""
+    },
+    {
       "name": "Vienna",
+      "role": ""
+    },
+    {
+      "name": "Zahi",
       "role": ""
     }
   ]
