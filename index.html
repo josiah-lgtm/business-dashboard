@@ -910,9 +910,12 @@
 
   .budget-summary {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 12px;
     margin-bottom: 22px;
+  }
+  @media (max-width: 1280px) {
+    .budget-summary { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
   }
   .budget-summary .kpi { padding: 16px 18px; }
   .budget-summary .kpi .val { font-size: 22px; }
@@ -2797,6 +2800,9 @@ function renderBudget() {
   const remaining = totalBudget - totalActual;
   const usedPct = totalBudget > 0 ? (totalActual / totalBudget) * 100 : 0;
   const goalPct = totalGoalBudget > 0 ? (totalGoalActual / totalGoalBudget) * 100 : 0;
+  // Planned profit if you hit revenue goal AND stay within all expense caps
+  const estimatedProfit = totalGoalBudget - totalBudget;
+  const estimatedMarginPct = totalGoalBudget > 0 ? (estimatedProfit / totalGoalBudget) * 100 : 0;
 
   // Empty-state hint
   const isEmpty = Object.values(budget).every(v => !v || v === 0);
@@ -2819,6 +2825,11 @@ function renderBudget() {
         <div class="lbl">Expense budget</div>
         <div class="val">${money(totalBudget)}</div>
         <div class="sub">target spending cap</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Estimated profit</div>
+        <div class="val ${estimatedProfit >= 0 ? 'good' : 'bad'}">${money(estimatedProfit)}</div>
+        <div class="sub">${pct(estimatedMarginPct)} margin if on-plan</div>
       </div>
       <div class="kpi">
         <div class="lbl">Spent so far</div>
