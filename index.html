@@ -765,6 +765,174 @@
   }
 
   /* ============================================================
+     Budget — sliders + progress bars
+     ============================================================ */
+  .budget-section {
+    margin-bottom: 18px;
+  }
+  .budget-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 22px 4px 10px;
+  }
+  .budget-section-head .title {
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .budget-section-head .total {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .budget-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 96px 200px;
+    gap: 18px;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: border-color 0.15s;
+  }
+  .budget-row:hover { border-color: var(--border-strong); }
+  .budget-row .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .budget-row .slider-wrap {
+    position: relative;
+    height: 28px;
+    display: flex;
+    align-items: center;
+  }
+  .budget-row input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    width: 100%;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+  }
+  .budget-row input[type="range"]:focus { outline: none; box-shadow: none; }
+  .budget-row input[type="range"]::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 3px;
+    background: linear-gradient(to right,
+      var(--accent) 0%, var(--accent) var(--pct, 0%),
+      var(--surface-input) var(--pct, 0%), var(--surface-input) 100%);
+  }
+  .budget-row input[type="range"]::-moz-range-track {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface-input);
+  }
+  .budget-row input[type="range"]::-moz-range-progress {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+  .budget-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    margin-top: -6.5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.45), 0 0 0 0.5px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .budget-row input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px var(--accent-shadow), 0 0 0 0.5px rgba(0,0,0,0.2);
+  }
+  .budget-row input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    cursor: pointer;
+  }
+  .budget-row .budget-input {
+    padding: 5px 8px;
+    font-size: 13px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    border-radius: 7px;
+  }
+  .budget-row .actual-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .budget-row .actual-bar .meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
+  }
+  .budget-row .actual-bar .meta .val { color: var(--text); font-weight: 500; }
+  .budget-row .actual-bar .meta .val.over { color: var(--bad); }
+  .budget-row .actual-bar .meta .val.near { color: var(--warn); }
+  .budget-row .actual-bar .meta .val.ok { color: var(--good); }
+  .budget-row .actual-bar .track {
+    background: var(--surface-input);
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .budget-row .actual-bar .fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.25s ease, background 0.2s;
+  }
+  .budget-row .actual-bar .fill.ok { background: linear-gradient(90deg, #2da44e, var(--good)); }
+  .budget-row .actual-bar .fill.near { background: linear-gradient(90deg, #d97706, var(--warn)); }
+  .budget-row .actual-bar .fill.over { background: linear-gradient(90deg, #c92a2a, var(--bad)); }
+
+  .budget-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .budget-summary .kpi { padding: 16px 18px; }
+  .budget-summary .kpi .val { font-size: 22px; }
+
+  .budget-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: 12px;
+    color: var(--text-secondary);
+  }
+  .budget-empty-state h3 { color: var(--text); margin: 0 0 8px; font-size: 16px; }
+
+  @media (max-width: 900px) {
+    .budget-row { grid-template-columns: 1fr 110px; gap: 10px; }
+    .budget-row .slider-wrap, .budget-row .actual-bar { grid-column: 1 / -1; }
+  }
+
+  /* ============================================================
      Charts — minimal, refined
      ============================================================ */
   .chart-card svg { width: 100%; display: block; }
@@ -1080,6 +1248,7 @@
     <div class="nav-item" data-view="overview"><span>Overview</span></div>
     <div class="nav-item" data-view="expenses"><span>Expenses</span><span class="num" id="nav-count-expenses">0</span></div>
     <div class="nav-item" data-view="revenue"><span>Revenue & Team</span></div>
+    <div class="nav-item" data-view="budget"><span>Budget</span></div>
     <div class="nav-item" data-view="tasks"><span>Tasks</span><span class="num" id="nav-count-tasks">0</span></div>
     <div class="nav-item" data-view="invoices"><span>Invoices</span><span class="num" id="nav-count-invoices">0</span></div>
     <div class="nav-item" data-view="settings"><span>Settings</span></div>
@@ -1250,6 +1419,21 @@
       <input id="proj-rev-growth" type="number" value="0" />
       <input id="proj-exp-growth" type="number" value="0" />
     </div>
+
+    <!-- Budget -->
+    <section class="panel" data-view="budget">
+      <div class="panel-header">
+        <div>
+          <h2>Budget</h2>
+          <div class="sub">Plan the month. Slide each lever to set a target. Bars fill in red when actual spend approaches your cap.</div>
+        </div>
+        <div class="actions">
+          <button id="budget-suggest-btn" class="primary">↻ Suggest from previous month</button>
+          <button id="budget-clear-btn" class="ghost">Reset to zero</button>
+        </div>
+      </div>
+      <div id="budget-content"></div>
+    </section>
 
     <!-- Tasks (Kanban) -->
     <section class="panel" data-view="tasks">
@@ -1538,6 +1722,7 @@ function makeInitialState() {
     months, expenses, vendors, refunds, team,
     tasks: [],
     invoices: [],
+    budgets: {},
     business: structuredClone(DEFAULT_BUSINESS),
     targets: { ...DEFAULT_TARGETS },
   };
@@ -1553,6 +1738,7 @@ function loadState() {
     // Migrations for v2.1 (tasks, invoices, business, team.monthlySalary)
     if (!s.tasks) s.tasks = [];
     if (!s.invoices) s.invoices = [];
+    if (!s.budgets) s.budgets = {};
     if (!s.business) s.business = structuredClone(DEFAULT_BUSINESS);
     else {
       s.business = { ...structuredClone(DEFAULT_BUSINESS), ...s.business };
@@ -1832,6 +2018,7 @@ function renderAll() {
     case 'overview': renderOverview(); break;
     case 'expenses': renderExpenses(); renderVendors(); break;
     case 'revenue': renderRevenue(); renderTeam(); renderRefunds(); break;
+    case 'budget': renderBudget(); break;
     case 'tasks': renderTasks(); break;
     case 'invoices': renderInvoices(); break;
     case 'settings': renderSettings(); break;
@@ -2537,6 +2724,190 @@ function renderRevenue() {
       renderAll();
     });
   });
+}
+
+// ---------- Budget ----------
+// Each row is either an "expense category" (sum of expenses), a "month field"
+// (state.months[id].field), or "revenue" (a goal, not a cap).
+const BUDGET_ROWS = [
+  { section: 'Revenue goal', items: [
+    { key: 'revenue', label: 'Revenue', source: 'month', kind: 'goal' },
+  ]},
+  { section: 'People', items: [
+    { key: 'salariesTotal', label: 'Team salaries', source: 'month' },
+    { key: 'commissionsTotal', label: 'Commissions', source: 'month' },
+    { key: 'founderComp', label: 'Founder compensation', source: 'month' },
+  ]},
+  { section: 'Acquisition (variable)', items: [
+    { key: 'Base Software', label: 'Base Software', source: 'category', pill: 'cat-base-software' },
+    { key: 'LinkedIn Channel', label: 'LinkedIn Channel', source: 'category', pill: 'cat-linkedin-channel' },
+    { key: 'Email Channel', label: 'Email Channel', source: 'category', pill: 'cat-email-channel' },
+    { key: 'SMS', label: 'SMS', source: 'category', pill: 'cat-sms' },
+    { key: 'One off', label: 'One off', source: 'category', pill: 'cat-one-off' },
+  ]},
+  { section: 'Other', items: [
+    { key: 'refundsTotal', label: 'Refunds (cap)', source: 'month' },
+    { key: 'referralPayoutsTotal', label: 'Referral payouts', source: 'month' },
+  ]},
+];
+
+function actualForBudgetRow(item, monthId) {
+  if (item.source === 'category') {
+    return categoryTotals(monthId)[item.key] || 0;
+  }
+  // month field — special handling for refundsTotal which may sum from refunds[]
+  if (item.key === 'refundsTotal') {
+    const sumFromRecords = refundsForMonth(monthId).reduce((s, r) => s + r.amount, 0);
+    return sumFromRecords || (state.months[monthId] || {})[item.key] || 0;
+  }
+  return (state.months[monthId] || {})[item.key] || 0;
+}
+
+function prevMonthId(monthId) {
+  const ids = sortedMonthIds();
+  const idx = ids.indexOf(monthId);
+  return idx > 0 ? ids[idx - 1] : null;
+}
+
+function suggestBudgetFromPrev(monthId) {
+  const prev = prevMonthId(monthId);
+  if (!prev) return null;
+  const out = {};
+  BUDGET_ROWS.forEach(s => s.items.forEach(item => {
+    out[item.key] = Math.round(actualForBudgetRow(item, prev) * 100) / 100;
+  }));
+  return out;
+}
+
+function renderBudget() {
+  const monthId = state.meta.activeMonth;
+  if (!state.budgets[monthId]) state.budgets[monthId] = {};
+  const budget = state.budgets[monthId];
+  const prev = prevMonthId(monthId);
+  const wrap = document.getElementById('budget-content');
+
+  // Compute totals
+  let totalBudget = 0, totalActual = 0, totalGoalBudget = 0, totalGoalActual = 0;
+  BUDGET_ROWS.forEach(s => s.items.forEach(item => {
+    const b = budget[item.key] || 0;
+    const a = actualForBudgetRow(item, monthId);
+    if (item.kind === 'goal') { totalGoalBudget += b; totalGoalActual += a; }
+    else { totalBudget += b; totalActual += a; }
+  }));
+  const remaining = totalBudget - totalActual;
+  const usedPct = totalBudget > 0 ? (totalActual / totalBudget) * 100 : 0;
+  const goalPct = totalGoalBudget > 0 ? (totalGoalActual / totalGoalBudget) * 100 : 0;
+
+  // Empty-state hint
+  const isEmpty = Object.values(budget).every(v => !v || v === 0);
+  const suggestionHint = isEmpty && prev
+    ? `<div class="budget-empty-state" style="margin-bottom:22px">
+        <h3>No budget set for ${fmtMonth(monthId)} yet</h3>
+        <p>Click <b>Suggest from previous month</b> in the top-right to pre-fill based on ${fmtMonth(prev)}'s actuals — then slide each lever to adjust.</p>
+      </div>`
+    : '';
+
+  wrap.innerHTML = `
+    ${suggestionHint}
+    <div class="budget-summary">
+      <div class="kpi">
+        <div class="lbl">Revenue goal</div>
+        <div class="val">${money(totalGoalBudget)}</div>
+        <div class="sub">${money(totalGoalActual)} actual · ${goalPct.toFixed(0)}%</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Expense budget</div>
+        <div class="val">${money(totalBudget)}</div>
+        <div class="sub">target spending cap</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Spent so far</div>
+        <div class="val ${usedPct > 100 ? 'bad' : usedPct > 90 ? 'warn' : ''}">${money(totalActual)}</div>
+        <div class="sub">${usedPct.toFixed(0)}% of budget</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">${remaining >= 0 ? 'Remaining' : 'Over budget'}</div>
+        <div class="val ${remaining < 0 ? 'bad' : remaining < totalBudget * 0.1 ? 'warn' : 'good'}">${money(Math.abs(remaining))}</div>
+        <div class="sub">${remaining >= 0 ? 'room left' : 'over the cap'}</div>
+      </div>
+    </div>
+
+    ${BUDGET_ROWS.map(section => {
+      const sectionBudgetTotal = section.items.reduce((s, item) => s + (budget[item.key] || 0), 0);
+      const sectionActualTotal = section.items.reduce((s, item) => s + actualForBudgetRow(item, monthId), 0);
+      return `<div class="budget-section">
+        <div class="budget-section-head">
+          <span class="title">${section.section}</span>
+          <span class="total"><span style="color:var(--text)">${money(sectionActualTotal)}</span> / ${money(sectionBudgetTotal)}</span>
+        </div>
+        ${section.items.map(item => renderBudgetRow(item, monthId, budget, prev)).join('')}
+      </div>`;
+    }).join('')}
+  `;
+
+  // Wire up slider + input pairs (kept in sync)
+  wrap.querySelectorAll('.budget-row').forEach(row => {
+    const key = row.dataset.key;
+    const slider = row.querySelector('input[type="range"]');
+    const input = row.querySelector('.budget-input');
+    const updatePct = () => {
+      const max = parseFloat(slider.max) || 1;
+      slider.style.setProperty('--pct', ((slider.value / max) * 100).toFixed(1) + '%');
+    };
+    updatePct();
+    function setValue(v, source) {
+      const num = parseFloat(v) || 0;
+      budget[key] = num;
+      if (source !== 'slider') slider.value = Math.min(num, parseFloat(slider.max));
+      if (source !== 'input') input.value = num;
+      updatePct();
+      saveState();
+      // Only repaint the totals + this row's actual bar; full re-render on commit
+    }
+    slider.addEventListener('input', e => setValue(e.target.value, 'slider'));
+    slider.addEventListener('change', () => renderBudget());  // full refresh on release
+    input.addEventListener('input', e => setValue(e.target.value, 'input'));
+    input.addEventListener('blur', () => renderBudget());
+  });
+}
+
+function renderBudgetRow(item, monthId, budget, prev) {
+  const budgetValue = budget[item.key] || 0;
+  const actual = actualForBudgetRow(item, monthId);
+  const suggested = prev ? actualForBudgetRow(item, prev) : 0;
+  // Slider range: 0 to 2× the larger of (suggested, current budget, current actual, 100)
+  const sliderMax = Math.max(100, Math.ceil(Math.max(suggested * 2, budgetValue * 1.5, actual * 1.5) / 100) * 100);
+  const step = sliderMax >= 10000 ? 100 : sliderMax >= 1000 ? 10 : 1;
+  const labelHtml = item.pill
+    ? `<span class="pill ${item.pill}">${item.label}</span>`
+    : item.label;
+  let progressPct, status, statusLabel;
+  if (item.kind === 'goal') {
+    // Goal: higher = better. Color is good if hitting/exceeding, warn if close, bad if far
+    progressPct = budgetValue > 0 ? (actual / budgetValue) * 100 : 0;
+    if (progressPct >= 100) { status = 'ok'; statusLabel = `${progressPct.toFixed(0)}% met`; }
+    else if (progressPct >= 75) { status = 'near'; statusLabel = `${progressPct.toFixed(0)}% of goal`; }
+    else { status = 'over'; statusLabel = `${progressPct.toFixed(0)}% of goal`; }
+  } else {
+    // Cap: lower = better. ok < 80, near 80-100, over > 100
+    progressPct = budgetValue > 0 ? (actual / budgetValue) * 100 : (actual > 0 ? 999 : 0);
+    if (progressPct > 100) { status = 'over'; statusLabel = `over by ${money(actual - budgetValue)}`; }
+    else if (progressPct > 90) { status = 'near'; statusLabel = `${progressPct.toFixed(0)}% used`; }
+    else { status = 'ok'; statusLabel = `${progressPct.toFixed(0)}% used`; }
+  }
+  const fillPct = Math.min(100, progressPct);
+  const suggestedNote = suggested > 0 && Math.abs(suggested - budgetValue) > 1
+    ? `<span style="color:var(--text-quaternary);font-size:10.5px;margin-left:6px">prev ${money(suggested)}</span>`
+    : '';
+  return `<div class="budget-row" data-key="${item.key}">
+    <div class="label">${labelHtml}${suggestedNote}</div>
+    <div class="slider-wrap"><input type="range" min="0" max="${sliderMax}" step="${step}" value="${budgetValue}" /></div>
+    <input type="number" class="budget-input" min="0" step="0.01" value="${budgetValue}" />
+    <div class="actual-bar">
+      <div class="track"><div class="fill ${status}" style="width:${fillPct.toFixed(1)}%"></div></div>
+      <div class="meta"><span>${money(actual)} actual</span><span class="val ${status}">${statusLabel}</span></div>
+    </div>
+  </div>`;
 }
 
 // ---------- Refunds ----------
@@ -3703,7 +4074,7 @@ function wireUp() {
     state = {
       meta: { activeView: 'overview', activeMonth: isoMonth(new Date()), currency: 'GBP', fxRate: 1.27, invoiceCounter: 1 },
       months: {}, expenses: [], vendors: [], refunds: [], team: [],
-      tasks: [], invoices: [],
+      tasks: [], invoices: [], budgets: {},
       business: structuredClone(DEFAULT_BUSINESS),
       targets: { ...DEFAULT_TARGETS },
     };
@@ -3714,6 +4085,23 @@ function wireUp() {
     };
     saveState();
     renderAll();
+  });
+
+  // ---- Budget ----
+  document.getElementById('budget-suggest-btn').addEventListener('click', () => {
+    const monthId = state.meta.activeMonth;
+    const suggestions = suggestBudgetFromPrev(monthId);
+    if (!suggestions) { alert('No previous month to suggest from.'); return; }
+    state.budgets[monthId] = suggestions;
+    saveState();
+    renderBudget();
+  });
+  document.getElementById('budget-clear-btn').addEventListener('click', () => {
+    const monthId = state.meta.activeMonth;
+    if (!confirm(`Clear all budget targets for ${fmtMonth(monthId)}?`)) return;
+    state.budgets[monthId] = {};
+    saveState();
+    renderBudget();
   });
 
   // ---- Tasks (Kanban) ----
