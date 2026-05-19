@@ -54,10 +54,27 @@
     z-index: 10;
   }
   .topbar h1 {
-    font-size: 16px;
+    font-size: 15px;
     margin: 0;
     font-weight: 600;
-    letter-spacing: -0.2px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .topbar .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 12px;
+    border-right: 1px solid var(--border);
+    height: 100%;
+  }
+  .topbar .brand img {
+    height: 36px;
+    width: auto;
+    max-width: 50px;
+    object-fit: contain;
+    display: block;
   }
   .topbar .spacer { flex: 1; }
   .topbar .control { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
@@ -608,7 +625,10 @@
 <div class="app">
   <!-- Top bar -->
   <div class="topbar">
-    <h1>Business Dashboard</h1>
+    <div class="brand">
+      <img id="topbar-logo" src="logo.png" alt="" />
+      <h1>Agency Advanta</h1>
+    </div>
     <div class="control">
       <label for="month-select" style="margin:0">Month</label>
       <select id="month-select"></select>
@@ -632,24 +652,11 @@
 
   <!-- Sidebar nav -->
   <nav class="sidebar">
-    <div class="nav-section">Track</div>
     <div class="nav-item" data-view="overview"><span>Overview</span></div>
     <div class="nav-item" data-view="expenses"><span>Expenses</span><span class="num" id="nav-count-expenses">0</span></div>
     <div class="nav-item" data-view="revenue"><span>Revenue & Team</span></div>
-    <div class="nav-item" data-view="refunds"><span>Refunds</span><span class="num" id="nav-count-refunds">0</span></div>
-
-    <div class="nav-section">Analyze</div>
-    <div class="nav-item" data-view="daily"><span>Daily / Weekly</span></div>
-    <div class="nav-item" data-view="projections"><span>Projections</span></div>
-    <div class="nav-item" data-view="decisions"><span>Decisions</span></div>
-
-    <div class="nav-section">Do</div>
     <div class="nav-item" data-view="tasks"><span>Tasks</span><span class="num" id="nav-count-tasks">0</span></div>
     <div class="nav-item" data-view="invoices"><span>Invoices</span><span class="num" id="nav-count-invoices">0</span></div>
-
-    <div class="nav-section">Manage</div>
-    <div class="nav-item" data-view="vendors"><span>Vendors</span><span class="num" id="nav-count-vendors">0</span></div>
-    <div class="nav-item" data-view="team"><span>Team</span><span class="num" id="nav-count-team">0</span></div>
     <div class="nav-item" data-view="settings"><span>Settings</span></div>
   </nav>
 
@@ -724,6 +731,42 @@
         </div>
         <div id="expenses-buckets-wrap"></div>
       </div>
+
+      <details class="card" style="padding:0">
+        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Vendor library (<span id="vendor-count-inline">0</span>)</summary>
+        <div style="padding:0 18px 18px">
+          <div class="filters">
+            <div>
+              <label>Category</label>
+              <select id="vendor-filter-cat">
+                <option value="">All</option>
+                <option>Base Software</option>
+                <option>LinkedIn Channel</option>
+                <option>Email Channel</option>
+                <option>SMS</option>
+                <option>One off</option>
+              </select>
+            </div>
+            <div>
+              <label>Show</label>
+              <select id="vendor-filter-recurring">
+                <option value="">All</option>
+                <option value="1">Recurring only</option>
+                <option value="0">Non-recurring only</option>
+              </select>
+            </div>
+            <div class="grow">
+              <label>Search</label>
+              <input id="vendor-filter-search" type="text" placeholder="type to filter" />
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <button id="vendor-add-btn" class="small">+ Add vendor</button>
+            </div>
+          </div>
+          <div id="vendors-table-wrap"></div>
+        </div>
+      </details>
     </section>
 
     <!-- Revenue & Team -->
@@ -735,179 +778,53 @@
         </div>
       </div>
       <div id="revenue-content"></div>
+
+      <details class="card" style="padding:0">
+        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Team roster + per-person pay (<span id="team-count-inline">0</span>)</summary>
+        <div style="padding:0 18px 18px">
+          <div style="margin-bottom:10px">
+            <button id="team-add-btn" class="small">+ Add person</button>
+          </div>
+          <div id="team-table-wrap"></div>
+        </div>
+      </details>
+
+      <details class="card" style="padding:0">
+        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Refunds (<span id="refunds-count-inline">0</span>)</summary>
+        <div style="padding:0 18px 18px">
+          <form id="refund-form" class="grid grid-auto" style="align-items:flex-end;margin-bottom:14px">
+            <div>
+              <label>Month</label>
+              <select id="ref-month"></select>
+            </div>
+            <div>
+              <label>Recipient</label>
+              <input id="ref-recipient" type="text" required />
+            </div>
+            <div>
+              <label>Amount (£)</label>
+              <input id="ref-amount" type="number" step="0.01" min="0" required />
+            </div>
+            <div>
+              <button type="submit" class="primary small">Add refund</button>
+            </div>
+          </form>
+          <div id="refunds-table-wrap"></div>
+        </div>
+      </details>
     </section>
 
-    <!-- Refunds -->
-    <section class="panel" data-view="refunds">
-      <div class="panel-header">
-        <div>
-          <h2>Refunds</h2>
-          <div class="sub">Track refund payouts per recipient. Per-month total flows into the P&L.</div>
-        </div>
-      </div>
-      <div class="card">
-        <h3>Add refund</h3>
-        <form id="refund-form" class="grid grid-auto" style="align-items:flex-end">
-          <div>
-            <label>Month</label>
-            <select id="ref-month"></select>
-          </div>
-          <div>
-            <label>Recipient</label>
-            <input id="ref-recipient" type="text" required />
-          </div>
-          <div>
-            <label>Amount (£)</label>
-            <input id="ref-amount" type="number" step="0.01" min="0" required />
-          </div>
-          <div>
-            <button type="submit" class="primary">Add refund</button>
-          </div>
-        </form>
-      </div>
-      <div class="card">
-        <h3>Recorded refunds</h3>
-        <div id="refunds-table-wrap"></div>
-      </div>
-    </section>
-
-    <!-- Daily/Weekly -->
-    <section class="panel" data-view="daily">
-      <div class="panel-header">
-        <div>
-          <h2>Daily / Weekly</h2>
-          <div class="sub">See spend over time. Pick a range and bucket size.</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="filters">
-          <div>
-            <label>From</label>
-            <input id="dw-from" type="date" />
-          </div>
-          <div>
-            <label>To</label>
-            <input id="dw-to" type="date" />
-          </div>
-          <div>
-            <label>Bucket</label>
-            <select id="dw-bucket">
-              <option value="day">Daily</option>
-              <option value="week" selected>Weekly</option>
-              <option value="month">Monthly</option>
-            </select>
-          </div>
-          <div>
-            <label>Category</label>
-            <select id="dw-category">
-              <option value="">All</option>
-              <option value="Base Software">Base Software</option>
-              <option value="LinkedIn Channel">LinkedIn Channel</option>
-              <option value="Email Channel">Email Channel</option>
-              <option value="SMS">SMS</option>
-              <option value="One off">One off</option>
-            </select>
-          </div>
-        </div>
-        <div id="dw-content"></div>
-      </div>
-    </section>
-
-    <!-- Projections -->
-    <section class="panel" data-view="projections">
-      <div class="panel-header">
-        <div>
-          <h2>Projections</h2>
-          <div class="sub">Forward 3-month forecast based on history + your growth assumptions.</div>
-        </div>
-      </div>
-      <div class="card">
-        <h3>Assumptions</h3>
-        <div class="grid grid-auto">
-          <div>
-            <label>Base on last N months</label>
-            <input id="proj-window" type="number" min="1" max="12" value="3" />
-          </div>
-          <div>
-            <label>Revenue growth / month (%)</label>
-            <input id="proj-rev-growth" type="number" step="0.5" value="0" />
-          </div>
-          <div>
-            <label>Expense growth / month (%)</label>
-            <input id="proj-exp-growth" type="number" step="0.5" value="0" />
-          </div>
-        </div>
-      </div>
-      <div id="proj-content"></div>
-    </section>
-
-    <!-- Decisions -->
-    <section class="panel" data-view="decisions">
-      <div class="panel-header">
-        <div>
-          <h2>Decisions</h2>
-          <div class="sub">Cut / Maintain / Double-down per acquisition channel, based on LTV:CAC and payback.</div>
-        </div>
-      </div>
-      <div id="decisions-content"></div>
-    </section>
-
-    <!-- Vendors -->
-    <section class="panel" data-view="vendors">
-      <div class="panel-header">
-        <div>
-          <h2>Vendors</h2>
-          <div class="sub">Recurring library. Mark as recurring to show in the quick-add panel.</div>
-        </div>
-        <div class="actions">
-          <button id="vendor-add-btn">+ Add vendor</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="filters">
-          <div>
-            <label>Category</label>
-            <select id="vendor-filter-cat">
-              <option value="">All</option>
-              <option value="Base Software">Base Software</option>
-              <option value="LinkedIn Channel">LinkedIn Channel</option>
-              <option value="Email Channel">Email Channel</option>
-              <option value="SMS">SMS</option>
-              <option value="One off">One off</option>
-            </select>
-          </div>
-          <div>
-            <label>Show</label>
-            <select id="vendor-filter-recurring">
-              <option value="">All</option>
-              <option value="1">Recurring only</option>
-              <option value="0">Non-recurring only</option>
-            </select>
-          </div>
-          <div class="grow">
-            <label>Search</label>
-            <input id="vendor-filter-search" type="text" placeholder="type to filter" />
-          </div>
-        </div>
-        <div id="vendors-table-wrap"></div>
-      </div>
-    </section>
-
-    <!-- Team -->
-    <section class="panel" data-view="team">
-      <div class="panel-header">
-        <div>
-          <h2>Team</h2>
-          <div class="sub">Roster only. Monthly salary + commission totals are entered on Revenue & Team.</div>
-        </div>
-        <div class="actions">
-          <button id="team-add-btn">+ Add person</button>
-        </div>
-      </div>
-      <div class="card">
-        <div id="team-table-wrap"></div>
-      </div>
-    </section>
+    <!-- Hidden helpers — these inputs are needed by the daily/weekly + projection render functions
+         but the controls now live inside Overview. Kept as a single container we can populate. -->
+    <div id="hidden-helpers" style="display:none">
+      <input id="dw-from" type="date" />
+      <input id="dw-to" type="date" />
+      <select id="dw-bucket"><option value="day">Daily</option><option value="week" selected>Weekly</option><option value="month">Monthly</option></select>
+      <select id="dw-category"><option value=""></option></select>
+      <input id="proj-window" type="number" value="3" />
+      <input id="proj-rev-growth" type="number" value="0" />
+      <input id="proj-exp-growth" type="number" value="0" />
+    </div>
 
     <!-- Tasks (Kanban) -->
     <section class="panel" data-view="tasks">
@@ -1437,14 +1354,8 @@ function renderAll() {
   const view = state.meta.activeView;
   switch (view) {
     case 'overview': renderOverview(); break;
-    case 'expenses': renderExpenses(); break;
-    case 'revenue': renderRevenue(); break;
-    case 'refunds': renderRefunds(); break;
-    case 'daily': renderDaily(); break;
-    case 'projections': renderProjections(); break;
-    case 'decisions': renderDecisions(); break;
-    case 'vendors': renderVendors(); break;
-    case 'team': renderTeam(); break;
+    case 'expenses': renderExpenses(); renderVendors(); break;
+    case 'revenue': renderRevenue(); renderTeam(); renderRefunds(); break;
     case 'tasks': renderTasks(); break;
     case 'invoices': renderInvoices(); break;
     case 'settings': renderSettings(); break;
@@ -1452,12 +1363,16 @@ function renderAll() {
 }
 
 function updateNavCounts() {
-  document.getElementById('nav-count-expenses').textContent = state.expenses.length;
-  document.getElementById('nav-count-vendors').textContent = state.vendors.length;
-  document.getElementById('nav-count-refunds').textContent = state.refunds.length;
-  document.getElementById('nav-count-team').textContent = state.team.length;
-  document.getElementById('nav-count-tasks').textContent = state.tasks.length;
-  document.getElementById('nav-count-invoices').textContent = state.invoices.length;
+  const el = id => document.getElementById(id);
+  if (el('nav-count-expenses')) el('nav-count-expenses').textContent = state.expenses.length;
+  if (el('nav-count-tasks')) el('nav-count-tasks').textContent = state.tasks.length;
+  if (el('nav-count-invoices')) el('nav-count-invoices').textContent = state.invoices.length;
+  if (el('vendor-count-inline')) el('vendor-count-inline').textContent = state.vendors.length;
+  if (el('refunds-count-inline')) el('refunds-count-inline').textContent = state.refunds.length;
+  if (el('team-count-inline')) el('team-count-inline').textContent = state.team.length;
+  // Update topbar logo to use uploaded version if available
+  const logo = el('topbar-logo');
+  if (logo) logo.src = (state.business && state.business.logoDataUrl) || 'logo.png';
 }
 
 function populateMonthSelects() {
@@ -1540,8 +1455,28 @@ function renderOverview() {
       <div class="chart-legend" style="margin-top:8px;justify-content:center"><span><span class="dot" style="background:var(--accent)"></span>Revenue</span><span><span class="dot" style="background:var(--good)"></span>Net profit</span></div>
     </div>
 
+    <div class="card">
+      <h3>Last 12 weeks of spend</h3>
+      <div id="overview-daily"></div>
+    </div>
+
+    <div class="card">
+      <h3>Next 6 months — projection</h3>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
+        <div style="flex:0 0 auto"><label style="font-size:11px">Based on last</label><select id="proj-window-inline" style="width:80px"><option value="2">2 mo</option><option value="3" selected>3 mo</option><option value="6">6 mo</option></select></div>
+        <div style="flex:0 0 auto"><label style="font-size:11px">Rev growth /mo</label><input id="proj-rev-growth-inline" type="number" step="0.5" value="0" style="width:80px" /> %</div>
+        <div style="flex:0 0 auto"><label style="font-size:11px">Exp growth /mo</label><input id="proj-exp-growth-inline" type="number" step="0.5" value="0" style="width:80px" /> %</div>
+      </div>
+      <div id="overview-projections"></div>
+    </div>
+
+    <div class="card">
+      <h3>Channel decisions (last 3 months)</h3>
+      <div id="overview-decisions"></div>
+    </div>
+
     <details>
-      <summary>Show 3-month rolling KPIs (CAC, LTV:CAC, payback)</summary>
+      <summary>Show CAC, LTV:CAC, payback (last 3 months)</summary>
       <div class="card" style="margin-top:8px">
         <div class="grid grid-3">
           <div class="kpi"><div class="lbl">Revenue (3 mo)</div><div class="val">${money(aggregates3.revenue)}</div></div>
@@ -1556,6 +1491,113 @@ function renderOverview() {
     </details>
   `;
   document.getElementById('overview-content').innerHTML = html;
+  // Render the embedded analytics
+  renderOverviewDaily();
+  renderOverviewProjections();
+  renderOverviewDecisions();
+  // Wire projection inputs
+  ['proj-window-inline', 'proj-rev-growth-inline', 'proj-exp-growth-inline'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', debounce(renderOverviewProjections, 150));
+  });
+}
+
+// Compact daily/weekly chart for Overview: last 12 weeks, stacked bar
+function renderOverviewDaily() {
+  const ids = sortedMonthIds();
+  if (!ids.length) {
+    document.getElementById('overview-daily').innerHTML = '<div class="help">No data yet.</div>';
+    return;
+  }
+  // Use last 12 weeks worth of expense data
+  const today = new Date();
+  const fromDate = new Date(today); fromDate.setDate(today.getDate() - 12*7);
+  const fromIso = isoDate(fromDate);
+  // If today is in the future of last data, fall back to last known data window
+  const lastExpenseDate = state.expenses.map(e => e.date).filter(d => d).sort().pop();
+  const toIso = lastExpenseDate && lastExpenseDate < isoDate(today) ? lastExpenseDate : isoDate(today);
+  const startIso = (() => {
+    const d = new Date(toIso); d.setDate(d.getDate() - 12*7); return isoDate(d);
+  })();
+  const exps = state.expenses.filter(e => e.date && e.date >= startIso && e.date <= toIso);
+  function bucketKey(dateStr) {
+    const d = new Date(dateStr);
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+    return isoDate(d);
+  }
+  function bucketLabel(key) { return fmtDate(key); }
+  const groups = {};
+  exps.forEach(e => {
+    const k = bucketKey(e.date);
+    if (!groups[k]) groups[k] = { total: 0, byCat: {} };
+    groups[k].total += e.amount;
+    groups[k].byCat[e.category] = (groups[k].byCat[e.category] || 0) + e.amount;
+  });
+  const keys = Object.keys(groups).sort();
+  document.getElementById('overview-daily').innerHTML = keys.length
+    ? renderDailyChart(keys, groups, 'week', bucketLabel)
+    : '<div class="help">No spend in the last 12 weeks.</div>';
+}
+
+// Compact projection: 6 months forward, summary table + tiny chart
+function renderOverviewProjections() {
+  const winSel = document.getElementById('proj-window-inline');
+  if (winSel && document.getElementById('proj-window')) document.getElementById('proj-window').value = winSel.value;
+  const revGrowthEl = document.getElementById('proj-rev-growth-inline');
+  if (revGrowthEl && document.getElementById('proj-rev-growth')) document.getElementById('proj-rev-growth').value = revGrowthEl.value;
+  const expGrowthEl = document.getElementById('proj-exp-growth-inline');
+  if (expGrowthEl && document.getElementById('proj-exp-growth')) document.getElementById('proj-exp-growth').value = expGrowthEl.value;
+
+  const window = parseInt(winSel ? winSel.value : 3, 10) || 3;
+  const revGrowth = ((parseFloat(revGrowthEl ? revGrowthEl.value : 0)) || 0) / 100;
+  const expGrowth = ((parseFloat(expGrowthEl ? expGrowthEl.value : 0)) || 0) / 100;
+  const ids = sortedMonthIds();
+  const baseIds = ids.slice(-window);
+  if (!baseIds.length) { document.getElementById('overview-projections').innerHTML = '<div class="help">No history yet.</div>'; return; }
+  const calcs = baseIds.map(calcMonth);
+  const avgRev = calcs.reduce((s, c) => s + c.adjRev, 0) / calcs.length;
+  const avgExp = calcs.reduce((s, c) => s + c.totalExpenses, 0) / calcs.length;
+  const lastId = ids[ids.length - 1];
+  const [ly, lm] = lastId.split('-').map(Number);
+  const projections = [];
+  for (let i = 1; i <= 6; i++) {
+    const d = new Date(ly, lm - 1 + i, 1);
+    const id = isoMonth(d);
+    const rev = avgRev * Math.pow(1 + revGrowth, i);
+    const exp = avgExp * Math.pow(1 + expGrowth, i);
+    projections.push({ id, rev, exp, net: rev - exp });
+  }
+  const totalRev = projections.reduce((s, p) => s + p.rev, 0);
+  const totalExp = projections.reduce((s, p) => s + p.exp, 0);
+  const totalNet = projections.reduce((s, p) => s + p.net, 0);
+  const historical = ids.map(id => {
+    const c = calcMonth(id);
+    return { id, rev: c.adjRev, exp: c.totalExpenses, net: c.netProfit };
+  });
+  const combined = [...historical, ...projections];
+  document.getElementById('overview-projections').innerHTML = `
+    <div class="grid grid-3" style="margin-bottom:12px">
+      <div class="kpi"><div class="lbl">6-mo revenue</div><div class="val">${money(totalRev)}</div></div>
+      <div class="kpi"><div class="lbl">6-mo expenses</div><div class="val">${money(totalExp)}</div></div>
+      <div class="kpi"><div class="lbl">6-mo net profit</div><div class="val ${totalNet >= 0 ? 'good' : 'bad'}">${money(totalNet)}</div></div>
+    </div>
+    <div class="chart-legend"><span><span class="dot" style="background:var(--accent)"></span>Revenue</span><span><span class="dot" style="background:var(--bad)"></span>Expenses</span><span><span class="dot" style="background:var(--good)"></span>Net profit</span><span style="margin-left:auto;font-style:italic;color:var(--muted-2)">Solid = actual · Dashed = projected</span></div>
+    ${renderMultiTrendChart(combined, historical.length)}
+  `;
+}
+
+function renderOverviewDecisions() {
+  const cats = ['LinkedIn Channel', 'Email Channel', 'SMS', 'One off'];
+  const decisions = cats.map(cat => ({ cat, ...decisionForCategory(cat) }));
+  document.getElementById('overview-decisions').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px">
+      ${decisions.map(d => `<div class="decision-card ${d.action}" style="margin:0">
+        <div class="head"><span class="name"><span class="pill ${catClass(d.cat)}">${d.cat}</span></span><span class="pill ${d.action}">${d.label}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px"><span>3-mo avg</span><span style="color:var(--text);font-variant-numeric:tabular-nums">${money(d.monthlySpend)}</span></div>
+      </div>`).join('')}
+    </div>
+  `;
 }
 
 // Horizontal bar chart of spend by category (clearer than KPI tiles)
