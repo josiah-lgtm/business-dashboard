@@ -4131,6 +4131,7 @@ const TI_COUNTRIES = [
   { code: 'EU', name: 'EU country (€)', fields: ['accountHolder', 'iban', 'bic', 'bankName', 'bankAddress'] },
   { code: 'CA', name: 'Canada (CAD)', fields: ['accountHolder', 'transitNumber', 'institutionNumber', 'accountNumber', 'bankName', 'bankAddress'] },
   { code: 'AU', name: 'Australia (AUD)', fields: ['accountHolder', 'bsbCode', 'accountNumber', 'bankName', 'bankAddress'] },
+  { code: 'PH', name: 'Philippines (₱)', fields: ['accountHolder', 'accountNumber', 'bankName', 'bic', 'bankAddress', 'mobileWallet', 'phMobileNumber'] },
   { code: 'OTHER', name: 'Other / International (IBAN+BIC)', fields: ['accountHolder', 'iban', 'bic', 'intermediaryBic', 'bankName', 'bankAddress'] },
 ];
 const TI_BANK_LABELS = {
@@ -4146,6 +4147,8 @@ const TI_BANK_LABELS = {
   bsbCode: 'BSB code',
   bankName: 'Bank name',
   bankAddress: 'Bank address',
+  mobileWallet: 'Mobile wallet (GCash / PayMaya / Maya)',
+  phMobileNumber: 'Mobile wallet number (+63 …)',
 };
 function tiCountry(code) { return TI_COUNTRIES.find(c => c.code === code) || TI_COUNTRIES[0]; }
 function tiBankFieldsFor(code) { return tiCountry(code).fields; }
@@ -4561,6 +4564,7 @@ function openTiInvoiceEditor(memberId, invoiceId) {
           <option ${inv.currency==='EUR'?'selected':''}>EUR</option>
           <option ${inv.currency==='GBP'?'selected':''}>GBP</option>
           <option ${inv.currency==='USD'?'selected':''}>USD</option>
+          <option ${inv.currency==='PHP'?'selected':''}>PHP</option>
         </select></div>
       </div>
       <div style="margin-top:12px"><label>Notes (optional)</label>
@@ -4628,7 +4632,7 @@ function tiPostToSlack(inv) {
   const url = (state.slackWebhookUrl || '').trim();
   if (!url) return Promise.resolve(false);
   const m = state.team.find(t => t.id === inv.memberId);
-  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : '£';
+  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : inv.currency === 'PHP' ? '₱' : '£';
   const amt = sym + (Number(inv.amount) || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const text = `💰 *Invoice pending review*\n*${m ? m.name : 'Unknown'}* — ${amt} · ${inv.number}\nFor: ${fmtTiMonth(inv.period)} (${inv.itemCategory || 'Commission'})${inv.services ? ' · ' + inv.services.slice(0, 200) : ''}\nReview & accept in the dashboard.`;
   return fetch(url, {
@@ -4644,7 +4648,7 @@ function showTiInvoicePreview(invoiceId) {
   const m = state.team.find(t => t.id === inv.memberId);
   if (!m) return alert('Member not found');
   const b = state.business;
-  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : '£';
+  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : inv.currency === 'PHP' ? '₱' : '£';
   const fmtMoney = (n) => sym + (Number(n) || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
   const fmtMoneyExact = (n) => sym + (Number(n) || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const fmtDDMMYYYY = (iso) => {
@@ -5014,7 +5018,7 @@ function showInvoicePreview(id) {
   if (!inv) return;
   const b = state.business;
   const bank = b.banks[inv.currency] || {};
-  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : '£';
+  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : inv.currency === 'PHP' ? '₱' : '£';
   const fmt = v => sym + v.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
   const logoHtml = b.logoDataUrl
     ? `<img src="${b.logoDataUrl}" alt="logo" />`
