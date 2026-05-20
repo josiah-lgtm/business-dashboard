@@ -1041,6 +1041,132 @@
   /* ============================================================
      Invoice form items table
      ============================================================ */
+  /* ============================================================
+     Team Invoices
+     ============================================================ */
+  .ti-view-toggle {
+    display: inline-flex;
+    background: var(--surface-input);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .ti-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .ti-toggle-btn:hover { color: var(--text); }
+  .ti-toggle-btn.active {
+    background: var(--accent);
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  .ti-member-card {
+    background: var(--surface-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .ti-member-head {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+  }
+  .ti-member-head:hover { background: rgba(255,255,255,0.02); }
+  .ti-member-head .name { font-weight: 600; font-size: 14px; }
+  .ti-member-head .meta { color: var(--text-tertiary); font-size: 12px; }
+  .ti-member-head .country-pill {
+    background: var(--surface-raised);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .ti-member-head .toggle { color: var(--text-tertiary); font-size: 18px; line-height: 1; transition: transform 0.18s; }
+  .ti-member-card.open .ti-member-head .toggle { transform: rotate(90deg); }
+  .ti-member-body {
+    display: none;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--separator);
+  }
+  .ti-member-card.open .ti-member-body { display: block; }
+
+  .ti-month-folder {
+    background: var(--surface-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .ti-month-head {
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    cursor: pointer;
+  }
+  .ti-month-head:hover { background: rgba(255,255,255,0.02); }
+  .ti-month-head .lbl { font-weight: 600; font-size: 14px; }
+  .ti-month-head .summary { color: var(--text-tertiary); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .ti-month-head .toggle { color: var(--text-tertiary); font-size: 18px; line-height: 1; transition: transform 0.18s; }
+  .ti-month-folder.open .ti-month-head .toggle { transform: rotate(90deg); }
+  .ti-month-body { display: none; padding: 4px 16px 16px; border-top: 1px solid var(--separator); }
+  .ti-month-folder.open .ti-month-body { display: block; }
+
+  .ti-invoice-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr auto auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--separator);
+    font-size: 13px;
+  }
+  .ti-invoice-row:last-child { border-bottom: none; }
+  .ti-invoice-row .num { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; color: var(--text-secondary); }
+  .ti-invoice-row .from { font-weight: 500; }
+  .ti-invoice-row .amt { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+  .ti-invoice-row .pill {
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .ti-invoice-row .pill.draft { background: var(--surface-raised); color: var(--text-secondary); }
+  .ti-invoice-row .pill.submitted { background: var(--warn-tint); color: var(--warn); }
+  .ti-invoice-row .pill.paid { background: var(--good-tint); color: var(--good); }
+  .ti-invoice-row .row-actions { display: flex; gap: 4px; }
+  .ti-invoice-row .row-actions button {
+    padding: 4px 9px;
+    font-size: 11px;
+    border-radius: 5px;
+  }
+
+  .ti-profile-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .ti-profile-form .span-2 { grid-column: 1 / -1; }
+  @media (max-width: 800px) { .ti-profile-form { grid-template-columns: 1fr; } }
+
   .inv-items-table {
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -1292,6 +1418,7 @@
     <div class="nav-item" data-view="budget"><span>Budget</span></div>
     <div class="nav-item" data-view="tasks"><span>Tasks</span><span class="num" id="nav-count-tasks">0</span></div>
     <div class="nav-item" data-view="invoices"><span>Invoices</span><span class="num" id="nav-count-invoices">0</span></div>
+    <div class="nav-item" data-view="team-invoices"><span>Team Invoices</span><span class="num" id="nav-count-team-invoices">0</span></div>
     <div class="nav-item" data-view="settings"><span>Settings</span></div>
   </nav>
 
@@ -1622,6 +1749,75 @@
       </div>
     </section>
 
+    <!-- Team Invoices -->
+    <section class="panel" data-view="team-invoices">
+      <div class="panel-header">
+        <div>
+          <h2>Team Invoices</h2>
+          <div class="sub">Inbound invoices from team members + vendors. Admin manages everyone's profile; team members can switch into <b>Member view</b> to file their own. Each invoice generates a PDF with your AA branding.</div>
+        </div>
+        <div class="actions">
+          <div class="ti-view-toggle">
+            <button id="ti-admin-btn" class="ti-toggle-btn active">Admin view</button>
+            <button id="ti-member-btn" class="ti-toggle-btn">Member view</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slack settings (admin only) -->
+      <div class="card ti-admin-only">
+        <h3>Slack notification</h3>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end">
+          <div>
+            <label>Incoming webhook URL</label>
+            <input id="ti-slack-url" type="url" placeholder="https://hooks.slack.com/services/..." />
+            <div class="help">When a team member submits an invoice, a notification posts to this Slack channel. Generate the URL at api.slack.com/messaging/webhooks.</div>
+          </div>
+          <button id="ti-slack-test" class="ghost">Send test ping</button>
+        </div>
+      </div>
+
+      <!-- Team members + their profile (admin only) -->
+      <div class="card ti-admin-only">
+        <h3>Team & vendor profiles</h3>
+        <p class="help" style="margin-top:0">Each row holds the person's address + bank details for their invoices. <b>Country</b> drives which bank fields they get.</p>
+        <div id="ti-members-list"></div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="ti-add-member" class="small primary">+ Add team member or vendor</button>
+        </div>
+      </div>
+
+      <!-- Invoices by month (admin only) -->
+      <div class="card ti-admin-only">
+        <h3>Invoices by month</h3>
+        <div id="ti-months-wrap"></div>
+      </div>
+
+      <!-- Member view (only visible when toggled) -->
+      <div id="ti-member-view" style="display:none">
+        <div class="card">
+          <h3>Pick yourself</h3>
+          <p class="help" style="margin-top:0">No login — pick your name to claim this device's session. Your profile + invoices belong to you.</p>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <select id="ti-member-picker" style="max-width:300px"></select>
+            <span id="ti-member-active" style="color:var(--text-secondary);font-size:13px"></span>
+          </div>
+        </div>
+        <div id="ti-member-profile-card" class="card" style="display:none">
+          <h3>Your profile</h3>
+          <div id="ti-member-profile-form"></div>
+        </div>
+        <div id="ti-member-new-card" class="card" style="display:none">
+          <h3>Create / edit invoice</h3>
+          <div id="ti-member-invoice-form"></div>
+        </div>
+        <div id="ti-member-history-card" class="card" style="display:none">
+          <h3>Your past invoices</h3>
+          <div id="ti-member-history"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- Settings -->
     <section class="panel" data-view="settings">
       <div class="panel-header">
@@ -1751,7 +1947,11 @@ function makeInitialState() {
   const expenses = BACKFILL.expenses.map(e => ({ id: uid(), ...e }));
   const vendors = BACKFILL.vendors.map(v => ({ id: uid(), ...v }));
   const refunds = BACKFILL.refunds.map(r => ({ id: uid(), ...r }));
-  const team = BACKFILL.team.map(t => ({ id: uid(), ...t, monthlySalary: 0, active: true }));
+  const team = BACKFILL.team.map(t => ({
+    id: uid(), ...t,
+    monthlySalary: 0, active: true,
+    email: '', address: '', country: 'GB', bank: {},
+  }));
   const monthIds = Object.keys(months).sort();
   return {
     meta: {
@@ -1764,6 +1964,11 @@ function makeInitialState() {
     months, expenses, vendors, refunds, team,
     tasks: [],
     invoices: [],
+    teamInvoices: [],
+    teamInvoiceCounters: {},  // per-member sequential numbering
+    teamInvoiceMonths: {},    // open/closed state per month folder
+    teamInvoiceActiveMemberId: null,  // 'member view' active member
+    slackWebhookUrl: '',
     budgets: {},
     business: structuredClone(DEFAULT_BUSINESS),
     targets: { ...DEFAULT_TARGETS },
@@ -1790,7 +1995,17 @@ function loadState() {
       if (t.monthlySalary == null) t.monthlySalary = 0;
       if (t.commissionAmount == null) t.commissionAmount = 0;
       delete t.commissionPct;  // old field, replaced with cash amount
+      // Team Invoices: extra profile fields per member
+      if (t.email == null) t.email = '';
+      if (t.address == null) t.address = '';
+      if (t.country == null) t.country = 'GB';
+      if (!t.bank) t.bank = {};
     });
+    if (!s.teamInvoices) s.teamInvoices = [];
+    if (!s.teamInvoiceCounters) s.teamInvoiceCounters = {};
+    if (!s.teamInvoiceMonths) s.teamInvoiceMonths = {};
+    if (s.teamInvoiceActiveMemberId === undefined) s.teamInvoiceActiveMemberId = null;
+    if (s.slackWebhookUrl == null) s.slackWebhookUrl = '';
     // One-time cleanup: an earlier parser bug pulled Apr team-pay rows into refunds.
     // Remove rows whose recipient looks like a team payment, not a client refund.
     if (s.refunds && s.refunds.length) {
@@ -2063,6 +2278,7 @@ function renderAll() {
     case 'budget': renderBudget(); break;
     case 'tasks': renderTasks(); break;
     case 'invoices': renderInvoices(); break;
+    case 'team-invoices': renderTeamInvoices(); break;
     case 'settings': renderSettings(); break;
   }
 }
@@ -2072,6 +2288,7 @@ function updateNavCounts() {
   if (el('nav-count-expenses')) el('nav-count-expenses').textContent = state.expenses.length;
   if (el('nav-count-tasks')) el('nav-count-tasks').textContent = state.tasks.length;
   if (el('nav-count-invoices')) el('nav-count-invoices').textContent = state.invoices.length;
+  if (el('nav-count-team-invoices')) el('nav-count-team-invoices').textContent = (state.teamInvoices || []).length;
   if (el('vendor-count-inline')) el('vendor-count-inline').textContent = state.vendors.length;
   if (el('refunds-count-inline')) el('refunds-count-inline').textContent = state.refunds.length;
   if (el('team-count-inline')) el('team-count-inline').textContent = state.team.length;
@@ -3614,6 +3831,496 @@ function renderTaskCard(t) {
 // ---------- Invoices ----------
 let currentInvoiceItems = [];  // working items in the form
 
+// ============================================================
+// TEAM INVOICES — admin + member views, country-aware bank fields,
+// monthly folders, PDF + Slack
+// ============================================================
+
+const TI_COUNTRIES = [
+  { code: 'GB', name: 'United Kingdom (£)', fields: ['accountHolder', 'sortCode', 'accountNumber', 'bankName', 'bankAddress'] },
+  { code: 'US', name: 'United States ($)', fields: ['accountHolder', 'routingNumber', 'accountNumber', 'bankName', 'bankAddress'] },
+  { code: 'EU', name: 'EU country (€)', fields: ['accountHolder', 'iban', 'bic', 'bankName', 'bankAddress'] },
+  { code: 'CA', name: 'Canada (CAD)', fields: ['accountHolder', 'transitNumber', 'institutionNumber', 'accountNumber', 'bankName', 'bankAddress'] },
+  { code: 'AU', name: 'Australia (AUD)', fields: ['accountHolder', 'bsbCode', 'accountNumber', 'bankName', 'bankAddress'] },
+  { code: 'OTHER', name: 'Other / International (IBAN+BIC)', fields: ['accountHolder', 'iban', 'bic', 'intermediaryBic', 'bankName', 'bankAddress'] },
+];
+const TI_BANK_LABELS = {
+  accountHolder: 'Account holder',
+  sortCode: 'Sort code',
+  accountNumber: 'Account number',
+  routingNumber: 'Routing number (ABA)',
+  iban: 'IBAN',
+  bic: 'BIC / SWIFT',
+  intermediaryBic: 'Intermediary BIC',
+  transitNumber: 'Transit #',
+  institutionNumber: 'Institution #',
+  bsbCode: 'BSB code',
+  bankName: 'Bank name',
+  bankAddress: 'Bank address',
+};
+function tiCountry(code) { return TI_COUNTRIES.find(c => c.code === code) || TI_COUNTRIES[0]; }
+function tiBankFieldsFor(code) { return tiCountry(code).fields; }
+
+function fmtTiMonth(id) {
+  if (!id) return '—';
+  const [y, m] = id.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+}
+function tiActiveTab() { return state._tiTab || 'admin'; }
+function tiSetTab(tab) {
+  state._tiTab = tab;
+  document.getElementById('ti-admin-btn')?.classList.toggle('active', tab === 'admin');
+  document.getElementById('ti-member-btn')?.classList.toggle('active', tab === 'member');
+  document.querySelectorAll('.ti-admin-only').forEach(el => el.style.display = tab === 'admin' ? '' : 'none');
+  document.getElementById('ti-member-view').style.display = tab === 'member' ? 'block' : 'none';
+}
+
+function renderTeamInvoices() {
+  tiSetTab(tiActiveTab());
+  renderTiMembers();
+  renderTiMonths();
+  renderTiMemberView();
+  const slackInput = document.getElementById('ti-slack-url');
+  if (slackInput) slackInput.value = state.slackWebhookUrl || '';
+}
+
+function renderTiMembers() {
+  const wrap = document.getElementById('ti-members-list');
+  if (!wrap) return;
+  const sorted = (state.team || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  if (!sorted.length) {
+    wrap.innerHTML = '<div class="help">No team members yet — click + Add team member or vendor below.</div>';
+    return;
+  }
+  wrap.innerHTML = sorted.map(m => {
+    const c = tiCountry(m.country);
+    const invCount = (state.teamInvoices || []).filter(i => i.memberId === m.id).length;
+    return `<div class="ti-member-card" data-mid="${m.id}">
+      <div class="ti-member-head" data-act="ti-toggle-member">
+        <div>
+          <div class="name">${escapeHtml(m.name)}</div>
+          <div class="meta">${escapeHtml(m.role || 'no role')}${m.email ? ' · ' + escapeHtml(m.email) : ''} · ${invCount} invoice${invCount === 1 ? '' : 's'}</div>
+        </div>
+        <span class="country-pill">${escapeHtml(c.code)}</span>
+        <span class="toggle">›</span>
+      </div>
+      <div class="ti-member-body">
+        ${renderTiProfileForm(m, 'admin')}
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="small primary" data-act="ti-new-inv">+ New invoice for ${escapeHtml(m.name.split(' ')[0])}</button>
+          <button class="small ghost danger" data-act="ti-del-member">Delete member</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  wrap.querySelectorAll('[data-act="ti-toggle-member"]').forEach(el => {
+    el.addEventListener('click', e => {
+      if (['INPUT','SELECT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return;
+      el.closest('.ti-member-card').classList.toggle('open');
+    });
+  });
+  wrap.querySelectorAll('.ti-member-card').forEach(card => wireTiProfileForm(card, 'admin'));
+  wrap.querySelectorAll('[data-act="ti-new-inv"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const mid = btn.closest('.ti-member-card').dataset.mid;
+      openTiInvoiceEditor(mid, null);
+    });
+  });
+  wrap.querySelectorAll('[data-act="ti-del-member"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const mid = btn.closest('.ti-member-card').dataset.mid;
+      const m = state.team.find(t => t.id === mid);
+      if (!m) return;
+      const invCount = (state.teamInvoices || []).filter(i => i.memberId === mid).length;
+      if (!confirm(`Delete ${m.name}? They have ${invCount} invoice(s) — those will also be removed.`)) return;
+      state.team = state.team.filter(t => t.id !== mid);
+      state.teamInvoices = (state.teamInvoices || []).filter(i => i.memberId !== mid);
+      saveState();
+      renderTeamInvoices();
+      updateNavCounts();
+    });
+  });
+}
+
+function renderTiProfileForm(m, ctx) {
+  const c = tiCountry(m.country);
+  const countryOpts = TI_COUNTRIES.map(co => `<option value="${co.code}" ${co.code === m.country ? 'selected' : ''}>${co.name}</option>`).join('');
+  const bankFieldsHtml = c.fields.map(f => `
+    <div>
+      <label>${TI_BANK_LABELS[f] || f}</label>
+      <input type="text" data-ti-bank="${f}" value="${escapeHtml((m.bank || {})[f] || '')}" />
+    </div>
+  `).join('');
+  return `<div class="ti-profile-form" data-ti-profile="${m.id}" data-ti-ctx="${ctx}">
+    <div><label>Name</label><input type="text" data-ti-field="name" value="${escapeHtml(m.name)}" /></div>
+    <div><label>Role</label><input type="text" data-ti-field="role" value="${escapeHtml(m.role || '')}" /></div>
+    <div><label>Email</label><input type="email" data-ti-field="email" value="${escapeHtml(m.email || '')}" /></div>
+    <div><label>Country</label><select data-ti-field="country">${countryOpts}</select></div>
+    <div class="span-2"><label>Address (multi-line)</label><textarea data-ti-field="address" rows="2" placeholder="Street, City, Postcode, Country">${escapeHtml(m.address || '')}</textarea></div>
+    <div class="span-2" style="margin-top:6px;padding-top:10px;border-top:1px solid var(--separator)">
+      <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:8px">${c.name} bank details</div>
+      <div class="ti-profile-form" style="margin-top:0">${bankFieldsHtml}</div>
+    </div>
+  </div>`;
+}
+
+function wireTiProfileForm(rootEl, ctx) {
+  const formEl = rootEl.querySelector(`[data-ti-profile]`);
+  if (!formEl) return;
+  const mid = formEl.dataset.tiProfile;
+  const m = state.team.find(t => t.id === mid);
+  if (!m) return;
+  formEl.querySelectorAll('[data-ti-field]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const k = e.target.dataset.tiField;
+      m[k] = e.target.value;
+      saveState();
+      if (k === 'country') renderTeamInvoices();  // re-render to show new bank field set
+    });
+  });
+  formEl.querySelectorAll('[data-ti-bank]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      if (!m.bank) m.bank = {};
+      m.bank[e.target.dataset.tiBank] = e.target.value;
+      saveState();
+    });
+  });
+}
+
+function renderTiMonths() {
+  const wrap = document.getElementById('ti-months-wrap');
+  if (!wrap) return;
+  const invs = state.teamInvoices || [];
+  if (!invs.length) {
+    wrap.innerHTML = '<div class="help">No invoices yet. Add a team member above, then click <b>+ New invoice</b> on their card to file one.</div>';
+    return;
+  }
+  // Group by period (YYYY-MM)
+  const byMonth = {};
+  invs.forEach(i => {
+    const k = i.period || (i.date || '').slice(0, 7) || 'unknown';
+    (byMonth[k] = byMonth[k] || []).push(i);
+  });
+  const months = Object.keys(byMonth).sort().reverse();
+  state.teamInvoiceMonths = state.teamInvoiceMonths || {};
+  wrap.innerHTML = months.map(mid => {
+    const list = byMonth[mid].slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const total = list.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const open = state.teamInvoiceMonths[mid] !== false;
+    return `<div class="ti-month-folder ${open ? 'open' : ''}" data-mid="${mid}">
+      <div class="ti-month-head" data-act="ti-toggle-month">
+        <div class="lbl">${fmtTiMonth(mid)}</div>
+        <div class="summary">${list.length} invoice${list.length === 1 ? '' : 's'} · ${money(total)}</div>
+        <span class="toggle">›</span>
+      </div>
+      <div class="ti-month-body">
+        ${list.map(i => {
+          const m = state.team.find(t => t.id === i.memberId);
+          return `<div class="ti-invoice-row" data-iid="${i.id}">
+            <div class="num">${escapeHtml(i.number)}</div>
+            <div class="from">${escapeHtml(m ? m.name : 'Unknown')}</div>
+            <div class="meta" style="color:var(--text-tertiary);font-size:12px">${escapeHtml(i.services || '').slice(0, 60)}</div>
+            <div class="amt">${money(Number(i.amount) || 0)}</div>
+            <span class="pill ${i.status || 'draft'}">${(i.status || 'draft').toUpperCase()}</span>
+            <div class="row-actions">
+              <button class="small" data-act="ti-view">View / PDF</button>
+              <button class="small ghost" data-act="ti-edit">Edit</button>
+              <button class="small ghost" data-act="ti-del">×</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  wrap.querySelectorAll('[data-act="ti-toggle-month"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const folder = el.closest('.ti-month-folder');
+      const mid = folder.dataset.mid;
+      const open = folder.classList.toggle('open');
+      state.teamInvoiceMonths[mid] = open;
+      saveState();
+    });
+  });
+  wrap.querySelectorAll('[data-act="ti-view"]').forEach(b => b.addEventListener('click', () => showTiInvoicePreview(b.closest('.ti-invoice-row').dataset.iid)));
+  wrap.querySelectorAll('[data-act="ti-edit"]').forEach(b => b.addEventListener('click', () => {
+    const iid = b.closest('.ti-invoice-row').dataset.iid;
+    const inv = (state.teamInvoices || []).find(i => i.id === iid);
+    if (inv) openTiInvoiceEditor(inv.memberId, iid);
+  }));
+  wrap.querySelectorAll('[data-act="ti-del"]').forEach(b => b.addEventListener('click', () => {
+    const iid = b.closest('.ti-invoice-row').dataset.iid;
+    if (!confirm('Delete this invoice?')) return;
+    state.teamInvoices = (state.teamInvoices || []).filter(i => i.id !== iid);
+    saveState();
+    renderTeamInvoices();
+    updateNavCounts();
+  }));
+}
+
+function tiNextInvoiceNumber(memberId) {
+  state.teamInvoiceCounters = state.teamInvoiceCounters || {};
+  const next = (state.teamInvoiceCounters[memberId] || 0) + 1;
+  state.teamInvoiceCounters[memberId] = next;
+  const m = state.team.find(t => t.id === memberId);
+  const initials = (m?.name || 'XX').split(/\s+/).map(s => s[0]).join('').slice(0, 3).toUpperCase();
+  const yr = new Date().getFullYear();
+  return `INV-${initials}-${yr}-${String(next).padStart(3, '0')}`;
+}
+
+function openTiInvoiceEditor(memberId, invoiceId) {
+  // Inline modal-ish — render into the document directly. Simpler: use the existing modal pattern.
+  const existing = invoiceId ? (state.teamInvoices || []).find(i => i.id === invoiceId) : null;
+  const m = state.team.find(t => t.id === memberId);
+  if (!m) return alert('Member not found');
+  const today = isoDate(new Date());
+  const period = existing?.period || isoMonth(new Date());
+  const inv = existing || {
+    id: uid(), memberId, number: tiNextInvoiceNumber(memberId),
+    date: today, period,
+    services: '', hours: 0, rate: 0, amount: 0, currency: 'GBP',
+    notes: '', status: 'draft',
+    createdAt: new Date().toISOString(),
+  };
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `<div class="modal" style="max-width:640px">
+    <div class="modal-head">
+      <h2>${existing ? 'Edit' : 'New'} invoice · ${escapeHtml(m.name)}</h2>
+      <button class="x" data-act="close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid grid-auto" style="gap:12px">
+        <div><label>Invoice number</label><input type="text" data-f="number" value="${escapeHtml(inv.number)}" /></div>
+        <div><label>Date</label><input type="date" data-f="date" value="${inv.date}" /></div>
+        <div><label>Period (which month)</label><input type="month" data-f="period" value="${inv.period}" /></div>
+        <div><label>Status</label><select data-f="status">
+          <option value="draft" ${inv.status==='draft'?'selected':''}>Draft</option>
+          <option value="submitted" ${inv.status==='submitted'?'selected':''}>Submitted</option>
+          <option value="paid" ${inv.status==='paid'?'selected':''}>Paid</option>
+        </select></div>
+      </div>
+      <div style="margin-top:12px"><label>Services / description</label>
+        <textarea rows="2" data-f="services" placeholder="e.g. Sales setting — 80 dials/day, 320 dials this month">${escapeHtml(inv.services || '')}</textarea>
+      </div>
+      <div class="grid grid-auto" style="gap:12px;margin-top:12px">
+        <div><label>Hours (optional)</label><input type="number" step="0.5" min="0" data-f="hours" value="${inv.hours || 0}" /></div>
+        <div><label>Rate (optional)</label><input type="number" step="0.01" min="0" data-f="rate" value="${inv.rate || 0}" /></div>
+        <div><label>Amount (£/$ in currency)</label><input type="number" step="0.01" min="0" data-f="amount" value="${inv.amount || 0}" /></div>
+        <div><label>Currency</label><select data-f="currency">
+          <option ${inv.currency==='GBP'?'selected':''}>GBP</option>
+          <option ${inv.currency==='USD'?'selected':''}>USD</option>
+          <option ${inv.currency==='EUR'?'selected':''}>EUR</option>
+        </select></div>
+      </div>
+      <div style="margin-top:12px"><label>Notes (optional)</label>
+        <textarea rows="2" data-f="notes" placeholder="Bank info shown on PDF, payment terms, anything else">${escapeHtml(inv.notes || '')}</textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="status" id="ti-edit-status"></span>
+      <button class="ghost" data-act="close">Cancel</button>
+      <button class="primary" data-act="save">Save</button>
+      <button class="primary" data-act="save-submit" title="Save + status=submitted + post to Slack">Save & submit →</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  // Auto-fill amount from hours × rate if both set
+  const hoursIn = overlay.querySelector('[data-f="hours"]');
+  const rateIn = overlay.querySelector('[data-f="rate"]');
+  const amtIn = overlay.querySelector('[data-f="amount"]');
+  function syncAmt() {
+    const h = parseFloat(hoursIn.value) || 0;
+    const r = parseFloat(rateIn.value) || 0;
+    if (h && r) amtIn.value = (h * r).toFixed(2);
+  }
+  hoursIn.addEventListener('input', syncAmt);
+  rateIn.addEventListener('input', syncAmt);
+  const close = () => overlay.remove();
+  overlay.querySelectorAll('[data-act="close"]').forEach(b => b.addEventListener('click', close));
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  const collect = () => {
+    overlay.querySelectorAll('[data-f]').forEach(inp => {
+      const k = inp.dataset.f;
+      let v = inp.value;
+      if (['hours','rate','amount'].includes(k)) v = parseFloat(v) || 0;
+      inv[k] = v;
+    });
+    inv.updatedAt = new Date().toISOString();
+  };
+  const save = (alsoSubmit) => {
+    collect();
+    if (alsoSubmit) inv.status = 'submitted';
+    if (!state.teamInvoices) state.teamInvoices = [];
+    const idx = state.teamInvoices.findIndex(i => i.id === inv.id);
+    if (idx >= 0) state.teamInvoices[idx] = inv;
+    else state.teamInvoices.push(inv);
+    saveState();
+    renderTeamInvoices();
+    updateNavCounts();
+    const status = overlay.querySelector('#ti-edit-status');
+    if (alsoSubmit && state.slackWebhookUrl) {
+      status.textContent = 'Saved · posting to Slack…';
+      tiPostToSlack(inv).then(ok => {
+        status.textContent = ok ? 'Saved & posted to Slack ✓' : 'Saved, but Slack post failed (check webhook URL)';
+        if (ok) setTimeout(close, 900);
+      });
+    } else {
+      status.textContent = alsoSubmit ? 'Saved & submitted ✓' : 'Saved ✓';
+      setTimeout(close, 600);
+    }
+  };
+  overlay.querySelector('[data-act="save"]').addEventListener('click', () => save(false));
+  overlay.querySelector('[data-act="save-submit"]').addEventListener('click', () => save(true));
+}
+
+function tiPostToSlack(inv) {
+  const url = (state.slackWebhookUrl || '').trim();
+  if (!url) return Promise.resolve(false);
+  const m = state.team.find(t => t.id === inv.memberId);
+  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : '£';
+  const amt = sym + (Number(inv.amount) || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const text = `💰 *Invoice submitted*\n*${m ? m.name : 'Unknown'}* — ${amt} · ${inv.number}\nFor: ${fmtTiMonth(inv.period)}${inv.services ? ' · ' + inv.services.slice(0, 200) : ''}`;
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  }).then(r => r.ok).catch(() => false);
+}
+
+function showTiInvoicePreview(invoiceId) {
+  const inv = (state.teamInvoices || []).find(i => i.id === invoiceId);
+  if (!inv) return;
+  const m = state.team.find(t => t.id === inv.memberId);
+  if (!m) return alert('Member not found');
+  const b = state.business;
+  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : '£';
+  const amt = sym + (Number(inv.amount) || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const logoHtml = b.logoDataUrl ? `<img src="${b.logoDataUrl}" alt="logo" />` : `<img src="logo.png" alt="" style="max-width:100%;max-height:100%;object-fit:contain" />`;
+  const bankFields = tiBankFieldsFor(m.country);
+  const bankRows = bankFields
+    .map(f => [TI_BANK_LABELS[f] || f, (m.bank || {})[f]])
+    .filter(r => r[1]);
+  const html = `
+    <div class="inv-actions-bar">
+      <button onclick="window.print()" class="primary">Print / Save as PDF</button>
+      <button onclick="closeInvoicePreview()">Close</button>
+    </div>
+    <div class="inv-header">
+      <div class="inv-logo">${logoHtml}</div>
+      <div class="inv-meta">
+        <div><strong>Bill to: ${escapeHtml(b.tradingAs || b.name)}</strong></div>
+        ${b.tradingAs ? `<div style="font-size:11px">${escapeHtml(b.name)}</div>` : ''}
+        <div>${escapeHtml(b.address)}</div>
+        ${b.companyNumber ? `<div>Company No: ${escapeHtml(b.companyNumber)}</div>` : ''}
+        ${b.taxId ? `<div>Tax ID: ${escapeHtml(b.taxId)}</div>` : ''}
+      </div>
+    </div>
+    <div style="margin-bottom:24px">
+      <span class="inv-status ${inv.status}">${(inv.status || 'draft').toUpperCase()}</span>
+      <h1 style="margin-top:4px">Invoice ${escapeHtml(inv.number)}</h1>
+      <div style="color:#555;font-size:13px">Date: ${fmtDate(inv.date)} · For: ${fmtTiMonth(inv.period)}</div>
+    </div>
+    <div class="inv-from-to">
+      <div class="inv-block">
+        <h4>From</h4>
+        <div class="name">${escapeHtml(m.name)}</div>
+        <div class="line">${escapeHtml(m.role || '')}</div>
+        ${m.email ? `<div class="line">${escapeHtml(m.email)}</div>` : ''}
+        ${m.address ? `<div class="line" style="white-space:pre-line;margin-top:4px">${escapeHtml(m.address)}</div>` : ''}
+      </div>
+      <div class="inv-block" style="text-align:right">
+        <h4>Bill to</h4>
+        <div class="name">${escapeHtml(b.tradingAs || b.name)}</div>
+        <div class="line" style="white-space:pre-line">${escapeHtml(b.address)}</div>
+      </div>
+    </div>
+    <table class="items">
+      <thead><tr><th style="width:60%">Description</th><th class="num">Qty / Hours</th><th class="num">Rate</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>${escapeHtml(inv.services || '—')}</td>
+          <td class="num">${inv.hours ? inv.hours : '—'}</td>
+          <td class="num">${inv.rate ? (sym + Number(inv.rate).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})) : '—'}</td>
+          <td class="num">${amt}</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="grand"><td colspan="3" class="num">Total ${inv.currency}</td><td class="num">${amt}</td></tr>
+      </tfoot>
+    </table>
+    ${inv.notes ? `<div class="inv-notes">${escapeHtml(inv.notes)}</div>` : ''}
+    ${bankRows.length ? `<div class="inv-bank">
+      <h4>Pay to — ${tiCountry(m.country).name}</h4>
+      ${bankRows.map(([l, v]) => `<div class="bank-row"><span class="lbl">${l}</span><span class="val">${escapeHtml(v)}</span></div>`).join('')}
+    </div>` : '<div class="help" style="color:#a00">⚠️ No bank details on file. Fill them in on the member profile.</div>'}
+    <div class="inv-footer">
+      Invoice from ${escapeHtml(m.name)} to ${escapeHtml(b.name)} · ${escapeHtml(b.companyNumber || '')}
+    </div>
+  `;
+  const preview = document.getElementById('invoice-print');
+  preview.innerHTML = html;
+  preview.style.display = 'block';
+  document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+  preview.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============== Member view (no auth — just a picker) ==============
+function renderTiMemberView() {
+  const picker = document.getElementById('ti-member-picker');
+  if (!picker) return;
+  const members = (state.team || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  picker.innerHTML = '<option value="">— pick yourself —</option>' +
+    members.map(m => `<option value="${m.id}" ${m.id === state.teamInvoiceActiveMemberId ? 'selected' : ''}>${escapeHtml(m.name)}${m.role ? ' (' + m.role + ')' : ''}</option>`).join('');
+  picker.onchange = () => {
+    state.teamInvoiceActiveMemberId = picker.value || null;
+    saveState();
+    renderTiMemberView();
+  };
+  const active = state.teamInvoiceActiveMemberId ? state.team.find(t => t.id === state.teamInvoiceActiveMemberId) : null;
+  document.getElementById('ti-member-active').textContent = active ? `logged in as ${active.name}` : '';
+  document.getElementById('ti-member-profile-card').style.display = active ? 'block' : 'none';
+  document.getElementById('ti-member-new-card').style.display = active ? 'block' : 'none';
+  document.getElementById('ti-member-history-card').style.display = active ? 'block' : 'none';
+  if (!active) return;
+
+  // Profile editor for the active member
+  const profileWrap = document.getElementById('ti-member-profile-form');
+  profileWrap.innerHTML = renderTiProfileForm(active, 'member');
+  wireTiProfileForm(profileWrap, 'member');
+
+  // Quick "new invoice" CTA
+  const newWrap = document.getElementById('ti-member-invoice-form');
+  newWrap.innerHTML = `<p class="help" style="margin-top:0">File this month's invoice — your bank details + AA address are pre-filled on the PDF.</p>
+    <button class="primary" id="ti-member-new-btn">+ New invoice</button>`;
+  document.getElementById('ti-member-new-btn').addEventListener('click', () => openTiInvoiceEditor(active.id, null));
+
+  // History
+  const hist = document.getElementById('ti-member-history');
+  const mine = (state.teamInvoices || []).filter(i => i.memberId === active.id).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (!mine.length) hist.innerHTML = '<div class="help">No invoices yet — click + New invoice above to file your first.</div>';
+  else hist.innerHTML = mine.map(i => `<div class="ti-invoice-row" data-iid="${i.id}">
+      <div class="num">${escapeHtml(i.number)}</div>
+      <div class="from">${escapeHtml(fmtTiMonth(i.period))}</div>
+      <div class="meta" style="color:var(--text-tertiary);font-size:12px">${escapeHtml((i.services || '').slice(0, 50))}</div>
+      <div class="amt">${money(Number(i.amount) || 0)}</div>
+      <span class="pill ${i.status || 'draft'}">${(i.status || 'draft').toUpperCase()}</span>
+      <div class="row-actions">
+        <button class="small" data-act="ti-mview">View / PDF</button>
+        <button class="small ghost" data-act="ti-medit">Edit</button>
+      </div>
+    </div>`).join('');
+  hist.querySelectorAll('[data-act="ti-mview"]').forEach(b => b.addEventListener('click', () => showTiInvoicePreview(b.closest('.ti-invoice-row').dataset.iid)));
+  hist.querySelectorAll('[data-act="ti-medit"]').forEach(b => b.addEventListener('click', () => {
+    const iid = b.closest('.ti-invoice-row').dataset.iid;
+    const inv = (state.teamInvoices || []).find(i => i.id === iid);
+    if (inv) openTiInvoiceEditor(inv.memberId, iid);
+  }));
+}
+
 function renderInvoices() {
   // hide form by default; "+ New invoice" reveals it
   // pre-fill defaults if showing
@@ -4257,6 +4964,47 @@ function wireUp() {
     e.preventDefault();
     const editId = document.getElementById('invoice-form').dataset.editId;
     saveInvoice(editId || null);
+  });
+
+  // ---- Team Invoices ----
+  const tiAdminBtn = document.getElementById('ti-admin-btn');
+  const tiMemberBtn = document.getElementById('ti-member-btn');
+  if (tiAdminBtn) tiAdminBtn.addEventListener('click', () => { tiSetTab('admin'); renderTeamInvoices(); });
+  if (tiMemberBtn) tiMemberBtn.addEventListener('click', () => { tiSetTab('member'); renderTeamInvoices(); });
+  const tiSlackInput = document.getElementById('ti-slack-url');
+  if (tiSlackInput) tiSlackInput.addEventListener('input', e => {
+    state.slackWebhookUrl = e.target.value.trim();
+    saveState();
+  });
+  const tiSlackTest = document.getElementById('ti-slack-test');
+  if (tiSlackTest) tiSlackTest.addEventListener('click', async () => {
+    if (!state.slackWebhookUrl) return alert('Add a webhook URL first');
+    tiSlackTest.disabled = true;
+    tiSlackTest.textContent = 'Sending…';
+    try {
+      const r = await fetch(state.slackWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: '🧪 Test ping from Agency Advanta dashboard — Team Invoices wired up.' }),
+      });
+      tiSlackTest.textContent = r.ok ? 'Sent ✓' : 'Failed';
+    } catch (e) {
+      tiSlackTest.textContent = 'Failed (check URL)';
+    } finally {
+      setTimeout(() => { tiSlackTest.disabled = false; tiSlackTest.textContent = 'Send test ping'; }, 1800);
+    }
+  });
+  const tiAddMember = document.getElementById('ti-add-member');
+  if (tiAddMember) tiAddMember.addEventListener('click', () => {
+    const name = prompt('Name (team member or vendor):');
+    if (!name) return;
+    state.team.push({
+      id: uid(), name: name.trim(), role: '', monthlySalary: 0, commissionAmount: 0,
+      active: true, email: '', address: '', country: 'GB', bank: {},
+    });
+    saveState();
+    renderTeamInvoices();
+    updateNavCounts();
   });
 
   // ---- Logo upload ----
