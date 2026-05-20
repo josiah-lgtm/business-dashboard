@@ -1167,6 +1167,111 @@
   .ti-profile-form .span-2 { grid-column: 1 / -1; }
   @media (max-width: 800px) { .ti-profile-form { grid-template-columns: 1fr; } }
 
+  /* Pending status pill */
+  .ti-invoice-row .pill.pending { background: var(--warn-tint); color: var(--warn); }
+
+  /* Initials avatar — circular gradient bubble */
+  .ti-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: #1a1a1a;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 0 0 2px rgba(212,160,23,.18);
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Redesigned member-card head with avatar + stats badges */
+  .ti-member-head { grid-template-columns: auto 1fr auto auto auto; }
+  .ti-member-head .ti-stat-pill {
+    background: var(--surface-raised);
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .ti-member-head .ti-stat-pill.pending { background: var(--warn-tint); color: var(--warn); }
+
+  /* Pending review list */
+  .ti-pending-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px;
+    background: var(--surface-input);
+    border: 1px solid var(--warn-tint);
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .ti-pending-item .who { font-weight: 600; font-size: 14px; }
+  .ti-pending-item .what { color: var(--text-tertiary); font-size: 12px; margin-top: 2px; }
+  .ti-pending-item .amt-override {
+    width: 110px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    padding: 6px 10px;
+  }
+  .ti-pending-item .actions { display: flex; gap: 6px; }
+  .ti-pending-item button.accept {
+    background: var(--good);
+    color: #0a1a0a;
+    font-weight: 600;
+  }
+  .ti-pending-item button.accept:hover { background: #4ad06b; }
+  .ti-pending-item button.decline {
+    background: transparent;
+    border: 1px solid var(--bad);
+    color: var(--bad);
+  }
+  .ti-pending-item button.decline:hover { background: rgba(255,80,80,.08); }
+
+  /* Member logins table (admin) */
+  .ti-logins-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .ti-logins-table thead th {
+    text-align: left;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--separator);
+  }
+  .ti-logins-table tbody td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--separator);
+    vertical-align: middle;
+  }
+  .ti-logins-table tbody tr:last-child td { border-bottom: none; }
+  .ti-logins-table input {
+    padding: 6px 10px;
+    font-size: 13px;
+    background: var(--surface-input);
+  }
+  .ti-logins-table .name-cell { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+  .ti-logins-table .name-cell .ti-avatar { width: 28px; height: 28px; font-size: 11px; }
+  .ti-logins-table .copy-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+  }
+  .ti-logins-table .copy-btn:hover { color: var(--text); background: var(--accent-tint); }
+
   .inv-items-table {
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -1926,14 +2031,28 @@
         </div>
       </div>
 
+      <!-- Pending review (admin only) -->
+      <div class="card ti-admin-only" id="ti-pending-card" style="display:none">
+        <h3 style="color:var(--warn)">⚡ Pending review</h3>
+        <p class="help" style="margin-top:0">Invoices submitted by the team waiting for your approval. Accept (with optional amount override) auto-adds the amount to that month's salaries or commissions.</p>
+        <div id="ti-pending-list"></div>
+      </div>
+
       <!-- Team members + their profile (admin only) -->
       <div class="card ti-admin-only">
-        <h3>Team & vendor profiles</h3>
-        <p class="help" style="margin-top:0">Each row holds the person's address + bank details for their invoices. <b>Country</b> drives which bank fields they get.</p>
+        <h3>Team & vendor</h3>
+        <p class="help" style="margin-top:0">Each member's profile + bank details. Click a card to expand and edit.</p>
         <div id="ti-members-list"></div>
         <div style="margin-top:12px;display:flex;gap:8px">
           <button id="ti-add-member" class="small primary">+ Add team member or vendor</button>
         </div>
+      </div>
+
+      <!-- Member logins (admin only) -->
+      <div class="card ti-admin-only">
+        <h3>Member logins</h3>
+        <p class="help" style="margin-top:0">Email + password for each member to log in via <b>Member view</b>. <b>Passwords are stored in the browser only</b> — share each member's credentials with them privately so they can sign in on their own device.</p>
+        <div id="ti-logins-table-wrap"></div>
       </div>
 
       <!-- Invoices by month (admin only) -->
@@ -1944,12 +2063,32 @@
 
       <!-- Member view (only visible when toggled) -->
       <div id="ti-member-view" style="display:none">
-        <div class="card">
-          <h3>Pick yourself</h3>
-          <p class="help" style="margin-top:0">No login — pick your name to claim this device's session. Your profile + invoices belong to you.</p>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <select id="ti-member-picker" style="max-width:300px"></select>
-            <span id="ti-member-active" style="color:var(--text-secondary);font-size:13px"></span>
+        <!-- Login form, shown when nobody is signed in -->
+        <div class="card" id="ti-login-card" style="display:none">
+          <h3>Sign in</h3>
+          <p class="help" style="margin-top:0">Use the email + password your admin set up for you.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;max-width:560px">
+            <div>
+              <label>Email</label>
+              <input id="ti-login-email" type="email" placeholder="you@example.com" />
+            </div>
+            <div>
+              <label>Password</label>
+              <input id="ti-login-password" type="password" />
+            </div>
+            <button id="ti-login-btn" class="primary">Sign in</button>
+          </div>
+          <div id="ti-login-error" class="help" style="color:var(--bad);margin-top:8px;display:none"></div>
+        </div>
+        <!-- Logged-in greeting -->
+        <div class="card" id="ti-signedin-card" style="display:none">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="ti-avatar" id="ti-avatar-active" style="width:42px;height:42px;font-size:16px"></div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:15px" id="ti-signedin-name">—</div>
+              <div style="color:var(--text-tertiary);font-size:12px" id="ti-signedin-email">—</div>
+            </div>
+            <button id="ti-logout-btn" class="ghost small">Sign out</button>
           </div>
         </div>
         <div id="ti-member-profile-card" class="card" style="display:none">
@@ -1957,7 +2096,7 @@
           <div id="ti-member-profile-form"></div>
         </div>
         <div id="ti-member-new-card" class="card" style="display:none">
-          <h3>Create / edit invoice</h3>
+          <h3>File an invoice</h3>
           <div id="ti-member-invoice-form"></div>
         </div>
         <div id="ti-member-history-card" class="card" style="display:none">
@@ -2149,6 +2288,7 @@ function loadState() {
       if (t.address == null) t.address = '';
       if (t.country == null) t.country = 'GB';
       if (!t.bank) t.bank = {};
+      if (t.password == null) t.password = '';   // for member login (plain — local only)
     });
     if (!s.teamInvoices) s.teamInvoices = [];
     if (!s.teamInvoiceCounters) s.teamInvoiceCounters = {};
@@ -4026,11 +4166,19 @@ function tiSetTab(tab) {
 
 function renderTeamInvoices() {
   tiSetTab(tiActiveTab());
+  renderTiPendingList();
   renderTiMembers();
+  renderTiLoginsTable();
   renderTiMonths();
   renderTiMemberView();
   const slackInput = document.getElementById('ti-slack-url');
   if (slackInput) slackInput.value = state.slackWebhookUrl || '';
+}
+
+function tiInitials(name) {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return ((parts[0] || '').slice(0, 1) + (parts[1] || '').slice(0, 1)).toUpperCase() || (parts[0] || '?').slice(0, 1).toUpperCase();
 }
 
 function renderTiMembers() {
@@ -4043,13 +4191,19 @@ function renderTiMembers() {
   }
   wrap.innerHTML = sorted.map(m => {
     const c = tiCountry(m.country);
-    const invCount = (state.teamInvoices || []).filter(i => i.memberId === m.id).length;
+    const mine = (state.teamInvoices || []).filter(i => i.memberId === m.id);
+    const invCount = mine.length;
+    const pendingCount = mine.filter(i => (i.status || 'draft') === 'pending').length;
+    const total = mine.filter(i => i.status === 'accepted' || i.status === 'paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const pendingPill = pendingCount ? `<span class="ti-stat-pill pending">⚡ ${pendingCount} pending</span>` : '';
     return `<div class="ti-member-card" data-mid="${m.id}">
       <div class="ti-member-head" data-act="ti-toggle-member">
+        <div class="ti-avatar">${tiInitials(m.name)}</div>
         <div>
           <div class="name">${escapeHtml(m.name)}</div>
-          <div class="meta">${escapeHtml(m.role || 'no role')}${m.email ? ' · ' + escapeHtml(m.email) : ''} · ${invCount} invoice${invCount === 1 ? '' : 's'}</div>
+          <div class="meta">${escapeHtml(m.role || 'no role')}${m.email ? ' · ' + escapeHtml(m.email) : ''} · ${invCount} invoice${invCount === 1 ? '' : 's'} · ${money(total)} accepted</div>
         </div>
+        ${pendingPill}
         <span class="country-pill">${escapeHtml(c.code)}</span>
         <span class="toggle">›</span>
       </div>
@@ -4090,6 +4244,128 @@ function renderTiMembers() {
       saveState();
       renderTeamInvoices();
       updateNavCounts();
+    });
+  });
+}
+
+function renderTiPendingList() {
+  const card = document.getElementById('ti-pending-card');
+  const wrap = document.getElementById('ti-pending-list');
+  if (!card || !wrap) return;
+  const pending = (state.teamInvoices || []).filter(i => (i.status || 'draft') === 'pending');
+  if (!pending.length) { card.style.display = 'none'; wrap.innerHTML = ''; return; }
+  card.style.display = '';
+  pending.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  wrap.innerHTML = pending.map(i => {
+    const m = state.team.find(t => t.id === i.memberId);
+    const sym = i.currency === 'USD' ? '$' : i.currency === 'EUR' ? '€' : '£';
+    return `<div class="ti-pending-item" data-iid="${i.id}">
+      <div class="ti-avatar">${tiInitials(m?.name)}</div>
+      <div>
+        <div class="who">${escapeHtml(m ? m.name : 'Unknown')} <span style="color:var(--text-tertiary);font-weight:400">· ${escapeHtml(i.number)}</span></div>
+        <div class="what">${escapeHtml(i.itemCategory || 'Commission')} · ${escapeHtml(i.services || '')} · for ${escapeHtml(fmtTiMonth(i.period))}</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:var(--text-tertiary)">Requested<br/><b style="color:var(--text);font-size:14px;font-variant-numeric:tabular-nums">${sym}${(Number(i.amount)||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
+      <input class="amt-override" type="number" step="0.01" min="0" value="${Number(i.amount) || 0}" data-act="ti-amt-override" title="Override the amount before accepting" />
+      <div class="actions">
+        <button class="small" data-act="ti-pending-view">View</button>
+        <button class="small accept" data-act="ti-accept">Accept</button>
+        <button class="small decline" data-act="ti-decline">Decline</button>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('[data-act="ti-pending-view"]').forEach(b => b.addEventListener('click', () => showTiInvoicePreview(b.closest('.ti-pending-item').dataset.iid)));
+  wrap.querySelectorAll('[data-act="ti-accept"]').forEach(b => b.addEventListener('click', () => {
+    const item = b.closest('.ti-pending-item');
+    const iid = item.dataset.iid;
+    const override = parseFloat(item.querySelector('[data-act="ti-amt-override"]').value) || 0;
+    tiAcceptInvoice(iid, override);
+  }));
+  wrap.querySelectorAll('[data-act="ti-decline"]').forEach(b => b.addEventListener('click', () => {
+    const iid = b.closest('.ti-pending-item').dataset.iid;
+    tiDeclineInvoice(iid);
+  }));
+}
+
+// Accept: stamp the invoice, set the override amount, push it into the month's
+// salaries or commissions total based on item category, save, re-render.
+function tiAcceptInvoice(iid, overrideAmount) {
+  const inv = (state.teamInvoices || []).find(i => i.id === iid);
+  if (!inv) return;
+  const m = state.team.find(t => t.id === inv.memberId);
+  const finalAmount = Number(overrideAmount) || Number(inv.amount) || 0;
+  if (!confirm(`Accept ${m?.name || 'invoice'} for ${money(finalAmount)}?\n\nThis adds ${money(finalAmount)} to ${(inv.itemCategory || 'Commission').toLowerCase().includes('salary') ? 'salaries' : 'commissions'} for ${fmtTiMonth(inv.period)}.`)) return;
+  inv.amount = finalAmount;
+  inv.status = 'accepted';
+  inv.acceptedAt = new Date().toISOString();
+  // Push into the appropriate month bucket
+  state.months = state.months || {};
+  const period = inv.period || (inv.date || '').slice(0, 7);
+  if (period && !state.months[period]) {
+    state.months[period] = { revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0, referralPayoutsTotal: 0, refundsTotal: 0, founderComp: 0, taxPct: state.targets?.taxPct ?? 15, newClients: 0, activeClients: 0, churnedClients: 0 };
+  }
+  if (period) {
+    const mb = state.months[period];
+    const cat = (inv.itemCategory || '').toLowerCase();
+    if (cat.includes('salary')) {
+      mb.salariesTotal = (mb.salariesTotal || 0) + finalAmount;
+    } else {
+      mb.commissionsTotal = (mb.commissionsTotal || 0) + finalAmount;
+    }
+  }
+  saveState();
+  renderTeamInvoices();
+  if (typeof renderAll === 'function') renderAll();
+  updateNavCounts();
+}
+
+function tiDeclineInvoice(iid) {
+  const inv = (state.teamInvoices || []).find(i => i.id === iid);
+  if (!inv) return;
+  if (!confirm('Decline this invoice? It will be moved back to draft so the member can edit and resubmit.')) return;
+  inv.status = 'draft';
+  inv.declinedAt = new Date().toISOString();
+  saveState();
+  renderTeamInvoices();
+  updateNavCounts();
+}
+
+function renderTiLoginsTable() {
+  const wrap = document.getElementById('ti-logins-table-wrap');
+  if (!wrap) return;
+  const sorted = (state.team || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  if (!sorted.length) {
+    wrap.innerHTML = '<div class="help">Add a team member above to set up their login.</div>';
+    return;
+  }
+  wrap.innerHTML = `<table class="ti-logins-table">
+    <thead><tr><th>Member</th><th>Email</th><th>Password</th><th></th></tr></thead>
+    <tbody>
+      ${sorted.map(m => `<tr data-mid="${m.id}">
+        <td><div class="name-cell"><div class="ti-avatar">${tiInitials(m.name)}</div>${escapeHtml(m.name)}</div></td>
+        <td><input type="email" data-tl="email" value="${escapeHtml(m.email || '')}" placeholder="member@example.com" /></td>
+        <td><input type="text" data-tl="password" value="${escapeHtml(m.password || '')}" placeholder="set a password" /></td>
+        <td><button class="copy-btn small" data-act="ti-copy-creds">Copy creds</button></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+  wrap.querySelectorAll('tr').forEach(tr => {
+    const mid = tr.dataset.mid;
+    const m = state.team.find(t => t.id === mid);
+    if (!m) return;
+    tr.querySelectorAll('[data-tl]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        m[e.target.dataset.tl] = e.target.value;
+        saveState();
+      });
+    });
+    tr.querySelector('[data-act="ti-copy-creds"]').addEventListener('click', e => {
+      const txt = `${m.name}\nEmail: ${m.email || '(not set)'}\nPassword: ${m.password || '(not set)'}`;
+      navigator.clipboard?.writeText(txt);
+      const btn = e.target;
+      const orig = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = orig; }, 1200);
     });
   });
 }
@@ -4266,8 +4542,10 @@ function openTiInvoiceEditor(memberId, invoiceId) {
         <div><label>Period (which month)</label><input type="month" data-f="period" value="${inv.period}" /></div>
         <div><label>Status</label><select data-f="status">
           <option value="draft" ${inv.status==='draft'?'selected':''}>Draft</option>
-          <option value="submitted" ${inv.status==='submitted'?'selected':''}>Submitted</option>
+          <option value="pending" ${inv.status==='pending'?'selected':''}>Pending review</option>
+          <option value="accepted" ${inv.status==='accepted'?'selected':''}>Accepted</option>
           <option value="paid" ${inv.status==='paid'?'selected':''}>Paid</option>
+          <option value="submitted" ${inv.status==='submitted'?'selected':''}>Submitted (legacy)</option>
         </select></div>
       </div>
       <div class="grid grid-auto" style="gap:12px;margin-top:12px">
@@ -4293,7 +4571,7 @@ function openTiInvoiceEditor(memberId, invoiceId) {
       <span class="status" id="ti-edit-status"></span>
       <button class="ghost" data-act="close">Cancel</button>
       <button class="primary" data-act="save">Save</button>
-      <button class="primary" data-act="save-submit" title="Save + status=submitted + post to Slack">Save & submit →</button>
+      <button class="primary" data-act="save-submit" title="Save + status=pending + post to Slack for admin review">Save & submit for review →</button>
     </div>
   </div>`;
   document.body.appendChild(overlay);
@@ -4322,7 +4600,7 @@ function openTiInvoiceEditor(memberId, invoiceId) {
   };
   const save = (alsoSubmit) => {
     collect();
-    if (alsoSubmit) inv.status = 'submitted';
+    if (alsoSubmit) inv.status = 'pending';
     if (!state.teamInvoices) state.teamInvoices = [];
     const idx = state.teamInvoices.findIndex(i => i.id === inv.id);
     if (idx >= 0) state.teamInvoices[idx] = inv;
@@ -4352,7 +4630,7 @@ function tiPostToSlack(inv) {
   const m = state.team.find(t => t.id === inv.memberId);
   const sym = inv.currency === 'USD' ? '$' : inv.currency === 'EUR' ? '€' : '£';
   const amt = sym + (Number(inv.amount) || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const text = `💰 *Invoice submitted*\n*${m ? m.name : 'Unknown'}* — ${amt} · ${inv.number}\nFor: ${fmtTiMonth(inv.period)}${inv.services ? ' · ' + inv.services.slice(0, 200) : ''}`;
+  const text = `💰 *Invoice pending review*\n*${m ? m.name : 'Unknown'}* — ${amt} · ${inv.number}\nFor: ${fmtTiMonth(inv.period)} (${inv.itemCategory || 'Commission'})${inv.services ? ' · ' + inv.services.slice(0, 200) : ''}\nReview & accept in the dashboard.`;
   return fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4476,24 +4754,64 @@ function showTiInvoicePreview(invoiceId) {
   preview.scrollIntoView({ behavior: 'smooth' });
 }
 
-// ============== Member view (no auth — just a picker) ==============
+// ============== Member view (email + password login) ==============
+function tiCurrentMember() {
+  const id = state.teamInvoiceActiveMemberId;
+  if (!id) return null;
+  const m = (state.team || []).find(t => t.id === id);
+  // Stale session — member was deleted
+  if (!m) { state.teamInvoiceActiveMemberId = null; return null; }
+  return m;
+}
+
+function tiTryLogin() {
+  const emailEl = document.getElementById('ti-login-email');
+  const pwEl = document.getElementById('ti-login-password');
+  const errEl = document.getElementById('ti-login-error');
+  if (!emailEl || !pwEl || !errEl) return;
+  const email = (emailEl.value || '').trim().toLowerCase();
+  const pw = pwEl.value || '';
+  if (!email || !pw) {
+    errEl.textContent = 'Enter your email and password.';
+    errEl.style.display = '';
+    return;
+  }
+  const m = (state.team || []).find(t => (t.email || '').trim().toLowerCase() === email && (t.password || '') === pw);
+  if (!m) {
+    errEl.textContent = 'No member matches that email + password. Ask your admin to share or reset your credentials.';
+    errEl.style.display = '';
+    return;
+  }
+  errEl.style.display = 'none';
+  state.teamInvoiceActiveMemberId = m.id;
+  saveState();
+  emailEl.value = '';
+  pwEl.value = '';
+  renderTiMemberView();
+}
+
+function tiLogout() {
+  state.teamInvoiceActiveMemberId = null;
+  saveState();
+  renderTiMemberView();
+}
+
 function renderTiMemberView() {
-  const picker = document.getElementById('ti-member-picker');
-  if (!picker) return;
-  const members = (state.team || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-  picker.innerHTML = '<option value="">— pick yourself —</option>' +
-    members.map(m => `<option value="${m.id}" ${m.id === state.teamInvoiceActiveMemberId ? 'selected' : ''}>${escapeHtml(m.name)}${m.role ? ' (' + m.role + ')' : ''}</option>`).join('');
-  picker.onchange = () => {
-    state.teamInvoiceActiveMemberId = picker.value || null;
-    saveState();
-    renderTiMemberView();
-  };
-  const active = state.teamInvoiceActiveMemberId ? state.team.find(t => t.id === state.teamInvoiceActiveMemberId) : null;
-  document.getElementById('ti-member-active').textContent = active ? `logged in as ${active.name}` : '';
+  const memberView = document.getElementById('ti-member-view');
+  if (!memberView) return;
+  const active = tiCurrentMember();
+  const loginCard = document.getElementById('ti-login-card');
+  const signedInCard = document.getElementById('ti-signedin-card');
+  loginCard.style.display = active ? 'none' : 'block';
+  signedInCard.style.display = active ? 'block' : 'none';
   document.getElementById('ti-member-profile-card').style.display = active ? 'block' : 'none';
   document.getElementById('ti-member-new-card').style.display = active ? 'block' : 'none';
   document.getElementById('ti-member-history-card').style.display = active ? 'block' : 'none';
   if (!active) return;
+  // Greeting card
+  document.getElementById('ti-signedin-name').textContent = active.name;
+  document.getElementById('ti-signedin-email').textContent = active.email || '(no email set)';
+  document.getElementById('ti-avatar-active').textContent = tiInitials(active.name);
 
   // Profile editor for the active member
   const profileWrap = document.getElementById('ti-member-profile-form');
@@ -5210,12 +5528,22 @@ function wireUp() {
     if (!name) return;
     state.team.push({
       id: uid(), name: name.trim(), role: '', monthlySalary: 0, commissionAmount: 0,
-      active: true, email: '', address: '', country: 'GB', bank: {},
+      active: true, email: '', address: '', country: 'GB', bank: {}, password: '',
     });
     saveState();
     renderTeamInvoices();
     updateNavCounts();
   });
+
+  // Member-view login / logout
+  const tiLoginBtn = document.getElementById('ti-login-btn');
+  if (tiLoginBtn) tiLoginBtn.addEventListener('click', tiTryLogin);
+  ['ti-login-email', 'ti-login-password'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') tiTryLogin(); });
+  });
+  const tiLogoutBtn = document.getElementById('ti-logout-btn');
+  if (tiLogoutBtn) tiLogoutBtn.addEventListener('click', tiLogout);
 
   // ---- Logo upload ----
   document.getElementById('logo-upload-btn').addEventListener('click', () => document.getElementById('logo-file').click());
