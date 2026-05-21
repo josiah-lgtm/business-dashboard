@@ -1039,6 +1039,335 @@
   .recurring-chip.added { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-hover); cursor: default; }
 
   /* ============================================================
+     Finance hub (Expenses page overhaul) — revenue + buckets
+     ============================================================ */
+  /* Revenue card at the top of the Finance hub */
+  .fh-revenue {
+    background: linear-gradient(135deg, rgba(48,209,88,0.10), rgba(212,160,23,0.05));
+    border: 1px solid rgba(48,209,88,0.30);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 22px;
+    align-items: start;
+  }
+  .fh-revenue .lbl {
+    font-size: 11px; color: var(--good);
+    text-transform: uppercase; letter-spacing: 0.10em; font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .fh-revenue .amount {
+    font-size: 36px; font-weight: 800; color: var(--text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .fh-revenue .meta {
+    color: var(--text-tertiary); font-size: 12.5px; margin-top: 4px;
+  }
+  .fh-revenue .entries {
+    margin-top: 14px;
+    display: flex; flex-direction: column; gap: 5px;
+    max-height: 160px; overflow-y: auto;
+  }
+  .fh-revenue .entry {
+    display: grid;
+    grid-template-columns: 90px 1fr auto auto;
+    gap: 10px;
+    padding: 6px 10px;
+    background: rgba(0,0,0,0.20);
+    border-radius: 7px;
+    font-size: 12.5px;
+    align-items: center;
+  }
+  .fh-revenue .entry .date { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .fh-revenue .entry .source { color: var(--text); }
+  .fh-revenue .entry .amt { color: var(--good); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .fh-revenue .entry .del {
+    background: transparent; border: none; color: var(--text-tertiary);
+    cursor: pointer; padding: 2px 6px; border-radius: 4px;
+    font-size: 14px; line-height: 1;
+  }
+  .fh-revenue .entry .del:hover { color: var(--bad); }
+  .fh-revenue .add-entry {
+    margin-top: 10px;
+    background: var(--good);
+    color: #0a1a0a;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 9px;
+    font-size: 12.5px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.12s;
+  }
+  .fh-revenue .add-entry:hover { background: #4ad06b; }
+  .fh-revenue .side {
+    text-align: right;
+    min-width: 170px;
+  }
+  .fh-revenue .side .row { margin-bottom: 6px; }
+  .fh-revenue .side .row-lbl { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .fh-revenue .side .row-val { font-size: 14px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .fh-revenue .side .row-val.bad { color: var(--bad); }
+  .fh-revenue .side .row-val.good { color: var(--good); }
+
+  /* Bucket card */
+  .fh-bucket {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .fh-bucket:hover { border-color: var(--border-strong); }
+  .fh-bucket-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 18px;
+    cursor: pointer;
+    position: relative;
+  }
+  .fh-bucket-head::before {
+    content: ''; position: absolute;
+    left: 0; top: 12px; bottom: 12px; width: 4px;
+    background: var(--bucket-color, var(--accent));
+    border-radius: 0 3px 3px 0;
+  }
+  .fh-bucket-head:hover { background: rgba(255,255,255,0.02); }
+  .fh-bucket-head .name {
+    font-weight: 700; font-size: 15px; color: var(--text);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .fh-bucket-head .name .icon { font-size: 16px; }
+  .fh-bucket-head .meta {
+    font-size: 11.5px; color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  .fh-bucket-head .total {
+    font-size: 17px; font-weight: 700; color: var(--text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .fh-bucket-head .pct-of-rev {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-secondary);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .fh-bucket-head .caret {
+    color: var(--text-tertiary); font-size: 16px;
+    transition: transform 0.18s;
+  }
+  .fh-bucket.open .fh-bucket-head .caret { transform: rotate(90deg); }
+  .fh-bucket-body {
+    display: none;
+    border-top: 1px solid var(--separator);
+    padding: 10px 18px 16px;
+  }
+  .fh-bucket.open .fh-bucket-body { display: block; }
+  .fh-bucket-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 0 0 12px;
+  }
+  .fh-bucket-bar .fill {
+    height: 100%;
+    background: var(--bucket-color, var(--accent));
+    border-radius: 999px;
+  }
+  .fh-vendor-rows {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .fh-vendor-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 110px 80px auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.025);
+    border-radius: 7px;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .fh-vendor-row:hover { background: rgba(255,255,255,0.05); }
+  .fh-vendor-row .v-name { font-weight: 500; color: var(--text); }
+  .fh-vendor-row .v-count { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .fh-vendor-row .v-total { text-align: right; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .fh-vendor-row .v-pct {
+    text-align: right;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fh-vendor-row .v-items {
+    background: transparent; border: none; color: var(--text-tertiary);
+    font-size: 14px; cursor: pointer; padding: 2px 6px;
+  }
+  .fh-vendor-row .v-items:hover { color: var(--accent-hover); }
+  .fh-vendor-row .v-items-list {
+    display: none;
+    grid-column: 1 / -1;
+    padding: 8px 0 0;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+  }
+  .fh-vendor-row.expanded .v-items-list { display: block; }
+  .fh-vendor-row .v-items-list .it {
+    display: grid;
+    grid-template-columns: 80px 1fr 80px auto;
+    gap: 8px; padding: 4px 6px;
+    border-bottom: 1px solid var(--separator);
+  }
+  .fh-vendor-row .v-items-list .it:last-child { border: none; }
+  .fh-vendor-row .v-items-list .it .it-del {
+    background: transparent; border: none; color: var(--text-tertiary);
+    cursor: pointer; font-size: 13px;
+  }
+  .fh-vendor-row .v-items-list .it .it-del:hover { color: var(--bad); }
+
+  .fh-bucket-add {
+    margin-top: 10px;
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--text-tertiary);
+    padding: 7px 12px;
+    border-radius: 7px;
+    font-size: 12px; cursor: pointer; font-family: inherit;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .fh-bucket-add:hover { border-color: var(--accent); color: var(--accent-hover); }
+
+  .fh-bucket-empty {
+    color: var(--text-tertiary); font-size: 12.5px; font-style: italic;
+    padding: 4px 0 6px;
+  }
+
+  .fh-footer-actions {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    margin: 16px 0;
+  }
+
+  /* Finance hub modal */
+  .fh-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    z-index: 200;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 80px 20px;
+    overflow-y: auto;
+  }
+  .fh-modal {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 540px; width: 100%;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .fh-modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--separator);
+  }
+  .fh-modal-head h3 { margin: 0; font-size: 16px; font-weight: 700; }
+  .fh-modal-x {
+    background: transparent; border: none;
+    color: var(--text-tertiary);
+    font-size: 22px; cursor: pointer; line-height: 1; padding: 2px 8px;
+  }
+  .fh-modal-x:hover { color: var(--text); }
+  .fh-modal-body { padding: 18px 22px 22px; }
+  .fh-modal-body label {
+    display: block;
+    font-size: 11px; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
+    margin-bottom: 5px; margin-top: 12px;
+  }
+  .fh-modal-body label:first-child { margin-top: 0; }
+  .fh-modal-body input[type=text],
+  .fh-modal-body input[type=number],
+  .fh-modal-body input[type=date],
+  .fh-modal-body select,
+  .fh-modal-body textarea {
+    width: 100%;
+    background: var(--surface-input);
+    border: 1px solid var(--border-input);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13.5px;
+    padding: 9px 12px;
+    font-family: inherit;
+  }
+  .fh-modal-body input:focus, .fh-modal-body select:focus, .fh-modal-body textarea:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint);
+  }
+  .fh-modal-body .grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .fh-modal-foot {
+    display: flex; justify-content: flex-end; gap: 8px;
+    margin-top: 18px;
+  }
+  .fh-modal-foot button.cancel { background: var(--surface-raised); border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; }
+  .fh-modal-foot button.cancel:hover { border-color: var(--accent); }
+  .fh-modal-foot button.primary {
+    background: var(--accent); color: #1a1a1a; border: none;
+    padding: 9px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .fh-modal-foot button.primary:hover { background: var(--accent-hover); }
+
+  /* Vendor autocomplete inside modal */
+  .fh-vendor-search { position: relative; }
+  .fh-vendor-search .fh-suggest {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    background: #1a1a1f;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    margin-top: 4px;
+    max-height: 240px; overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    display: none;
+  }
+  .fh-vendor-search.open .fh-suggest { display: block; }
+  .fh-vendor-search .fh-suggest .item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .fh-vendor-search .fh-suggest .item:hover,
+  .fh-vendor-search .fh-suggest .item.active {
+    background: var(--accent-tint); color: var(--accent-hover);
+  }
+  .fh-vendor-search .fh-suggest .item .cat {
+    font-size: 10.5px; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .fh-vendor-search .fh-suggest .item .price {
+    font-variant-numeric: tabular-nums; color: var(--text-tertiary); font-size: 11.5px;
+  }
+  .fh-vendor-search .fh-suggest .add-new {
+    padding: 8px 12px; border-top: 1px solid var(--separator);
+    color: var(--accent-hover); font-size: 12.5px; cursor: pointer; font-weight: 600;
+  }
+  .fh-vendor-search .fh-suggest .add-new:hover { background: var(--accent-tint); }
+
+  /* ============================================================
      Invoice form items table
      ============================================================ */
   /* ============================================================
@@ -1693,63 +2022,29 @@
     <section class="panel" data-view="expenses">
       <div class="panel-header">
         <div>
-          <h2>Expenses</h2>
-          <div class="sub">Line items grouped by category. Vendor field autocompletes from your library.</div>
+          <h2>Finance hub</h2>
+          <div class="sub">Revenue, team payouts, and expense buckets for the active month — one unified view. Each bucket shows total + share of revenue.</div>
+        </div>
+        <div class="actions">
+          <select id="fh-month" class="small"></select>
         </div>
       </div>
 
-      <div class="card">
-        <h3>Add expense</h3>
-        <form id="expense-form" class="grid grid-auto" style="align-items:flex-end">
-          <div class="autocomplete">
-            <label for="exp-vendor">Vendor <span style="color:var(--muted-2);font-weight:400">(type to search — recurring vendors show first)</span></label>
-            <input id="exp-vendor" type="text" placeholder="Start typing… e.g. Not" autocomplete="off" required />
-            <div class="autocomplete-list" id="exp-vendor-list"></div>
-          </div>
-          <div>
-            <label for="exp-category">Category</label>
-            <select id="exp-category">
-              <option value="Base Software">Base Software</option>
-              <option value="LinkedIn Channel">LinkedIn Channel</option>
-              <option value="Email Channel">Email Channel</option>
-              <option value="SMS">SMS</option>
-              <option value="One off">One off</option>
-            </select>
-          </div>
-          <div>
-            <label for="exp-amount">Amount (£)</label>
-            <input id="exp-amount" type="number" step="0.01" min="0" required />
-          </div>
-          <div>
-            <label for="exp-date">Date</label>
-            <input id="exp-date" type="date" required />
-          </div>
-          <div>
-            <button type="submit" class="primary">Add</button>
-          </div>
-        </form>
+      <!-- Revenue card -->
+      <div id="fh-revenue-card"></div>
+
+      <!-- Bucket cards -->
+      <div id="fh-buckets-wrap"></div>
+
+      <!-- Add bucket button + vendor library -->
+      <div class="fh-footer-actions">
+        <button id="fh-add-bucket-btn" class="ghost">+ Add bucket</button>
+        <button id="fh-vendor-lib-btn" class="ghost">Vendor library (<span id="vendor-count-inline">0</span>)</button>
+        <button id="exp-export-btn" class="ghost">Export CSV</button>
       </div>
 
-      <div class="card">
-        <div class="filters">
-          <div>
-            <label>Filter month</label>
-            <select id="exp-filter-month"></select>
-          </div>
-          <div class="grow">
-            <label>Search vendor</label>
-            <input id="exp-filter-search" type="text" placeholder="type to filter" />
-          </div>
-          <div>
-            <label>&nbsp;</label>
-            <button id="exp-export-btn" class="ghost small">Export CSV</button>
-          </div>
-        </div>
-        <div id="expenses-buckets-wrap"></div>
-      </div>
-
-      <details class="card" style="padding:0">
-        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Vendor library (<span id="vendor-count-inline">0</span>)</summary>
+      <details class="card" id="fh-vendor-lib-card" style="padding:0;display:none">
+        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Vendor library</summary>
         <div style="padding:0 18px 18px">
           <div class="filters">
             <div>
@@ -1784,6 +2079,17 @@
         </div>
       </details>
     </section>
+
+    <!-- Finance hub modals -->
+    <div class="fh-modal-overlay" id="fh-modal-overlay" style="display:none">
+      <div class="fh-modal">
+        <div class="fh-modal-head">
+          <h3 id="fh-modal-title">Add</h3>
+          <button class="fh-modal-x" id="fh-modal-x">×</button>
+        </div>
+        <div class="fh-modal-body" id="fh-modal-body"></div>
+      </div>
+    </div>
 
     <!-- Revenue & Team -->
     <section class="panel" data-view="revenue">
@@ -2260,6 +2566,8 @@ function makeInitialState() {
     budgets: {},
     business: structuredClone(DEFAULT_BUSINESS),
     targets: { ...DEFAULT_TARGETS },
+    revenueEntries: [],       // [{id, month, date, amount, source, notes}] weekly revenue logs that amalgamate per month
+    customBuckets: [],        // [{id, name, color}] extra expense buckets beyond the 5 defaults
   };
 }
 
@@ -2295,6 +2603,8 @@ function loadState() {
     if (!s.teamInvoiceMonths) s.teamInvoiceMonths = {};
     if (s.teamInvoiceActiveMemberId === undefined) s.teamInvoiceActiveMemberId = null;
     if (s.slackWebhookUrl == null) s.slackWebhookUrl = '';
+    if (!Array.isArray(s.revenueEntries)) s.revenueEntries = [];
+    if (!Array.isArray(s.customBuckets)) s.customBuckets = [];
     // One-time cleanup: an earlier parser bug pulled Apr team-pay rows into refunds.
     // Remove rows whose recipient looks like a team payment, not a client refund.
     if (s.refunds && s.refunds.length) {
@@ -2589,13 +2899,19 @@ function updateNavCounts() {
 function populateMonthSelects() {
   const ids = sortedMonthIds();
   const monthSelect = document.getElementById('month-select');
-  const expFilter = document.getElementById('exp-filter-month');
+  const fhMonth = document.getElementById('fh-month');
   const refMonth = document.getElementById('ref-month');
   [monthSelect, refMonth].forEach(sel => {
     if (!sel) return;
     sel.innerHTML = ids.map(id => `<option value="${id}">${fmtMonth(id)}</option>`).join('');
     sel.value = state.meta.activeMonth;
   });
+  if (fhMonth) {
+    fhMonth.innerHTML = ids.slice().reverse().map(id => `<option value="${id}">${fmtMonth(id)}</option>`).join('');
+    fhMonth.value = state.meta.activeMonth;
+  }
+  // Legacy expFilter removed
+  const expFilter = null;
   if (expFilter) {
     expFilter.innerHTML = `<option value="">All months</option>` +
       ids.map(id => `<option value="${id}">${fmtMonth(id)}</option>`).join('');
@@ -2941,101 +3257,404 @@ function renderTrendChart(points, color, color2) {
 const CATEGORY_ORDER = ['Base Software', 'LinkedIn Channel', 'Email Channel', 'SMS', 'One off'];
 const expandedCats = new Set();  // remember which buckets are open
 
-function renderExpenses() {
-  renderExpenseBuckets();
-  // pre-fill date in form to today
-  const dateInput = document.getElementById('exp-date');
-  if (!dateInput.value) dateInput.value = isoDate(new Date());
+// ============================================================
+// Finance Hub — overhauled Expenses page
+// Combines revenue (weekly entries that amalgamate per month) +
+// team payouts + expense buckets into one unified view per month.
+// ============================================================
+const FH_DEFAULT_BUCKETS = [
+  { id: 'base',     name: 'Base Software',    icon: '⚙️',  color: '#5e9eff', kind: 'expense', categoryMap: 'Base Software' },
+  { id: 'linkedin', name: 'LinkedIn Channel', icon: '💼',  color: '#bf5af2', kind: 'expense', categoryMap: 'LinkedIn Channel' },
+  { id: 'email',    name: 'Email Channel',    icon: '✉️',  color: '#64d2ff', kind: 'expense', categoryMap: 'Email Channel' },
+  { id: 'sms',      name: 'SMS Channel',      icon: '📲',  color: '#ff9f0a', kind: 'expense', categoryMap: 'SMS' },
+  { id: 'oneoff',   name: 'One off',          icon: '✨',  color: '#ff9500', kind: 'expense', categoryMap: 'One off' },
+  { id: 'team',     name: 'Team & Payouts',   icon: '👥',  color: '#30d158', kind: 'team' },     // synthetic: salaries+commissions
+];
+function fhAllBuckets() {
+  return [...FH_DEFAULT_BUCKETS, ...(state.customBuckets || []).map(b => ({ ...b, kind: b.kind || 'expense' }))];
+}
+function fhActiveMonthId() {
+  return document.getElementById('fh-month')?.value || state.meta.activeMonth;
+}
+function fhRevenueForMonth(monthId) {
+  const entries = (state.revenueEntries || []).filter(e => e.month === monthId);
+  if (entries.length) {
+    const total = entries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    return { total, entries: entries.sort((a, b) => (b.date || '').localeCompare(a.date || '')), fromEntries: true };
+  }
+  return { total: state.months[monthId]?.revenue || 0, entries: [], fromEntries: false };
 }
 
-function renderExpenseBuckets() {
-  const filterMonth = document.getElementById('exp-filter-month').value;
-  const search = document.getElementById('exp-filter-search').value.trim().toLowerCase();
-  let rows = state.expenses.slice();
-  if (filterMonth) rows = rows.filter(e => (e.month || monthOf(e.date)) === filterMonth);
-  if (search) rows = rows.filter(e => e.vendor.toLowerCase().includes(search));
-
-  // Bucket by category
-  const buckets = {};
-  CATEGORY_ORDER.forEach(c => { buckets[c] = { total: 0, count: 0, vendors: {} }; });
-  rows.forEach(e => {
-    const b = buckets[e.category] || (buckets[e.category] = { total: 0, count: 0, vendors: {} });
-    b.total += e.amount;
-    b.count++;
-    const key = e.vendor;
-    if (!b.vendors[key]) b.vendors[key] = { total: 0, count: 0, items: [] };
-    b.vendors[key].total += e.amount;
-    b.vendors[key].count++;
-    b.vendors[key].items.push(e);
-  });
-
-  const wrap = document.getElementById('expenses-buckets-wrap');
-  const grandTotal = Object.values(buckets).reduce((s, b) => s + b.total, 0);
-  const grandCount = Object.values(buckets).reduce((s, b) => s + b.count, 0);
-  if (!grandCount) {
-    wrap.innerHTML = '<div class="empty"><h3>No expenses match</h3><p>Clear filters or add a new expense above.</p></div>';
-    return;
+function renderExpenses() {
+  // Populate the month selector (newest first)
+  const sel = document.getElementById('fh-month');
+  if (sel) {
+    const ids = sortedMonthIds().slice().reverse();
+    sel.innerHTML = ids.map(id => `<option value="${id}" ${id === state.meta.activeMonth ? 'selected' : ''}>${fmtMonth(id)}</option>`).join('');
   }
-  const monthLabel = filterMonth ? fmtMonth(filterMonth) : 'all months';
-  wrap.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--surface-2);border-radius:6px">
-      <div style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600">${monthLabel} total · ${grandCount} items</div>
-      <div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">${money(grandTotal)}</div>
+  renderFinanceHub();
+}
+function renderFinanceHub() {
+  const monthId = fhActiveMonthId();
+  renderFhRevenueCard(monthId);
+  renderFhBuckets(monthId);
+}
+
+function renderFhRevenueCard(monthId) {
+  const host = document.getElementById('fh-revenue-card');
+  if (!host) return;
+  const rev = fhRevenueForMonth(monthId);
+  const c = calcMonth(monthId) || {};
+  const grossExpenses = (c.marketingCosts || 0) + (c.deliveryCosts || 0) + (c.overheadCosts || 0);
+  const profit = (rev.total || 0) - grossExpenses;
+  const profitClass = profit >= 0 ? 'good' : 'bad';
+  const entriesHtml = rev.entries.map(e => `<div class="entry" data-entry-id="${e.id}">
+    <span class="date">${fmtDate(e.date)}</span>
+    <span class="source">${escapeHtml(e.source || '—')}${e.notes ? ` · <span style="color:var(--text-tertiary)">${escapeHtml(e.notes)}</span>` : ''}</span>
+    <span class="amt">${money(e.amount)}</span>
+    <button class="del" title="Delete entry">×</button>
+  </div>`).join('');
+  host.innerHTML = `<div class="fh-revenue">
+    <div>
+      <div class="lbl">${escapeHtml(fmtMonth(monthId))} · Revenue</div>
+      <div class="amount">${money(rev.total)}</div>
+      <div class="meta">${rev.fromEntries ? `${rev.entries.length} entr${rev.entries.length === 1 ? 'y' : 'ies'} this month` : 'No weekly entries yet — using single monthly figure'}</div>
+      ${rev.entries.length ? `<div class="entries">${entriesHtml}</div>` : ''}
+      <button class="add-entry">+ Add revenue entry</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      ${CATEGORY_ORDER.map(cat => {
-        const b = buckets[cat];
-        if (!b || b.count === 0) return '';
-        const widthPct = grandTotal > 0 ? (b.total / grandTotal) * 100 : 0;
-        const isOpen = expandedCats.has(cat);
-        const vendors = Object.entries(b.vendors).sort((a, b) => b[1].total - a[1].total);
-        return `<div class="bucket" data-cat="${cat}">
-          <button type="button" class="bucket-head" data-act="toggle-bucket">
-            <span class="bucket-name"><span class="pill ${catClass(cat)}">${cat}</span> <span style="color:var(--muted)">${b.count} items · ${vendors.length} vendor${vendors.length === 1 ? '' : 's'}</span></span>
-            <div class="bucket-bar"><div class="bucket-fill" style="width:${widthPct.toFixed(1)}%;background:var(--accent)"></div></div>
-            <span class="bucket-total">${money(b.total)} <span style="color:var(--muted-2);font-size:11px">${widthPct.toFixed(0)}%</span></span>
-            <span class="bucket-caret">${isOpen ? '▾' : '▸'}</span>
-          </button>
-          ${isOpen ? `<div class="bucket-body">
-            ${vendors.map(([vName, vData]) => `<div class="vendor-row">
-              <div class="vrow-name">${escapeHtml(vName)}</div>
-              <div class="vrow-meta">${vData.count}× · ${fmtDate(vData.items.sort((a,b)=>b.date.localeCompare(a.date))[0].date)} most recent</div>
-              <div class="vrow-total">${money(vData.total)}</div>
-              <details class="vrow-items">
-                <summary>${vData.count > 1 ? `Show ${vData.count} items` : 'Show'}</summary>
-                <table style="margin-top:4px">
-                  <tbody>
-                    ${vData.items.sort((a,b)=>b.date.localeCompare(a.date)).map(e => `<tr data-id="${e.id}">
-                      <td style="width:90px">${fmtDate(e.date)}</td>
-                      <td>${escapeHtml(e.vendor)}</td>
-                      <td class="num">${money(e.amount)}</td>
-                      <td class="actions"><button class="small ghost" data-act="del-expense">×</button></td>
-                    </tr>`).join('')}
-                  </tbody>
-                </table>
-              </details>
-            </div>`).join('')}
-          </div>` : ''}
-        </div>`;
-      }).join('')}
+    <div class="side">
+      <div class="row"><div class="row-lbl">Total expenses</div><div class="row-val">${money(grossExpenses)}</div></div>
+      <div class="row"><div class="row-lbl">Net profit</div><div class="row-val ${profitClass}">${money(profit)}</div></div>
+      <div class="row"><div class="row-lbl">Margin</div><div class="row-val ${profitClass}">${rev.total > 0 ? ((profit / rev.total) * 100).toFixed(1) + '%' : '—'}</div></div>
     </div>
-  `;
-  wrap.querySelectorAll('button[data-act="toggle-bucket"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cat = btn.closest('.bucket').dataset.cat;
-      if (expandedCats.has(cat)) expandedCats.delete(cat); else expandedCats.add(cat);
-      renderExpenseBuckets();
+  </div>`;
+  host.querySelector('.add-entry').addEventListener('click', () => fhOpenAddRevenueModal(monthId));
+  host.querySelectorAll('.entry .del').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const id = btn.closest('.entry').dataset.entryId;
+    state.revenueEntries = state.revenueEntries.filter(x => x.id !== id);
+    saveState();
+    renderFinanceHub();
+    renderOverviewIfActive();
+  }));
+}
+
+function renderFhBuckets(monthId) {
+  const wrap = document.getElementById('fh-buckets-wrap');
+  if (!wrap) return;
+  const rev = fhRevenueForMonth(monthId);
+  const monthExpenses = expensesForMonth(monthId);
+  const monthData = state.months[monthId] || {};
+  // Group expenses by their category, then map into buckets
+  const byCategory = {};
+  monthExpenses.forEach(e => {
+    (byCategory[e.category] = byCategory[e.category] || []).push(e);
+  });
+  const buckets = fhAllBuckets();
+  wrap.innerHTML = buckets.map(b => {
+    let items = [];          // array of { vendor, total, count, expenses[] }
+    let total = 0;
+    if (b.kind === 'team') {
+      const sal = monthData.salariesTotal || 0;
+      const com = monthData.commissionsTotal || 0;
+      if (sal > 0) items.push({ vendor: 'Salaries (team)', total: sal, count: 1, expenses: [] });
+      if (com > 0) items.push({ vendor: 'Commissions', total: com, count: 1, expenses: [] });
+      total = sal + com;
+    } else {
+      const cat = b.categoryMap || b.name;
+      const expenseList = byCategory[cat] || [];
+      const vendors = {};
+      expenseList.forEach(e => {
+        const v = vendors[e.vendor] || (vendors[e.vendor] = { vendor: e.vendor, total: 0, count: 0, expenses: [] });
+        v.total += e.amount;
+        v.count++;
+        v.expenses.push(e);
+      });
+      items = Object.values(vendors).sort((a, b) => b.total - a.total);
+      total = items.reduce((s, v) => s + v.total, 0);
+    }
+    const pctOfRev = rev.total > 0 ? (total / rev.total) * 100 : 0;
+    const isOpen = expandedCats.has(b.id);
+    return `<div class="fh-bucket ${isOpen ? 'open' : ''}" data-bucket-id="${b.id}" style="--bucket-color:${b.color}">
+      <div class="fh-bucket-head" data-act="toggle">
+        <div class="name"><span class="icon">${b.icon || '•'}</span>${escapeHtml(b.name)}</div>
+        <div class="meta">${items.length} ${b.kind === 'team' ? 'line' : 'vendor'}${items.length === 1 ? '' : 's'}${b.kind === 'team' ? '' : ` · ${(items.reduce((s,v)=>s+v.count,0))} item${items.reduce((s,v)=>s+v.count,0)===1?'':'s'}`}</div>
+        <div class="total">${money(total)}</div>
+        <span class="pct-of-rev" title="Share of this month's revenue">${pctOfRev.toFixed(1)}% of rev</span>
+        <span class="caret">›</span>
+      </div>
+      <div class="fh-bucket-body">
+        <div class="fh-bucket-bar"><div class="fill" style="width:${Math.min(100, pctOfRev * 3).toFixed(1)}%"></div></div>
+        ${items.length ? `<div class="fh-vendor-rows">${items.map(v => {
+          const vPct = total > 0 ? (v.total / total) * 100 : 0;
+          const expanded = expandedVendors.has(b.id + '|' + v.vendor) ? ' expanded' : '';
+          return `<div class="fh-vendor-row${expanded}" data-vendor="${escapeHtml(v.vendor)}">
+            <div class="v-name">${escapeHtml(v.vendor)}</div>
+            <div class="v-count">${v.count}× · ${v.expenses[0] ? fmtDate(v.expenses.sort((a,b)=>b.date.localeCompare(a.date))[0].date) : '—'}</div>
+            <div class="v-total">${money(v.total)}</div>
+            <div class="v-pct">${vPct.toFixed(1)}% of bucket</div>
+            ${v.expenses.length ? `<button class="v-items" data-act="toggle-items" title="Show items">›</button>` : '<span></span>'}
+            ${v.expenses.length ? `<div class="v-items-list">${v.expenses.sort((a,b)=>b.date.localeCompare(a.date)).map(e => `
+              <div class="it" data-expense-id="${e.id}">
+                <span>${fmtDate(e.date)}</span>
+                <span>${escapeHtml(e.vendor)}</span>
+                <span style="text-align:right;font-variant-numeric:tabular-nums">${money(e.amount)}</span>
+                <button class="it-del" title="Delete">×</button>
+              </div>`).join('')}</div>` : ''}
+          </div>`;
+        }).join('')}</div>` : `<div class="fh-bucket-empty">No items yet for ${escapeHtml(b.name)} in ${escapeHtml(fmtMonth(monthId))}.</div>`}
+        ${b.kind === 'team' ? '' : `<button class="fh-bucket-add" data-act="add-item">+ Add item to ${escapeHtml(b.name)}</button>`}
+      </div>
+    </div>`;
+  }).join('');
+  // Wire toggles
+  wrap.querySelectorAll('[data-act="toggle"]').forEach(el => el.addEventListener('click', ev => {
+    if (ev.target.closest('button,a')) return;
+    const id = el.closest('.fh-bucket').dataset.bucketId;
+    if (expandedCats.has(id)) expandedCats.delete(id); else expandedCats.add(id);
+    renderFinanceHub();
+  }));
+  wrap.querySelectorAll('[data-act="toggle-items"]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const row = btn.closest('.fh-vendor-row');
+    const bid = btn.closest('.fh-bucket').dataset.bucketId;
+    const key = bid + '|' + row.dataset.vendor;
+    if (expandedVendors.has(key)) expandedVendors.delete(key); else expandedVendors.add(key);
+    row.classList.toggle('expanded');
+  }));
+  wrap.querySelectorAll('.it-del').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const id = btn.closest('.it').dataset.expenseId;
+    state.expenses = state.expenses.filter(x => x.id !== id);
+    saveState();
+    renderFinanceHub();
+    renderOverviewIfActive();
+  }));
+  wrap.querySelectorAll('[data-act="add-item"]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const bid = btn.closest('.fh-bucket').dataset.bucketId;
+    const bucket = buckets.find(b => b.id === bid);
+    fhOpenAddItemModal(monthId, bucket);
+  }));
+}
+
+// Track per-vendor expanded state too
+const expandedVendors = new Set();
+
+// ─────────────────────────────────────────────────────────────────────
+// Finance hub modals
+// ─────────────────────────────────────────────────────────────────────
+function fhCloseModal() {
+  document.getElementById('fh-modal-overlay').style.display = 'none';
+  document.getElementById('fh-modal-body').innerHTML = '';
+}
+function fhOpenModal(title, render) {
+  document.getElementById('fh-modal-title').textContent = title;
+  const body = document.getElementById('fh-modal-body');
+  body.innerHTML = '';
+  render(body);
+  document.getElementById('fh-modal-overlay').style.display = 'flex';
+}
+
+// + Revenue entry
+function fhOpenAddRevenueModal(monthId) {
+  fhOpenModal('Add revenue entry', (body) => {
+    body.innerHTML = `
+      <label>Date</label>
+      <input type="date" id="fh-rev-date" value="${isoDate(new Date())}" />
+      <div class="grid-2">
+        <div>
+          <label>Amount (£)</label>
+          <input type="number" id="fh-rev-amount" step="0.01" min="0" placeholder="0.00" />
+        </div>
+        <div>
+          <label>Source / client</label>
+          <input type="text" id="fh-rev-source" placeholder="e.g. Client A, Affiliate, etc." />
+        </div>
+      </div>
+      <label>Notes (optional)</label>
+      <textarea id="fh-rev-notes" rows="2" placeholder="Anything else worth remembering"></textarea>
+      <div class="fh-modal-foot">
+        <button type="button" class="cancel" data-act="cancel">Cancel</button>
+        <button type="button" class="primary" data-act="save">+ Add entry</button>
+      </div>
+    `;
+    body.querySelector('[data-act="cancel"]').addEventListener('click', fhCloseModal);
+    body.querySelector('[data-act="save"]').addEventListener('click', () => {
+      const date = body.querySelector('#fh-rev-date').value;
+      const amount = parseFloat(body.querySelector('#fh-rev-amount').value);
+      const source = body.querySelector('#fh-rev-source').value.trim();
+      const notes  = body.querySelector('#fh-rev-notes').value.trim();
+      if (!date || !isFinite(amount) || amount <= 0) { alert('Date + amount are required'); return; }
+      const month = monthOf(date);
+      // Ensure month exists in state.months so calcMonth works
+      if (!state.months[month]) {
+        state.months[month] = {
+          revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0,
+          referralPayoutsTotal: 0, refundsTotal: 0, taxPct: 15,
+          newClients: 0, activeClients: 0, churnedClients: 0,
+        };
+      }
+      // On the FIRST entry for a month that already has revenue (single-number
+      // legacy field), preserve that value as a carryover entry so nothing is
+      // lost when the user switches to weekly logging.
+      const priorEntries = state.revenueEntries.filter(e => e.month === month);
+      const legacyAmount = state.months[month]?.revenue || 0;
+      if (priorEntries.length === 0 && legacyAmount > 0) {
+        state.revenueEntries.push({
+          id: uid(), month, date: month + '-01', amount: legacyAmount,
+          source: 'Carryover', notes: 'Imported from previous single-number monthly revenue',
+        });
+      }
+      const entry = { id: uid(), month, date, amount, source, notes };
+      state.revenueEntries.push(entry);
+      // Reflect total into m.revenue so downstream calcs stay accurate
+      const monthEntries = state.revenueEntries.filter(e => e.month === month);
+      state.months[month].revenue = monthEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      saveState();
+      fhCloseModal();
+      renderFinanceHub();
+      renderOverviewIfActive();
+      populateMonthSelects();
     });
   });
-  wrap.querySelectorAll('button[data-act="del-expense"]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const id = btn.closest('tr').dataset.id;
-      if (!confirm('Delete this expense?')) return;
-      state.expenses = state.expenses.filter(x => x.id !== id);
+}
+
+// + Expense item with vendor autocomplete from the library
+function fhOpenAddItemModal(monthId, bucket) {
+  fhOpenModal(`Add item to ${bucket.name}`, (body) => {
+    const cat = bucket.categoryMap || bucket.name;
+    body.innerHTML = `
+      <label>Vendor</label>
+      <div class="fh-vendor-search">
+        <input type="text" id="fh-it-vendor" placeholder="Start typing — pick from your library or create new" autocomplete="off" />
+        <div class="fh-suggest" id="fh-it-suggest"></div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label>Amount (£)</label>
+          <input type="number" id="fh-it-amount" step="0.01" min="0" placeholder="0.00" />
+        </div>
+        <div>
+          <label>Date</label>
+          <input type="date" id="fh-it-date" value="${isoDate(new Date())}" />
+        </div>
+      </div>
+      <input type="hidden" id="fh-it-category" value="${escapeHtml(cat)}" />
+      <div class="fh-modal-foot">
+        <button type="button" class="cancel" data-act="cancel">Cancel</button>
+        <button type="button" class="primary" data-act="save">+ Add item</button>
+      </div>
+    `;
+    // Autocomplete logic
+    const input = body.querySelector('#fh-it-vendor');
+    const suggest = body.querySelector('#fh-it-suggest');
+    const wrap = body.querySelector('.fh-vendor-search');
+    const amountInp = body.querySelector('#fh-it-amount');
+    function update() {
+      const q = input.value.trim().toLowerCase();
+      // Prefer vendors already in this bucket's category
+      let pool = state.vendors.filter(v => v.category === cat);
+      if (q) {
+        pool = state.vendors.filter(v => v.name.toLowerCase().includes(q));
+      } else {
+        // Show recurring ones from this category first
+        pool = pool.filter(v => v.recurring).slice(0, 8);
+      }
+      if (!pool.length && !q) { wrap.classList.remove('open'); return; }
+      const items = pool.slice(0, 10).map((v, i) => `
+        <div class="item" data-i="${i}">
+          <span>${escapeHtml(v.name)} <span class="cat">${escapeHtml(v.category)}</span></span>
+          <span class="price">${v.typicalAmount ? '~' + money(v.typicalAmount) : ''}</span>
+        </div>`).join('');
+      const addNew = q ? `<div class="add-new" data-act="add-new">+ Create "${escapeHtml(q)}" as a new ${escapeHtml(cat)} vendor</div>` : '';
+      suggest.innerHTML = items + addNew;
+      wrap.classList.add('open');
+      [...suggest.querySelectorAll('.item')].forEach((el, i) => {
+        el.addEventListener('click', () => {
+          const v = pool[i];
+          input.value = v.name;
+          if (v.typicalAmount && !amountInp.value) amountInp.value = v.typicalAmount;
+          wrap.classList.remove('open');
+          amountInp.focus();
+        });
+      });
+      const addNewEl = suggest.querySelector('[data-act="add-new"]');
+      if (addNewEl) addNewEl.addEventListener('click', () => {
+        wrap.classList.remove('open');
+        amountInp.focus();
+      });
+    }
+    input.addEventListener('focus', update);
+    input.addEventListener('input', update);
+    document.addEventListener('click', e => {
+      if (!wrap.contains(e.target)) wrap.classList.remove('open');
+    }, { once: false });
+    body.querySelector('[data-act="cancel"]').addEventListener('click', fhCloseModal);
+    body.querySelector('[data-act="save"]').addEventListener('click', () => {
+      const vendor = input.value.trim();
+      const amount = parseFloat(amountInp.value);
+      const date = body.querySelector('#fh-it-date').value;
+      const category = body.querySelector('#fh-it-category').value || cat;
+      if (!vendor || !isFinite(amount) || amount <= 0 || !date) { alert('Vendor, amount, and date are required'); return; }
+      const month = monthOf(date);
+      if (!state.months[month]) {
+        state.months[month] = {
+          revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0,
+          referralPayoutsTotal: 0, refundsTotal: 0, taxPct: 15,
+          newClients: 0, activeClients: 0, churnedClients: 0,
+        };
+      }
+      state.expenses.push({ id: uid(), date, vendor, category, amount, month });
+      // Upsert into vendor library
+      const existing = state.vendors.find(v => v.name.toLowerCase() === vendor.toLowerCase() && v.category === category);
+      if (existing) {
+        const allOfThis = state.expenses.filter(x => x.vendor === existing.name && x.category === existing.category);
+        existing.typicalAmount = Math.round((allOfThis.reduce((s,x) => s+x.amount, 0) / allOfThis.length) * 100) / 100;
+        if (allOfThis.length >= 2) existing.recurring = true;
+      } else {
+        state.vendors.push({ id: uid(), name: vendor, category, typicalAmount: amount, recurring: false });
+      }
       saveState();
-      renderExpenses();
+      fhCloseModal();
+      renderFinanceHub();
       renderOverviewIfActive();
+      updateNavCounts();
+    });
+  });
+}
+
+// + Custom bucket
+function fhOpenAddBucketModal() {
+  fhOpenModal('Add a custom bucket', (body) => {
+    body.innerHTML = `
+      <label>Bucket name</label>
+      <input type="text" id="fh-bk-name" placeholder="e.g. Office, Travel, Tools…" />
+      <div class="grid-2">
+        <div>
+          <label>Icon (emoji)</label>
+          <input type="text" id="fh-bk-icon" placeholder="🗂" />
+        </div>
+        <div>
+          <label>Colour</label>
+          <input type="color" id="fh-bk-color" value="#9aa0a6" />
+        </div>
+      </div>
+      <div class="fh-modal-foot">
+        <button type="button" class="cancel" data-act="cancel">Cancel</button>
+        <button type="button" class="primary" data-act="save">+ Add bucket</button>
+      </div>
+    `;
+    body.querySelector('[data-act="cancel"]').addEventListener('click', fhCloseModal);
+    body.querySelector('[data-act="save"]').addEventListener('click', () => {
+      const name = body.querySelector('#fh-bk-name').value.trim();
+      const icon = body.querySelector('#fh-bk-icon').value.trim() || '•';
+      const color = body.querySelector('#fh-bk-color').value || '#9aa0a6';
+      if (!name) { alert('Name required'); return; }
+      state.customBuckets.push({ id: 'cb-' + uid(), name, icon, color, kind: 'expense', categoryMap: name });
+      saveState();
+      fhCloseModal();
+      renderFinanceHub();
     });
   });
 }
@@ -5270,7 +5889,7 @@ function importJson(file) {
 }
 
 function exportExpensesCsv() {
-  const filterMonth = document.getElementById('exp-filter-month').value;
+  const filterMonth = document.getElementById('fh-month')?.value || state.meta.activeMonth || '';
   const rows = filterMonth ? state.expenses.filter(e => (e.month || monthOf(e.date)) === filterMonth) : state.expenses;
   const lines = ['date,vendor,category,amount,month'];
   rows.forEach(e => {
@@ -5308,46 +5927,25 @@ function wireUp() {
   });
   document.getElementById('add-month-btn').addEventListener('click', addMonth);
 
-  // Expense form
-  setupExpenseAutocomplete();
-  document.getElementById('expense-form').addEventListener('submit', e => {
-    e.preventDefault();
-    const vendor = document.getElementById('exp-vendor').value.trim();
-    const category = document.getElementById('exp-category').value;
-    const amount = parseFloat(document.getElementById('exp-amount').value);
-    const date = document.getElementById('exp-date').value;
-    if (!vendor || !amount || !date) return;
-    const month = monthOf(date);
-    if (!state.months[month]) {
-      state.months[month] = {
-        revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0,
-        referralPayoutsTotal: 0, refundsTotal: 0, taxPct: 15,
-        newClients: 0, activeClients: 0, churnedClients: 0,
-      };
-    }
-    state.expenses.push({ id: uid(), date, vendor, category, amount, month });
-    // upsert vendor in library
-    const existing = state.vendors.find(v => v.name.toLowerCase() === vendor.toLowerCase() && v.category === category);
-    if (existing) {
-      const allOfThis = state.expenses.filter(x => x.vendor === existing.name && x.category === existing.category);
-      existing.typicalAmount = Math.round((allOfThis.reduce((s,x) => s+x.amount, 0) / allOfThis.length) * 100) / 100;
-      if (allOfThis.length >= 2) existing.recurring = true;
-    } else {
-      state.vendors.push({ id: uid(), name: vendor, category, typicalAmount: amount, recurring: false });
-    }
+  // Finance Hub (overhauled Expenses page)
+  document.getElementById('fh-month').addEventListener('change', e => {
+    state.meta.activeMonth = e.target.value;
     saveState();
-    document.getElementById('exp-vendor').value = '';
-    document.getElementById('exp-amount').value = '';
-    renderExpenses();
-    renderOverviewIfActive();
-    updateNavCounts();
+    renderFinanceHub();
+    renderAll();
   });
-  document.getElementById('exp-filter-month').addEventListener('change', e => {
-    e.target.dataset.value = e.target.value;
-    renderExpenseBuckets();
+  document.getElementById('fh-add-bucket-btn').addEventListener('click', fhOpenAddBucketModal);
+  document.getElementById('fh-vendor-lib-btn').addEventListener('click', () => {
+    const card = document.getElementById('fh-vendor-lib-card');
+    card.style.display = card.style.display === 'none' ? '' : 'none';
+    card.open = true;
   });
-  document.getElementById('exp-filter-search').addEventListener('input', debounce(renderExpenseBuckets, 200));
   document.getElementById('exp-export-btn').addEventListener('click', exportExpensesCsv);
+  // Modal close
+  document.getElementById('fh-modal-x').addEventListener('click', fhCloseModal);
+  document.getElementById('fh-modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'fh-modal-overlay') fhCloseModal();
+  });
 
   // Refund form
   document.getElementById('refund-form').addEventListener('submit', e => {
