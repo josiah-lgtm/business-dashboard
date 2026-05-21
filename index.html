@@ -1235,6 +1235,65 @@
   }
   .fh-vendor-row .v-items-list .it .it-del:hover { color: var(--bad); }
 
+  /* Editable item rows in vendor drill-down */
+  .fh-vendor-row .v-items-list .it.editable {
+    grid-template-columns: 110px 1fr 100px auto auto;
+    gap: 6px;
+    align-items: center;
+    padding: 5px 6px;
+  }
+  .fh-vendor-row .v-items-list .it.editable input {
+    background: var(--surface-input);
+    border: 1px solid transparent;
+    color: var(--text);
+    font-size: 12px;
+    padding: 5px 7px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    width: 100%;
+  }
+  .fh-vendor-row .v-items-list .it.editable input.it-amount { text-align: right; }
+  .fh-vendor-row .v-items-list .it.editable input:hover { border-color: var(--border); }
+  .fh-vendor-row .v-items-list .it.editable input:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint);
+  }
+  .fh-vendor-row .v-items-list .it .it-task {
+    background: transparent; border: none; color: var(--text-tertiary);
+    cursor: pointer; padding: 3px 6px; border-radius: 5px;
+    font-size: 13px;
+  }
+  .fh-vendor-row .v-items-list .it .it-task:hover { background: var(--accent-tint); color: var(--accent-hover); }
+  .fh-vendor-row .v-items-list .it-add-charge {
+    margin-top: 6px;
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--text-tertiary);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px; cursor: pointer; font-family: inherit;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .fh-vendor-row .v-items-list .it-add-charge:hover { border-color: var(--accent); color: var(--accent-hover); }
+
+  /* Toast for task-created feedback */
+  .fh-toast {
+    position: fixed;
+    bottom: 24px; left: 50%; transform: translateX(-50%) translateY(10px);
+    background: #1a1a1f;
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+    z-index: 300;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .fh-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
   .fh-bucket-add {
     margin-top: 10px;
     background: transparent;
@@ -3631,13 +3690,18 @@ function renderFhBuckets(monthId) {
             <div class="v-total">${money(v.total)}</div>
             <div class="v-pct">${vPct.toFixed(1)}% of bucket</div>
             ${v.expenses.length ? `<button class="v-items" data-act="toggle-items" title="Show items">›</button>` : '<span></span>'}
-            ${v.expenses.length ? `<div class="v-items-list">${v.expenses.sort((a,b)=>b.date.localeCompare(a.date)).map(e => `
-              <div class="it" data-expense-id="${e.id}">
-                <span>${fmtDate(e.date)}</span>
-                <span>${escapeHtml(e.vendor)}</span>
-                <span style="text-align:right;font-variant-numeric:tabular-nums">${money(e.amount)}</span>
+            ${v.expenses.length ? `<div class="v-items-list">${v.expenses.sort((a,b)=>b.date.localeCompare(a.date)).map(e => {
+              const isPayout = !!e._payoutId;
+              return `<div class="it editable" data-expense-id="${e.id}"${isPayout ? ' data-payout="1"' : ''}>
+                <input type="date" class="it-date" value="${e.date}" />
+                <input type="text" class="it-vendor" value="${escapeHtml(e.vendor)}" />
+                <input type="number" step="0.01" min="0" class="it-amount" value="${e.amount}" />
+                <button class="it-task" title="Create a task linked to this item">📋</button>
                 <button class="it-del" title="Delete">×</button>
-              </div>`).join('')}</div>` : ''}
+              </div>`;
+            }).join('')}
+            ${b.kind === 'team' ? '' : `<button class="it-add-charge" data-bucket-id="${b.id}" data-vendor="${escapeHtml(v.vendor)}" data-last="${v.expenses[0]?.amount || ''}">+ Add another charge to ${escapeHtml(v.vendor)}</button>`}
+            </div>` : ''}
           </div>`;
         }).join('')}</div>` : `<div class="fh-bucket-empty">No items yet for ${escapeHtml(b.name)} in ${escapeHtml(fmtMonth(monthId))}.</div>`}
         ${b.kind === 'team' ? renderTeamPickerFor(b, monthId) : `<button class="fh-bucket-add" data-act="add-item">+ Add item to ${escapeHtml(b.name)}</button>
@@ -3675,6 +3739,86 @@ function renderFhBuckets(monthId) {
     renderFinanceHub();
     renderOverviewIfActive();
   }));
+  // Inline edit: vendor / amount / date on each item row
+  wrap.querySelectorAll('.it.editable').forEach(row => {
+    const id = row.dataset.expenseId;
+    const isPayout = !!row.dataset.payout;
+    function update(field, value) {
+      if (isPayout) {
+        const p = state.teamPayouts.find(x => x.id === id);
+        if (!p) return;
+        if (field === 'amount') p.amount = parseFloat(value) || 0;
+        else if (field === 'date') p.date = value;
+        // vendor isn't really editable on payouts (it's the member name); ignore
+        fhRecalcTeamTotals(fhActiveMonthId());
+      } else {
+        const e = state.expenses.find(x => x.id === id);
+        if (!e) return;
+        if (field === 'amount') e.amount = parseFloat(value) || 0;
+        else if (field === 'date') { e.date = value; e.month = monthOf(value); }
+        else if (field === 'vendor') e.vendor = value;
+      }
+      saveState();
+    }
+    row.querySelector('.it-amount').addEventListener('change', ev => update('amount', ev.target.value));
+    row.querySelector('.it-date').addEventListener('change', ev => { update('date', ev.target.value); renderFinanceHub(); });
+    const vendorInp = row.querySelector('.it-vendor');
+    if (vendorInp) vendorInp.addEventListener('change', ev => { update('vendor', ev.target.value); renderFinanceHub(); });
+    // Re-render on amount blur so totals refresh
+    row.querySelector('.it-amount').addEventListener('blur', () => { renderFinanceHub(); renderOverviewIfActive(); });
+  });
+  // + Add another charge for same vendor (multi-charge in same month)
+  wrap.querySelectorAll('.it-add-charge').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const bid = btn.dataset.bucketId;
+    const vendor = btn.dataset.vendor;
+    const last = parseFloat(btn.dataset.last) || 0;
+    const bucket = buckets.find(b => b.id === bid);
+    if (!bucket) return;
+    const category = bucket.categoryMap || bucket.name;
+    const date = isoDate(new Date());
+    const monthId = monthOf(date);
+    if (!state.months[monthId]) {
+      state.months[monthId] = {
+        revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0,
+        referralPayoutsTotal: 0, refundsTotal: 0, taxPct: 15,
+        newClients: 0, activeClients: 0, churnedClients: 0,
+      };
+    }
+    state.expenses.push({ id: uid(), date, vendor, category, amount: last, month: monthId });
+    saveState();
+    renderFinanceHub();
+    renderOverviewIfActive();
+    // Focus the new row's amount field so the user can adjust
+    setTimeout(() => {
+      const all = document.querySelectorAll(`[data-bucket-id="${bid}"] .fh-vendor-row[data-vendor="${vendor}"] .it.editable .it-amount`);
+      if (all.length) { const el = all[0]; el.focus(); el.select(); }
+    }, 50);
+  }));
+  // 📋 Add task shortcut — creates a task linked to this item
+  wrap.querySelectorAll('.it-task').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const row = btn.closest('.it');
+    const id = row.dataset.expenseId;
+    const isPayout = !!row.dataset.payout;
+    const vendor = row.querySelector('.it-vendor').value;
+    const amount = parseFloat(row.querySelector('.it-amount').value) || 0;
+    const date = row.querySelector('.it-date').value;
+    const linkedVendor = state.vendors.find(v => v.name.toLowerCase() === vendor.toLowerCase());
+    state.tasks = state.tasks || [];
+    state.tasks.push({
+      id: uid(),
+      title: `Review ${vendor} — ${money(amount)}${date ? ` on ${fmtDate(date)}` : ''}`,
+      status: 'todo',
+      linkedVendorId: linkedVendor?.id || null,
+      action: isPayout ? 'review-payout' : 'review',
+      notes: `Auto-added from Finance hub${isPayout ? ' (team payout)' : ''}.`,
+      createdAt: isoDate(new Date()),
+    });
+    saveState();
+    fhToast(`Task added: Review ${vendor} ${money(amount)}`);
+    updateNavCounts();
+  }));
   wrap.querySelectorAll('[data-act="add-item"]').forEach(btn => btn.addEventListener('click', ev => {
     ev.stopPropagation();
     const bucketEl = btn.closest('.fh-bucket');
@@ -3705,6 +3849,21 @@ function renderFhBuckets(monthId) {
     renderFinanceHub();
     renderOverviewIfActive();
   }));
+}
+
+// Tiny ephemeral toast at bottom-center (used by + Task shortcut)
+function fhToast(msg) {
+  let t = document.getElementById('fh-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'fh-toast';
+    t.className = 'fh-toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(fhToast._timer);
+  fhToast._timer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
 // Recalculate state.months[m].salariesTotal + commissionsTotal from payouts
