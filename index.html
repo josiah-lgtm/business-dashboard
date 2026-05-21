@@ -1041,38 +1041,109 @@
   /* ============================================================
      Finance hub (Expenses page overhaul) — revenue + buckets
      ============================================================ */
-  /* Revenue card at the top of the Finance hub */
-  .fh-revenue {
-    background: linear-gradient(135deg, rgba(48,209,88,0.10), rgba(212,160,23,0.05));
-    border: 1px solid rgba(48,209,88,0.30);
-    border-radius: 14px;
-    padding: 22px 24px;
+  /* Finance hub headline — three big centered KPI tiles for the month */
+  .fh-headline {
+    background: linear-gradient(135deg, rgba(48,209,88,0.06), rgba(255,69,58,0.05));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 26px 24px 22px;
     margin-bottom: 18px;
+  }
+  .fh-headline .fh-h-title {
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+    margin-bottom: 18px;
+  }
+  .fh-headline .fh-h-stats {
     display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 22px;
-    align-items: start;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    align-items: stretch;
   }
-  .fh-revenue .lbl {
-    font-size: 11px; color: var(--good);
-    text-transform: uppercase; letter-spacing: 0.10em; font-weight: 800;
-    margin-bottom: 4px;
+  @media (max-width: 720px) { .fh-headline .fh-h-stats { grid-template-columns: 1fr; } }
+  .fh-stat {
+    text-align: center;
+    padding: 14px 14px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    position: relative;
+    transition: transform 0.12s, border-color 0.15s;
   }
-  .fh-revenue .amount {
-    font-size: 36px; font-weight: 800; color: var(--text);
+  .fh-stat .fh-s-lbl {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .fh-stat .fh-s-amount {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
     line-height: 1.05;
   }
-  .fh-revenue .meta {
-    color: var(--text-tertiary); font-size: 12.5px; margin-top: 4px;
+  .fh-stat .fh-s-sub {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
   }
-  .fh-revenue .entries {
-    margin-top: 14px;
+  /* Revenue: green */
+  .fh-stat.is-revenue {
+    background: linear-gradient(135deg, rgba(48,209,88,0.10), rgba(48,209,88,0.02));
+    border-color: rgba(48,209,88,0.30);
+  }
+  .fh-stat.is-revenue .fh-s-lbl { color: var(--good); }
+  .fh-stat.is-revenue .fh-s-amount { color: var(--good); }
+  /* Expenses: RED */
+  .fh-stat.is-expenses {
+    background: linear-gradient(135deg, rgba(255,69,58,0.10), rgba(255,69,58,0.02));
+    border-color: rgba(255,69,58,0.30);
+  }
+  .fh-stat.is-expenses .fh-s-lbl { color: var(--bad); }
+  .fh-stat.is-expenses .fh-s-amount { color: var(--bad); }
+  /* Profit: green when positive, red when negative */
+  .fh-stat.is-profit.good {
+    background: linear-gradient(135deg, rgba(48,209,88,0.10), rgba(212,160,23,0.05));
+    border-color: rgba(48,209,88,0.30);
+  }
+  .fh-stat.is-profit.good .fh-s-lbl,
+  .fh-stat.is-profit.good .fh-s-amount { color: var(--good); }
+  .fh-stat.is-profit.bad {
+    background: linear-gradient(135deg, rgba(255,69,58,0.10), rgba(255,159,10,0.04));
+    border-color: rgba(255,69,58,0.30);
+  }
+  .fh-stat.is-profit.bad .fh-s-lbl,
+  .fh-stat.is-profit.bad .fh-s-amount { color: var(--bad); }
+
+  /* Revenue entries list (now sits inside the headline below stats) */
+  .fh-headline .fh-entries-section {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .fh-headline .fh-entries-section .lbl {
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .fh-entries {
     display: flex; flex-direction: column; gap: 5px;
     max-height: 160px; overflow-y: auto;
+    max-width: 720px;
+    margin: 0 auto 12px;
   }
-  .fh-revenue .entry {
+  .fh-entries .entry {
     display: grid;
     grid-template-columns: 90px 1fr auto auto;
     gap: 10px;
@@ -1082,36 +1153,27 @@
     font-size: 12.5px;
     align-items: center;
   }
-  .fh-revenue .entry .date { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-  .fh-revenue .entry .source { color: var(--text); }
-  .fh-revenue .entry .amt { color: var(--good); font-weight: 700; font-variant-numeric: tabular-nums; }
-  .fh-revenue .entry .del {
+  .fh-entries .entry .date { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .fh-entries .entry .source { color: var(--text); }
+  .fh-entries .entry .amt { color: var(--good); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .fh-entries .entry .del {
     background: transparent; border: none; color: var(--text-tertiary);
     cursor: pointer; padding: 2px 6px; border-radius: 4px;
     font-size: 14px; line-height: 1;
   }
-  .fh-revenue .entry .del:hover { color: var(--bad); }
-  .fh-revenue .add-entry {
-    margin-top: 10px;
+  .fh-entries .entry .del:hover { color: var(--bad); }
+  .fh-headline .add-entry {
+    display: block; margin: 0 auto;
     background: var(--good);
     color: #0a1a0a;
     border: none;
-    padding: 10px 16px;
-    border-radius: 9px;
-    font-size: 12.5px; font-weight: 700;
+    padding: 11px 22px;
+    border-radius: 10px;
+    font-size: 13px; font-weight: 800;
     cursor: pointer; font-family: inherit;
-    transition: background 0.12s;
+    transition: background 0.12s, transform 0.12s;
   }
-  .fh-revenue .add-entry:hover { background: #4ad06b; }
-  .fh-revenue .side {
-    text-align: right;
-    min-width: 170px;
-  }
-  .fh-revenue .side .row { margin-bottom: 6px; }
-  .fh-revenue .side .row-lbl { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
-  .fh-revenue .side .row-val { font-size: 14px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-  .fh-revenue .side .row-val.bad { color: var(--bad); }
-  .fh-revenue .side .row-val.good { color: var(--good); }
+  .fh-headline .add-entry:hover { background: #4ad06b; transform: translateY(-1px); }
 
   /* Bucket card */
   .fh-bucket {
@@ -3584,24 +3646,39 @@ function renderFhRevenueCard(monthId) {
   const grossExpenses = (c.marketingCosts || 0) + (c.deliveryCosts || 0) + (c.overheadCosts || 0);
   const profit = (rev.total || 0) - grossExpenses;
   const profitClass = profit >= 0 ? 'good' : 'bad';
+  const expensePctOfRev = rev.total > 0 ? ((grossExpenses / rev.total) * 100).toFixed(1) + '%' : '—';
+  const marginPct = rev.total > 0 ? ((profit / rev.total) * 100).toFixed(1) + '%' : '—';
   const entriesHtml = rev.entries.map(e => `<div class="entry" data-entry-id="${e.id}">
     <span class="date">${fmtDate(e.date)}</span>
     <span class="source">${escapeHtml(e.source || '—')}${e.notes ? ` · <span style="color:var(--text-tertiary)">${escapeHtml(e.notes)}</span>` : ''}</span>
     <span class="amt">${money(e.amount)}</span>
     <button class="del" title="Delete entry">×</button>
   </div>`).join('');
-  host.innerHTML = `<div class="fh-revenue">
-    <div>
-      <div class="lbl">${escapeHtml(fmtMonth(monthId))} · Revenue</div>
-      <div class="amount">${money(rev.total)}</div>
-      <div class="meta">${rev.fromEntries ? `${rev.entries.length} entr${rev.entries.length === 1 ? 'y' : 'ies'} this month` : 'No weekly entries yet — using single monthly figure'}</div>
-      ${rev.entries.length ? `<div class="entries">${entriesHtml}</div>` : ''}
-      <button class="add-entry">+ Add revenue entry</button>
+  host.innerHTML = `<div class="fh-headline">
+    <div class="fh-h-title">${escapeHtml(fmtMonth(monthId))} · Financial summary</div>
+    <div class="fh-h-stats">
+      <div class="fh-stat is-revenue">
+        <div class="fh-s-lbl">Revenue</div>
+        <div class="fh-s-amount">${money(rev.total)}</div>
+        <div class="fh-s-sub">${rev.fromEntries ? `${rev.entries.length} entr${rev.entries.length === 1 ? 'y' : 'ies'}` : 'monthly total'}</div>
+      </div>
+      <div class="fh-stat is-expenses">
+        <div class="fh-s-lbl">Expenses</div>
+        <div class="fh-s-amount">${money(grossExpenses)}</div>
+        <div class="fh-s-sub">${expensePctOfRev} of revenue</div>
+      </div>
+      <div class="fh-stat is-profit ${profitClass}">
+        <div class="fh-s-lbl">Net profit</div>
+        <div class="fh-s-amount">${money(profit)}</div>
+        <div class="fh-s-sub">${marginPct} margin</div>
+      </div>
     </div>
-    <div class="side">
-      <div class="row"><div class="row-lbl">Total expenses</div><div class="row-val">${money(grossExpenses)}</div></div>
-      <div class="row"><div class="row-lbl">Net profit</div><div class="row-val ${profitClass}">${money(profit)}</div></div>
-      <div class="row"><div class="row-lbl">Margin</div><div class="row-val ${profitClass}">${rev.total > 0 ? ((profit / rev.total) * 100).toFixed(1) + '%' : '—'}</div></div>
+    <div class="fh-entries-section">
+      <div class="lbl">Revenue entries this month</div>
+      ${rev.entries.length
+        ? `<div class="fh-entries">${entriesHtml}</div>`
+        : `<div style="text-align:center;color:var(--text-tertiary);font-size:12.5px;margin-bottom:12px;font-style:italic">${rev.fromEntries ? 'No entries yet' : 'No weekly entries yet — using the single monthly figure'}</div>`}
+      <button class="add-entry">+ Add revenue entry</button>
     </div>
   </div>`;
   host.querySelector('.add-entry').addEventListener('click', () => fhOpenAddRevenueModal(monthId));
