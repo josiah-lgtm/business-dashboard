@@ -1247,6 +1247,203 @@
   }
   .fh-bucket-add:hover { border-color: var(--accent); color: var(--accent-hover); }
 
+  /* Inline + Add form that lives inside the bucket body (no modal) */
+  .fh-inline-form {
+    margin-top: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--accent-tint);
+    border-radius: 9px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 1.4fr 110px 130px auto;
+    gap: 8px 10px;
+    align-items: end;
+  }
+  .fh-inline-form .full { grid-column: 1 / -1; }
+  .fh-inline-form label {
+    display: block;
+    font-size: 10px; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .fh-inline-form input, .fh-inline-form textarea, .fh-inline-form select {
+    width: 100%;
+    background: var(--surface-input);
+    border: 1px solid var(--border-input);
+    border-radius: 7px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 7px 10px;
+    font-family: inherit;
+  }
+  .fh-inline-form textarea { resize: vertical; min-height: 36px; }
+  .fh-inline-form input:focus, .fh-inline-form textarea:focus, .fh-inline-form select:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint);
+  }
+  .fh-inline-form .actions {
+    display: flex; gap: 6px; justify-content: flex-end;
+  }
+  .fh-inline-form button.save {
+    background: var(--accent); color: #1a1a1a; border: none;
+    padding: 8px 14px; border-radius: 7px;
+    font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .fh-inline-form button.save:hover { background: var(--accent-hover); }
+  .fh-inline-form button.cancel {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    padding: 8px 12px; border-radius: 7px;
+    font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .fh-inline-form button.cancel:hover { border-color: var(--accent); color: var(--text); }
+
+  /* Team member quick-pick chips inside Team bucket */
+  .fh-team-picker {
+    margin-top: 10px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 10px 12px;
+    background: rgba(48,209,88,0.06);
+    border: 1px solid rgba(48,209,88,0.20);
+    border-radius: 9px;
+  }
+  .fh-team-picker .lbl {
+    font-size: 10.5px; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
+    margin-right: 4px; align-self: center;
+  }
+  .fh-team-picker .chip {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px; cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+  }
+  .fh-team-picker .chip:hover { border-color: var(--good); color: var(--good); background: rgba(48,209,88,0.10); }
+  .fh-team-picker .chip .amt { font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .fh-team-picker .chip:hover .amt { color: var(--good); }
+
+  /* Team roster overhaul — bucket-by-role on Revenue & Team page */
+  .tr-role-bucket {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .tr-role-head {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 700; color: var(--text);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .tr-role-head .role-name {
+    background: transparent; border: 1px solid transparent;
+    color: var(--text); font-weight: 700; font-size: 13px;
+    padding: 3px 8px; border-radius: 6px;
+    font-family: inherit;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .tr-role-head .role-name:focus { outline: none; border-color: var(--accent); background: var(--surface-input); }
+  .tr-role-head .count {
+    font-size: 11px; color: var(--text-tertiary); font-weight: 500; letter-spacing: 0;
+    text-transform: none;
+  }
+  .tr-role-head .total-amt {
+    margin-left: auto;
+    font-size: 13px; color: var(--text); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .tr-member-row {
+    display: grid;
+    grid-template-columns: 1.4fr 130px auto auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.025);
+    border-radius: 8px;
+  }
+  .tr-member-row input.name {
+    background: transparent; border: 1px solid transparent;
+    color: var(--text); font-size: 13.5px; font-weight: 500;
+    padding: 5px 8px; border-radius: 6px;
+    font-family: inherit; width: 100%;
+  }
+  .tr-member-row input.name:focus { outline: none; border-color: var(--accent); background: var(--surface-input); }
+  .tr-member-row .amt-wrap {
+    position: relative;
+  }
+  .tr-member-row .amt-wrap input.amt {
+    background: var(--surface-input);
+    border: 1px solid var(--border-input);
+    color: var(--text); font-size: 13px;
+    padding: 6px 8px 6px 22px;
+    border-radius: 6px; width: 100%;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .tr-member-row .amt-wrap input.amt:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
+  .tr-member-row .amt-wrap .amt-sym {
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    color: var(--text-tertiary); font-size: 12.5px; pointer-events: none;
+  }
+  .tr-paytype-toggle {
+    display: inline-flex;
+    background: var(--surface-input);
+    border: 1px solid var(--border-input);
+    border-radius: 7px;
+    padding: 2px;
+    gap: 1px;
+  }
+  .tr-paytype-toggle button {
+    background: transparent; border: none; color: var(--text-tertiary);
+    padding: 4px 10px; border-radius: 5px;
+    font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .tr-paytype-toggle button.active {
+    background: var(--accent); color: #1a1a1a; font-weight: 700;
+  }
+  .tr-paytype-toggle button.active[data-type="commission"] {
+    background: #5e9eff;
+  }
+  .tr-active-toggle {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: rgba(48,209,88,0.18);
+    border: 1px solid rgba(48,209,88,0.30);
+    color: var(--good);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .tr-active-toggle.inactive {
+    background: rgba(255,255,255,0.04);
+    border-color: var(--border);
+    color: var(--text-tertiary);
+  }
+  .tr-member-row .del {
+    background: transparent; border: none; color: var(--text-tertiary);
+    cursor: pointer; padding: 4px 8px; border-radius: 5px;
+    font-size: 15px; line-height: 1;
+  }
+  .tr-member-row .del:hover { color: var(--bad); }
+  .tr-role-add-member {
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--text-tertiary);
+    padding: 6px 11px;
+    border-radius: 7px;
+    font-size: 11.5px; cursor: pointer; font-family: inherit;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .tr-role-add-member:hover { border-color: var(--accent); color: var(--accent-hover); }
+  .tr-roster-actions {
+    display: flex; gap: 8px;
+    margin-bottom: 12px;
+  }
+
   .fh-bucket-empty {
     color: var(--text-tertiary); font-size: 12.5px; font-style: italic;
     padding: 4px 0 6px;
@@ -2568,6 +2765,7 @@ function makeInitialState() {
     targets: { ...DEFAULT_TARGETS },
     revenueEntries: [],       // [{id, month, date, amount, source, notes}] weekly revenue logs that amalgamate per month
     customBuckets: [],        // [{id, name, color}] extra expense buckets beyond the 5 defaults
+    teamPayouts: [],          // [{id, memberId, month, date, amount, type, notes}] per-member payouts
   };
 }
 
@@ -2605,6 +2803,25 @@ function loadState() {
     if (s.slackWebhookUrl == null) s.slackWebhookUrl = '';
     if (!Array.isArray(s.revenueEntries)) s.revenueEntries = [];
     if (!Array.isArray(s.customBuckets)) s.customBuckets = [];
+    if (!Array.isArray(s.teamPayouts)) s.teamPayouts = [];
+    // Unify each team member's pay into one amount + a payType ('salary' or
+    // 'commission'). Legacy monthlySalary / commissionAmount stay for back-
+    // compat but the UI from here on uses the unified fields.
+    (s.team || []).forEach(t => {
+      if (t.payType == null) {
+        if ((t.monthlySalary || 0) > 0) {
+          t.payType = 'salary';
+          t.amount = t.monthlySalary;
+        } else if ((t.commissionAmount || 0) > 0) {
+          t.payType = 'commission';
+          t.amount = t.commissionAmount;
+        } else {
+          t.payType = 'salary';
+          t.amount = 0;
+        }
+      }
+      if (t.amount == null) t.amount = t.payType === 'commission' ? (t.commissionAmount || 0) : (t.monthlySalary || 0);
+    });
     // One-time cleanup: an earlier parser bug pulled Apr team-pay rows into refunds.
     // Remove rows whose recipient looks like a team payment, not a client refund.
     if (s.refunds && s.refunds.length) {
@@ -3355,11 +3572,31 @@ function renderFhBuckets(monthId) {
     let items = [];          // array of { vendor, total, count, expenses[] }
     let total = 0;
     if (b.kind === 'team') {
-      const sal = monthData.salariesTotal || 0;
-      const com = monthData.commissionsTotal || 0;
-      if (sal > 0) items.push({ vendor: 'Salaries (team)', total: sal, count: 1, expenses: [] });
-      if (com > 0) items.push({ vendor: 'Commissions', total: com, count: 1, expenses: [] });
-      total = sal + com;
+      // Prefer per-member payouts when they exist, otherwise fall back to
+      // the legacy month-level totals so the bucket still shows a sensible
+      // figure for old data.
+      const payouts = (state.teamPayouts || []).filter(p => p.month === monthId);
+      if (payouts.length) {
+        const byMember = {};
+        payouts.forEach(p => {
+          const m = state.team.find(t => t.id === p.memberId);
+          const name = (m?.name || 'Unknown') + (p.type === 'commission' ? ' · commission' : ' · salary');
+          const entry = byMember[name] || (byMember[name] = { vendor: name, total: 0, count: 0, expenses: [], _payouts: [] });
+          entry.total += Number(p.amount) || 0;
+          entry.count++;
+          entry._payouts.push(p);
+          // Synthesise expense-shaped rows so the drill-down list works
+          entry.expenses.push({ id: p.id, date: p.date, vendor: name, amount: p.amount, _payoutId: p.id });
+        });
+        items = Object.values(byMember).sort((a, b) => b.total - a.total);
+        total = items.reduce((s, v) => s + v.total, 0);
+      } else {
+        const sal = monthData.salariesTotal || 0;
+        const com = monthData.commissionsTotal || 0;
+        if (sal > 0) items.push({ vendor: 'Salaries (team total)', total: sal, count: 1, expenses: [] });
+        if (com > 0) items.push({ vendor: 'Commissions (team total)', total: com, count: 1, expenses: [] });
+        total = sal + com;
+      }
     } else {
       const cat = b.categoryMap || b.name;
       const expenseList = byCategory[cat] || [];
@@ -3403,7 +3640,8 @@ function renderFhBuckets(monthId) {
               </div>`).join('')}</div>` : ''}
           </div>`;
         }).join('')}</div>` : `<div class="fh-bucket-empty">No items yet for ${escapeHtml(b.name)} in ${escapeHtml(fmtMonth(monthId))}.</div>`}
-        ${b.kind === 'team' ? '' : `<button class="fh-bucket-add" data-act="add-item">+ Add item to ${escapeHtml(b.name)}</button>`}
+        ${b.kind === 'team' ? renderTeamPickerFor(b, monthId) : `<button class="fh-bucket-add" data-act="add-item">+ Add item to ${escapeHtml(b.name)}</button>
+        <div class="fh-inline-form-host" data-form-host></div>`}
       </div>
     </div>`;
   }).join('');
@@ -3425,17 +3663,196 @@ function renderFhBuckets(monthId) {
   wrap.querySelectorAll('.it-del').forEach(btn => btn.addEventListener('click', ev => {
     ev.stopPropagation();
     const id = btn.closest('.it').dataset.expenseId;
-    state.expenses = state.expenses.filter(x => x.id !== id);
+    // It might be a teamPayout (synthetic item row) or a real expense
+    const isPayout = (state.teamPayouts || []).some(p => p.id === id);
+    if (isPayout) {
+      state.teamPayouts = state.teamPayouts.filter(p => p.id !== id);
+      fhRecalcTeamTotals(fhActiveMonthId());
+    } else {
+      state.expenses = state.expenses.filter(x => x.id !== id);
+    }
     saveState();
     renderFinanceHub();
     renderOverviewIfActive();
   }));
   wrap.querySelectorAll('[data-act="add-item"]').forEach(btn => btn.addEventListener('click', ev => {
     ev.stopPropagation();
-    const bid = btn.closest('.fh-bucket').dataset.bucketId;
+    const bucketEl = btn.closest('.fh-bucket');
+    const bid = bucketEl.dataset.bucketId;
     const bucket = buckets.find(b => b.id === bid);
-    fhOpenAddItemModal(monthId, bucket);
+    const host = bucketEl.querySelector('[data-form-host]');
+    if (host.firstChild) { host.innerHTML = ''; btn.style.display = ''; return; }   // toggle close
+    btn.style.display = 'none';
+    host.appendChild(renderInlineExpenseForm(monthId, bucket, () => {
+      host.innerHTML = '';
+      btn.style.display = '';
+    }));
+    host.querySelector('input').focus();
   }));
+  // Wire team picker chips
+  wrap.querySelectorAll('[data-act="add-payout"]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const bucketEl = btn.closest('.fh-bucket');
+    const memberId = btn.dataset.memberId;
+    fhAddPayoutFor(memberId, fhActiveMonthId());
+  }));
+  wrap.querySelectorAll('[data-act="del-payout"]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const id = btn.closest('[data-payout-id]').dataset.payoutId;
+    state.teamPayouts = state.teamPayouts.filter(p => p.id !== id);
+    fhRecalcTeamTotals(fhActiveMonthId());
+    saveState();
+    renderFinanceHub();
+    renderOverviewIfActive();
+  }));
+}
+
+// Recalculate state.months[m].salariesTotal + commissionsTotal from payouts
+function fhRecalcTeamTotals(monthId) {
+  const payouts = (state.teamPayouts || []).filter(p => p.month === monthId);
+  if (!payouts.length) return;     // leave legacy totals alone if no per-member payouts
+  const sal = payouts.filter(p => p.type === 'salary').reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const com = payouts.filter(p => p.type === 'commission').reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  if (state.months[monthId]) {
+    state.months[monthId].salariesTotal = sal;
+    state.months[monthId].commissionsTotal = com;
+  }
+}
+
+// Build an inline form for adding an expense item inside a bucket card.
+// Caller appends the returned element into the bucket body.
+function renderInlineExpenseForm(monthId, bucket, onClose) {
+  const cat = bucket.categoryMap || bucket.name;
+  const wrap = document.createElement('div');
+  wrap.className = 'fh-inline-form';
+  wrap.innerHTML = `
+    <div>
+      <label>Vendor</label>
+      <div class="fh-vendor-search">
+        <input type="text" class="vendor-inp" placeholder="Search vendors or type a new one…" autocomplete="off" />
+        <div class="fh-suggest"></div>
+      </div>
+    </div>
+    <div>
+      <label>Amount (£)</label>
+      <input type="number" class="amount-inp" step="0.01" min="0" placeholder="0.00" />
+    </div>
+    <div>
+      <label>Date</label>
+      <input type="date" class="date-inp" value="${isoDate(new Date())}" />
+    </div>
+    <div class="actions">
+      <button type="button" class="cancel">Cancel</button>
+      <button type="button" class="save">+ Add</button>
+    </div>
+    <div class="full">
+      <label>Notes (optional)</label>
+      <textarea class="notes-inp" rows="2" placeholder="Anything else worth tracking"></textarea>
+    </div>
+  `;
+  // Autocomplete wired against the vendor library
+  const vendorInp = wrap.querySelector('.vendor-inp');
+  const amountInp = wrap.querySelector('.amount-inp');
+  const search = wrap.querySelector('.fh-vendor-search');
+  const suggest = search.querySelector('.fh-suggest');
+  function update() {
+    const q = vendorInp.value.trim().toLowerCase();
+    let pool = state.vendors.filter(v => v.category === cat);
+    if (q) pool = state.vendors.filter(v => v.name.toLowerCase().includes(q));
+    else pool = pool.filter(v => v.recurring).slice(0, 8);
+    if (!pool.length && !q) { search.classList.remove('open'); return; }
+    suggest.innerHTML = pool.slice(0, 10).map((v, i) => `
+      <div class="item" data-i="${i}">
+        <span>${escapeHtml(v.name)} <span class="cat">${escapeHtml(v.category)}</span></span>
+        <span class="price">${v.typicalAmount ? '~' + money(v.typicalAmount) : ''}</span>
+      </div>`).join('') + (q ? `<div class="add-new">+ Create "${escapeHtml(q)}" as a new ${escapeHtml(cat)} vendor</div>` : '');
+    search.classList.add('open');
+    suggest.querySelectorAll('.item').forEach((el, i) => el.addEventListener('click', () => {
+      const v = pool[i];
+      vendorInp.value = v.name;
+      if (v.typicalAmount && !amountInp.value) amountInp.value = v.typicalAmount;
+      search.classList.remove('open');
+      amountInp.focus();
+    }));
+    const addNewEl = suggest.querySelector('.add-new');
+    if (addNewEl) addNewEl.addEventListener('click', () => { search.classList.remove('open'); amountInp.focus(); });
+  }
+  vendorInp.addEventListener('focus', update);
+  vendorInp.addEventListener('input', update);
+  document.addEventListener('click', e => { if (!search.contains(e.target)) search.classList.remove('open'); });
+  wrap.querySelector('.cancel').addEventListener('click', () => onClose && onClose());
+  wrap.querySelector('.save').addEventListener('click', () => {
+    const vendor = vendorInp.value.trim();
+    const amount = parseFloat(amountInp.value);
+    const date = wrap.querySelector('.date-inp').value;
+    const notes = wrap.querySelector('.notes-inp').value.trim();
+    if (!vendor || !isFinite(amount) || amount <= 0 || !date) { alert('Vendor, amount, and date are required'); return; }
+    const month = monthOf(date);
+    if (!state.months[month]) {
+      state.months[month] = {
+        revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0,
+        referralPayoutsTotal: 0, refundsTotal: 0, taxPct: 15,
+        newClients: 0, activeClients: 0, churnedClients: 0,
+      };
+    }
+    state.expenses.push({ id: uid(), date, vendor, category: cat, amount, month, notes });
+    const existing = state.vendors.find(v => v.name.toLowerCase() === vendor.toLowerCase() && v.category === cat);
+    if (existing) {
+      const all = state.expenses.filter(x => x.vendor === existing.name && x.category === existing.category);
+      existing.typicalAmount = Math.round((all.reduce((s,x) => s+x.amount, 0) / all.length) * 100) / 100;
+      if (all.length >= 2) existing.recurring = true;
+    } else {
+      state.vendors.push({ id: uid(), name: vendor, category: cat, typicalAmount: amount, recurring: false });
+    }
+    saveState();
+    renderFinanceHub();
+    renderOverviewIfActive();
+    updateNavCounts();
+  });
+  return wrap;
+}
+
+// Render the Team & Payouts bucket footer: per-member payouts already
+// logged + a picker of active team members the user can add.
+function renderTeamPickerFor(bucket, monthId) {
+  if (bucket.kind !== 'team') return '';
+  const active = (state.team || []).filter(t => t.active);
+  const monthPayouts = (state.teamPayouts || []).filter(p => p.month === monthId);
+  const alreadyAdded = new Set(monthPayouts.map(p => p.memberId));
+  const chips = active.filter(t => !alreadyAdded.has(t.id)).map(t => {
+    const sym = t.payType === 'commission' ? '💰' : '🏷';
+    const amt = Number(t.amount) || 0;
+    return `<button type="button" class="chip" data-act="add-payout" data-member-id="${t.id}">${sym} ${escapeHtml(t.name)}${amt > 0 ? `<span class="amt">${money(amt)}</span>` : ''}</button>`;
+  }).join('');
+  return `<div class="fh-team-picker">
+    <span class="lbl">Quick add</span>
+    ${chips || '<span style="color:var(--text-tertiary);font-size:12px;font-style:italic">All active team members already logged this month.</span>'}
+  </div>`;
+}
+
+// Add a payout for a team member for the active month, pulling amount + type
+// from their roster entry.
+function fhAddPayoutFor(memberId, monthId) {
+  const m = (state.team || []).find(t => t.id === memberId);
+  if (!m) return;
+  if (!state.months[monthId]) {
+    state.months[monthId] = {
+      revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0,
+      referralPayoutsTotal: 0, refundsTotal: 0, taxPct: 15,
+      newClients: 0, activeClients: 0, churnedClients: 0,
+    };
+  }
+  state.teamPayouts.push({
+    id: uid(), memberId,
+    month: monthId, date: isoDate(new Date()),
+    amount: Number(m.amount) || 0,
+    type: m.payType === 'commission' ? 'commission' : 'salary',
+    notes: '',
+  });
+  fhRecalcTeamTotals(monthId);
+  saveState();
+  renderFinanceHub();
+  renderOverviewIfActive();
 }
 
 // Track per-vendor expanded state too
@@ -4598,89 +5015,148 @@ function renderTeam() {
     wrap.innerHTML = '<div class="empty"><h3>No team members</h3></div>';
     return;
   }
-  const sorted = state.team.slice().sort((a,b) => a.name.localeCompare(b.name));
-  const pay = calcTeamPayForMonth(state.meta.activeMonth);
   const monthLabel = fmtMonth(state.meta.activeMonth);
+  // Group by role (case-insensitive, blank role becomes "No role")
+  const groups = new Map();
+  state.team.forEach(t => {
+    const key = (t.role || '').trim() || 'No role';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(t);
+  });
+  const sortedGroups = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const totalActive = state.team.filter(t => t.active !== false).length;
+  const totalSalary = state.team.filter(t => t.active !== false && t.payType === 'salary').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const totalComm   = state.team.filter(t => t.active !== false && t.payType === 'commission').reduce((s, t) => s + (Number(t.amount) || 0), 0);
   wrap.innerHTML = `
     <div class="grid grid-3" style="margin-bottom:14px">
-      <div class="kpi"><div class="lbl">Salaries / mo</div><div class="val">${money(pay.salaries)}</div></div>
-      <div class="kpi"><div class="lbl">Commissions / mo</div><div class="val">${money(pay.commissions)}</div></div>
-      <div class="kpi"><div class="lbl">Total pay (${monthLabel})</div><div class="val">${money(pay.total)}</div><div class="sub">${sorted.filter(t => t.active !== false).length} active</div></div>
+      <div class="kpi"><div class="lbl">Salary roll</div><div class="val">${money(totalSalary)}</div><div class="sub">monthly</div></div>
+      <div class="kpi"><div class="lbl">Commission roll</div><div class="val">${money(totalComm)}</div><div class="sub">monthly</div></div>
+      <div class="kpi"><div class="lbl">Active team</div><div class="val">${totalActive}</div><div class="sub">of ${state.team.length}</div></div>
     </div>
-    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
-      <button id="team-sync-all" class="primary small">Apply both to ${monthLabel}</button>
-      <button id="team-sync-sal" class="small">Salaries only →</button>
-      <button id="team-sync-com" class="small">Commissions only →</button>
-      <span class="help" style="margin:0;align-self:center">Writes to the active month on Revenue & Team</span>
+    <div class="tr-roster-actions">
+      <button id="team-add-role" class="small">+ Add role</button>
+      <button id="team-sync-active-salaries" class="primary small">Push active salaries to ${monthLabel} payouts</button>
     </div>
-    <table>
-      <thead><tr>
-        <th>Name</th><th>Role</th>
-        <th class="num">Monthly salary (£)</th>
-        <th class="num">Commission (£)</th>
-        <th class="num">Total / mo</th>
-        <th>Active</th>
-        <th class="actions"></th>
-      </tr></thead>
-      <tbody>
-        ${sorted.map(t => {
-          const sal = t.monthlySalary || 0;
-          const com = t.commissionAmount || 0;
-          return `<tr data-id="${t.id}">
-            <td><input type="text" data-tfield="name" value="${escapeHtml(t.name)}" style="padding:4px 6px;font-size:13px" /></td>
-            <td><input type="text" data-tfield="role" value="${escapeHtml(t.role || '')}" placeholder="e.g. SALES REP" style="padding:4px 6px;font-size:13px" /></td>
-            <td class="num"><input type="number" step="0.01" min="0" data-tfield="monthlySalary" value="${sal}" style="padding:4px 6px;font-size:13px;width:100px;text-align:right" /></td>
-            <td class="num"><input type="number" step="0.01" min="0" data-tfield="commissionAmount" value="${com}" placeholder="0" style="padding:4px 6px;font-size:13px;width:100px;text-align:right" /></td>
-            <td class="num" style="color:var(--muted);font-size:12px">${money(sal + com)}</td>
-            <td><input type="checkbox" data-tfield="active" ${t.active !== false ? 'checked' : ''} style="width:auto" /></td>
-            <td class="actions"><button class="small ghost" data-act="del-team">×</button></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-    <div class="help" style="margin-top:10px">Both are flat £ amounts. Salary-only? Leave commission at 0. Commission-only? Leave salary at 0. Edit the cash number for each person here, then click <b>Apply both</b> to push to the active month.</div>
+    <div id="tr-buckets-host">
+      ${sortedGroups.map(([role, members]) => {
+        const roleTotal = members.filter(t => t.active !== false).reduce((s, t) => s + (Number(t.amount) || 0), 0);
+        return `<div class="tr-role-bucket" data-role="${escapeHtml(role)}">
+          <div class="tr-role-head">
+            <input type="text" class="role-name" value="${escapeHtml(role)}" data-rename-role />
+            <span class="count">${members.length} · ${members.filter(t => t.active !== false).length} active</span>
+            <span class="total-amt">${money(roleTotal)}/mo</span>
+          </div>
+          ${members.map(t => `<div class="tr-member-row" data-id="${t.id}">
+            <input type="text" class="name" data-tfield="name" value="${escapeHtml(t.name)}" placeholder="Member name" />
+            <div class="amt-wrap">
+              <span class="amt-sym">£</span>
+              <input type="number" class="amt" step="0.01" min="0" data-tfield="amount" value="${t.amount || 0}" placeholder="0.00" />
+            </div>
+            <div class="tr-paytype-toggle" data-tfield="payType">
+              <button type="button" data-type="salary" class="${t.payType === 'salary' ? 'active' : ''}">Salary</button>
+              <button type="button" data-type="commission" class="${t.payType === 'commission' ? 'active' : ''}">Commission</button>
+            </div>
+            <button type="button" class="tr-active-toggle ${t.active !== false ? '' : 'inactive'}" data-act="toggle-active" title="${t.active !== false ? 'Active — click to deactivate' : 'Inactive — click to activate'}">${t.active !== false ? '✓' : '−'}</button>
+            <button type="button" class="del" data-act="del-team">×</button>
+          </div>`).join('')}
+          <button type="button" class="tr-role-add-member" data-act="add-member">+ Add member to ${escapeHtml(role)}</button>
+        </div>`;
+      }).join('')}
+    </div>
   `;
-  document.getElementById('team-sync-all').addEventListener('click', () => {
-    const m = currentMonth(); if (!m) return alert('No active month');
-    m.salariesTotal = pay.salaries;
-    m.commissionsTotal = pay.commissions;
-    saveState();
-    alert(`${monthLabel}: salaries set to ${money(pay.salaries)}, commissions to ${money(pay.commissions)}`);
-    renderOverviewIfActive();
-  });
-  document.getElementById('team-sync-sal').addEventListener('click', () => {
-    const m = currentMonth(); if (!m) return alert('No active month');
-    m.salariesTotal = pay.salaries;
-    saveState();
-    alert(`${monthLabel} salaries set to ${money(pay.salaries)}`);
-    renderOverviewIfActive();
-  });
-  document.getElementById('team-sync-com').addEventListener('click', () => {
-    const m = currentMonth(); if (!m) return alert('No active month');
-    m.commissionsTotal = pay.commissions;
-    saveState();
-    alert(`${monthLabel} commissions set to ${money(pay.commissions)}`);
-    renderOverviewIfActive();
-  });
-  wrap.querySelectorAll('tr[data-id]').forEach(row => {
-    const id = row.dataset.id;
-    const t = state.team.find(x => x.id === id);
-    row.querySelectorAll('[data-tfield]').forEach(el => {
-      el.addEventListener('change', () => {
-        const k = el.dataset.tfield;
-        if (k === 'active') t[k] = el.checked;
-        else if (k === 'monthlySalary' || k === 'commissionAmount') t[k] = parseFloat(el.value) || 0;
-        else t[k] = el.value;
-        saveState();
-        if (k !== 'name' && k !== 'role') renderTeam();
-      });
+  // Wire actions
+  document.getElementById('team-add-role').addEventListener('click', () => {
+    const name = prompt('Role name (e.g. SETTER, CLOSER, OPS):');
+    if (!name || !name.trim()) return;
+    state.team.push({
+      id: uid(), name: 'New member', role: name.trim().toUpperCase(),
+      amount: 0, payType: 'salary', active: true,
+      monthlySalary: 0, commissionAmount: 0,
+      email: '', address: '', country: 'GB', bank: {}, password: '',
     });
-    row.querySelector('button[data-act="del-team"]').addEventListener('click', () => {
-      if (!confirm(`Remove "${t.name}" from team?`)) return;
-      state.team = state.team.filter(x => x.id !== id);
+    saveState();
+    renderTeam();
+    updateNavCounts();
+  });
+  document.getElementById('team-sync-active-salaries').addEventListener('click', () => {
+    const monthId = state.meta.activeMonth;
+    const active = state.team.filter(t => t.active !== false && t.payType === 'salary' && (Number(t.amount) || 0) > 0);
+    if (!active.length) { alert('No active salaried team members.'); return; }
+    let added = 0;
+    active.forEach(t => {
+      // Skip if a salary payout already exists this month
+      const exists = (state.teamPayouts || []).some(p => p.memberId === t.id && p.month === monthId && p.type === 'salary');
+      if (exists) return;
+      state.teamPayouts.push({
+        id: uid(), memberId: t.id, month: monthId, date: isoDate(new Date()),
+        amount: Number(t.amount) || 0, type: 'salary', notes: 'auto-pushed from roster',
+      });
+      added++;
+    });
+    fhRecalcTeamTotals(monthId);
+    saveState();
+    alert(`Pushed ${added} salary payout${added === 1 ? '' : 's'} to ${monthLabel}.`);
+    renderOverviewIfActive();
+  });
+  wrap.querySelectorAll('.tr-role-bucket').forEach(bucket => {
+    const role = bucket.dataset.role;
+    // Rename role on blur of the role-name input
+    bucket.querySelector('[data-rename-role]').addEventListener('change', e => {
+      const newRole = e.target.value.trim();
+      if (!newRole || newRole === role) return;
+      state.team.filter(t => ((t.role || '').trim() || 'No role') === role).forEach(t => {
+        t.role = newRole === 'No role' ? '' : newRole;
+      });
+      saveState();
+      renderTeam();
+    });
+    // Add member to this role
+    bucket.querySelector('[data-act="add-member"]').addEventListener('click', () => {
+      state.team.push({
+        id: uid(), name: 'New member', role: role === 'No role' ? '' : role,
+        amount: 0, payType: 'salary', active: true,
+        monthlySalary: 0, commissionAmount: 0,
+        email: '', address: '', country: 'GB', bank: {}, password: '',
+      });
       saveState();
       renderTeam();
       updateNavCounts();
+    });
+    bucket.querySelectorAll('.tr-member-row').forEach(row => {
+      const id = row.dataset.id;
+      const t = state.team.find(x => x.id === id);
+      if (!t) return;
+      row.querySelectorAll('[data-tfield]').forEach(el => {
+        if (el.tagName === 'INPUT') {
+          el.addEventListener('change', () => {
+            const k = el.dataset.tfield;
+            if (k === 'amount') { t[k] = parseFloat(el.value) || 0; saveState(); renderTeam(); }
+            else { t[k] = el.value; saveState(); }
+          });
+        }
+      });
+      // Pay-type toggle (segmented control)
+      row.querySelectorAll('.tr-paytype-toggle button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          t.payType = btn.dataset.type;
+          // Mirror to legacy fields so anything else still reading them stays consistent
+          if (t.payType === 'salary') { t.monthlySalary = t.amount || 0; t.commissionAmount = 0; }
+          else { t.commissionAmount = t.amount || 0; t.monthlySalary = 0; }
+          saveState();
+          renderTeam();
+        });
+      });
+      row.querySelector('[data-act="toggle-active"]').addEventListener('click', () => {
+        t.active = !(t.active !== false);
+        saveState();
+        renderTeam();
+      });
+      row.querySelector('[data-act="del-team"]').addEventListener('click', () => {
+        state.team = state.team.filter(x => x.id !== id);
+        saveState();
+        renderTeam();
+        updateNavCounts();
+      });
     });
   });
 }
@@ -5998,11 +6474,16 @@ function wireUp() {
     document.getElementById(id).addEventListener('change', renderVendors));
   document.getElementById('vendor-filter-search').addEventListener('input', debounce(renderVendors, 200));
 
-  // Team
+  // Team — legacy + Add person button at the top of the roster section
   document.getElementById('team-add-btn').addEventListener('click', () => {
     const name = prompt('Team member name:');
     if (!name) return;
-    state.team.push({ id: uid(), name: name.trim(), role: '', active: true });
+    state.team.push({
+      id: uid(), name: name.trim(), role: '',
+      amount: 0, payType: 'salary', active: true,
+      monthlySalary: 0, commissionAmount: 0,
+      email: '', address: '', country: 'GB', bank: {}, password: '',
+    });
     saveState();
     renderTeam();
     updateNavCounts();
