@@ -1128,6 +1128,72 @@
     outline: none;
     border-bottom-color: var(--bucket-color, var(--accent));
   }
+  .bg-bucket-dial {
+    margin: 4px 0 12px;
+  }
+  .bg-bucket-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    width: 100%;
+    height: 22px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    display: block;
+  }
+  .bg-bucket-slider:focus { outline: none; box-shadow: none; }
+  .bg-bucket-slider::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 3px;
+    background: linear-gradient(to right,
+      var(--bucket-color, var(--accent)) 0%, var(--bucket-color, var(--accent)) var(--pct, 0%),
+      var(--surface-input) var(--pct, 0%), var(--surface-input) 100%);
+  }
+  .bg-bucket-slider::-moz-range-track {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface-input);
+  }
+  .bg-bucket-slider::-moz-range-progress {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--bucket-color, var(--accent));
+  }
+  .bg-bucket-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    margin-top: -5.5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.45), 0 0 0 0.5px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .bg-bucket-slider::-webkit-slider-thumb:active {
+    transform: scale(1.18);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(0,0,0,0.2);
+  }
+  .bg-bucket-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    cursor: pointer;
+  }
+  .bg-bucket-dial-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-quaternary);
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
   .bg-bucket-bar {
     height: 6px;
     background: var(--surface-input);
@@ -1565,95 +1631,6 @@
   }
   .fh-bucket-add:hover { border-color: var(--accent); color: var(--accent-hover); }
 
-  /* Single-field bucket editor (Founder / Referral / Merchant) */
-  .fh-mf-editor {
-    margin-top: 10px;
-    background: var(--surface-input);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    padding: 12px 14px;
-  }
-  .fh-mf-editor .lbl {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-  .fh-mf-input-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .fh-mf-input-row .cur {
-    color: var(--text-tertiary);
-    font-size: 18px;
-    font-weight: 500;
-  }
-  .fh-mf-input-row .fh-mf-input {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: var(--text);
-    font-size: 18px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    font-family: inherit;
-  }
-  .fh-mf-input-row .fh-mf-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(212,160,23,0.18);
-  }
-  .fh-mf-input-row .fh-mf-clear {
-    background: transparent;
-    border: 1px solid var(--border-strong);
-    color: var(--text-tertiary);
-    padding: 8px 12px;
-    border-radius: 7px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .fh-mf-input-row .fh-mf-clear:hover { border-color: var(--bad); color: var(--bad); }
-
-  /* Refunds bucket quick-add form */
-  .fh-refund-add {
-    margin-top: 10px;
-    background: var(--surface-input);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    padding: 12px 14px;
-  }
-  .fh-refund-add .lbl {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-  .fh-refund-row {
-    display: grid;
-    grid-template-columns: 1.4fr auto 1fr auto;
-    gap: 8px;
-    align-items: center;
-  }
-  .fh-refund-row input {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 8px 10px;
-    color: var(--text);
-    font-size: 13px;
-    font-family: inherit;
-  }
-  .fh-refund-row .ref-amount { font-variant-numeric: tabular-nums; font-weight: 600; }
-  .fh-refund-row input:focus { outline: none; border-color: var(--accent); }
-  .fh-refund-row .cur { color: var(--text-tertiary); font-size: 14px; }
 
   /* Inline + Add form that lives inside the bucket body (no modal) */
   .fh-inline-form {
@@ -1765,12 +1742,16 @@
   }
   .tr-member-row {
     display: grid;
-    grid-template-columns: 1.4fr 130px auto auto auto;
+    grid-template-columns: 1.4fr 130px auto auto auto auto;
     gap: 8px;
     align-items: center;
     padding: 8px 10px;
     background: rgba(255,255,255,0.025);
     border-radius: 8px;
+  }
+  .tr-member-row.is-founder {
+    background: linear-gradient(135deg, rgba(212,160,23,0.10), rgba(255,255,255,0.03));
+    border: 1px solid rgba(212,160,23,0.22);
   }
   .tr-member-row input.name {
     background: transparent; border: 1px solid transparent;
@@ -1831,6 +1812,25 @@
     border-color: var(--border);
     color: var(--text-tertiary);
   }
+  .tr-founder-toggle {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-quaternary);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    filter: grayscale(1);
+    transition: filter 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .tr-founder-toggle.active {
+    background: rgba(212,160,23,0.18);
+    border-color: rgba(212,160,23,0.45);
+    color: var(--accent);
+    filter: grayscale(0);
+  }
+  .tr-founder-toggle:hover { filter: grayscale(0); }
   .tr-member-row .del {
     background: transparent; border: none; color: var(--text-tertiary);
     cursor: pointer; padding: 4px 8px; border-radius: 5px;
@@ -2670,6 +2670,9 @@
                 <option>Email Channel</option>
                 <option>SMS</option>
                 <option>One off</option>
+                <option>Founder comp</option>
+                <option>Referral payouts</option>
+                <option>Merchant fees</option>
               </select>
             </div>
             <div>
@@ -3345,7 +3348,10 @@ function refundsForMonth(monthId) {
   return state.refunds.filter(r => r.month === monthId);
 }
 function categoryTotals(monthId) {
-  const totals = { 'Base Software':0, 'LinkedIn Channel':0, 'Email Channel':0, 'SMS':0, 'One off':0 };
+  const totals = {
+    'Base Software':0, 'LinkedIn Channel':0, 'Email Channel':0, 'SMS':0, 'One off':0,
+    'Founder comp':0, 'Referral payouts':0, 'Merchant fees':0,
+  };
   expensesForMonth(monthId).forEach(e => {
     if (totals[e.category] != null) totals[e.category] += e.amount;
   });
@@ -3361,17 +3367,25 @@ function calcMonth(monthId) {
   const email = cat['Email Channel'];
   const sms = cat['SMS'];
   const oneOff = cat['One off'];
+  // Prefer line-item totals; fall back to the legacy single-number month fields when no items.
+  const merchantFromItems  = cat['Merchant fees']     || 0;
+  const referralFromItems  = cat['Referral payouts']  || 0;
+  const founderFromItems   = cat['Founder comp']      || 0;
+  const merchantFees = merchantFromItems > 0 ? merchantFromItems : (m.merchantFees || 0);
+  const referralPayoutsTotal = referralFromItems > 0 ? referralFromItems : (m.referralPayoutsTotal || 0);
+  const founderComp = founderFromItems > 0 ? founderFromItems : (m.founderComp || 0);
+
   const refundsActual = refundsForMonth(monthId).reduce((s, r) => s + r.amount, 0);
   const refundsTotal = refundsActual || m.refundsTotal || 0;
 
-  const adjRev = (m.revenue || 0) - refundsTotal - (m.merchantFees || 0);
+  const adjRev = (m.revenue || 0) - refundsTotal - merchantFees;
 
   // marketing = paid channels + one off + commissions (variable customer-acquisition cost)
   const marketingCosts = linkedin + email + sms + oneOff + (m.commissionsTotal || 0);
   // delivery = base software (the cost of running the service)
   const deliveryCosts = baseSoftware;
   // overhead = salaries + referral payouts (fixed run-the-business costs)
-  const overheadCosts = (m.salariesTotal || 0) + (m.referralPayoutsTotal || 0);
+  const overheadCosts = (m.salariesTotal || 0) + referralPayoutsTotal;
 
   const totalExpenses = marketingCosts + deliveryCosts + overheadCosts + refundsTotal;
 
@@ -3383,7 +3397,6 @@ function calcMonth(monthId) {
   const overheadPct = adjRev > 0 ? (overheadCosts / adjRev) * 100 : 0;
   const refundPct = (m.revenue > 0) ? (refundsTotal / m.revenue) * 100 : 0;
   const taxReserve = Math.max(0, netProfit) * (m.taxPct || 0) / 100;
-  const founderComp = m.founderComp || 0;
   const founderTaxReserve = founderComp * (state.targets.founderTaxPct || 0) / 100;
   const totalToSetAside = taxReserve + founderTaxReserve;
   const cacOverall = m.newClients > 0 ? marketingCosts / m.newClients : null;
@@ -3998,7 +4011,11 @@ function renderTrendChart(points, color, color2) {
 }
 
 // ---------- Expenses ----------
-const CATEGORY_ORDER = ['Base Software', 'LinkedIn Channel', 'Email Channel', 'SMS', 'One off'];
+const CATEGORY_ORDER = [
+  'Base Software', 'LinkedIn Channel', 'Email Channel', 'SMS', 'One off',
+  // Newer line-item buckets — same shape as the originals.
+  'Founder comp', 'Referral payouts', 'Merchant fees',
+];
 const expandedCats = new Set();  // remember which buckets are open
 
 // ============================================================
@@ -4013,9 +4030,13 @@ const FH_DEFAULT_BUCKETS = [
   { id: 'sms',      name: 'SMS Channel',      icon: '📲',  color: '#ff9f0a', kind: 'expense', categoryMap: 'SMS' },
   { id: 'oneoff',   name: 'One off',          icon: '✨',  color: '#ff9500', kind: 'expense', categoryMap: 'One off' },
   { id: 'team',     name: 'Team & Payouts',   icon: '👥',  color: '#30d158', kind: 'team' },     // synthetic: salaries+commissions
-  { id: 'founder',  name: 'Founder compensation', icon: '👑', color: '#d4a017', kind: 'month-field', monthField: 'founderComp' },
-  { id: 'referrals',name: 'Referral payouts', icon: '🤝',  color: '#ff8a3d', kind: 'month-field', monthField: 'referralPayoutsTotal' },
-  { id: 'merchant', name: 'Merchant / Stripe fees', icon: '💳', color: '#7c8aa3', kind: 'month-field', monthField: 'merchantFees' },
+  // These four used to be single-number buckets ("month-field"). They're now full expense
+  // buckets so you can add multiple line items (different referrals, different Stripe fees,
+  // different founder draws). When no items exist, the legacy month-field value (from
+  // backfill or older state) is still shown as a fallback inside the bucket.
+  { id: 'founder',  name: 'Founder compensation', icon: '👑', color: '#d4a017', kind: 'expense', categoryMap: 'Founder comp',     fallbackMonthField: 'founderComp' },
+  { id: 'referrals',name: 'Referral payouts',     icon: '🤝', color: '#ff8a3d', kind: 'expense', categoryMap: 'Referral payouts', fallbackMonthField: 'referralPayoutsTotal' },
+  { id: 'merchant', name: 'Merchant / Stripe fees', icon: '💳', color: '#7c8aa3', kind: 'expense', categoryMap: 'Merchant fees',  fallbackMonthField: 'merchantFees' },
   { id: 'refunds',  name: 'Refunds',          icon: '↩️',  color: '#ff453a', kind: 'refund' },
 ];
 function fhAllBuckets() {
@@ -4157,10 +4178,6 @@ function renderFhBuckets(monthId) {
       });
       items = Object.values(grouped).sort((a, b) => b.total - a.total);
       total = items.reduce((s, v) => s + v.total, 0);
-    } else if (b.kind === 'month-field') {
-      // Single-input bucket: total = state.months[monthId][monthField] (e.g. founderComp).
-      total = Number(monthData[b.monthField]) || 0;
-      if (total > 0) items.push({ vendor: b.name, total, count: 1, expenses: [], _isMonthField: true });
     } else {
       const cat = b.categoryMap || b.name;
       const expenseList = byCategory[cat] || [];
@@ -4173,6 +4190,16 @@ function renderFhBuckets(monthId) {
       });
       items = Object.values(vendors).sort((a, b) => b.total - a.total);
       total = items.reduce((s, v) => s + v.total, 0);
+      // Legacy fallback: if no line items but the month has a non-zero aggregate
+      // (founderComp / referralPayoutsTotal / merchantFees from backfill), show
+      // it as a synthetic "Carryover" row so the bucket isn't empty + lossy.
+      if (!items.length && b.fallbackMonthField) {
+        const legacyAmt = Number(monthData[b.fallbackMonthField]) || 0;
+        if (legacyAmt > 0) {
+          total = legacyAmt;
+          items.push({ vendor: 'Carryover (from monthly total)', total: legacyAmt, count: 1, expenses: [], _isLegacy: true });
+        }
+      }
     }
     const pctOfRev = rev.total > 0 ? (total / rev.total) * 100 : 0;
     const isOpen = expandedCats.has(b.id);
@@ -4205,16 +4232,17 @@ function renderFhBuckets(monthId) {
                 <button class="it-del" title="Delete">×</button>
               </div>`;
             }).join('')}
-            ${b.kind === 'team' || b.kind === 'month-field' || b.kind === 'refund' ? '' : `<button class="it-add-charge" data-bucket-id="${b.id}" data-vendor="${escapeHtml(v.vendor)}" data-last="${v.expenses[0]?.amount || ''}">+ Add another charge to ${escapeHtml(v.vendor)}</button>`}
+            ${b.kind === 'team' ? '' : `<button class="it-add-charge" data-bucket-id="${b.id}" data-vendor="${escapeHtml(v.vendor)}" data-last="${v.expenses[0]?.amount || ''}">+ Add another ${b.kind === 'refund' ? 'refund' : 'charge'} ${b.kind === 'refund' ? 'to' : 'for'} ${escapeHtml(v.vendor)}</button>`}
             </div>` : ''}
           </div>`;
         }).join('')}</div>` : `<div class="fh-bucket-empty">No items yet for ${escapeHtml(b.name)} in ${escapeHtml(fmtMonth(monthId))}.</div>`}
         ${
           b.kind === 'team' ? renderTeamPickerFor(b, monthId) :
-          b.kind === 'month-field' ? renderMonthFieldEditor(b, monthId, total) :
-          b.kind === 'refund' ? renderRefundQuickAdd(b, monthId) :
-          `<button class="fh-bucket-add" data-act="add-item">+ Add item to ${escapeHtml(b.name)}</button>
-           <div class="fh-inline-form-host" data-form-host></div>`
+          b.kind === 'refund'
+            ? `<button class="fh-bucket-add" data-act="add-item">+ Add refund</button>
+               <div class="fh-inline-form-host" data-form-host></div>`
+            : `<button class="fh-bucket-add" data-act="add-item">+ Add item to ${escapeHtml(b.name)}</button>
+               <div class="fh-inline-form-host" data-form-host></div>`
         }
       </div>
     </div>`;
@@ -4306,10 +4334,16 @@ function renderFhBuckets(monthId) {
         newClients: 0, activeClients: 0, churnedClients: 0,
       };
     }
-    state.expenses.push({ id: uid(), date, vendor, category, amount: last, month: monthId });
+    if (bucket.kind === 'refund') {
+      state.refunds = state.refunds || [];
+      state.refunds.push({ id: uid(), date, month: monthId, recipient: vendor, amount: last });
+    } else {
+      state.expenses.push({ id: uid(), date, vendor, category, amount: last, month: monthId });
+    }
     saveState();
     renderFinanceHub();
     renderOverviewIfActive();
+    updateNavCounts();
     // Focus the new row's amount field so the user can adjust
     setTimeout(() => {
       const all = document.querySelectorAll(`[data-bucket-id="${bid}"] .fh-vendor-row[data-vendor="${vendor}"] .it.editable .it-amount`);
@@ -4371,43 +4405,6 @@ function renderFhBuckets(monthId) {
     renderOverviewIfActive();
   }));
 
-  // ---- Single-input bucket (Founder / Referral / Merchant) ----
-  wrap.querySelectorAll('.fh-mf-editor').forEach(editor => {
-    const field = editor.dataset.monthField;
-    const input = editor.querySelector('.fh-mf-input');
-    const month = fhActiveMonthId();
-    const commit = () => {
-      if (!state.months[month]) state.months[month] = {};
-      state.months[month][field] = parseFloat(input.value) || 0;
-      saveState();
-      renderFinanceHub();
-      renderOverviewIfActive();
-    };
-    input.addEventListener('blur', commit);
-    input.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); } });
-    editor.querySelector('.fh-mf-clear').addEventListener('click', () => {
-      input.value = 0;
-      commit();
-    });
-  });
-
-  // ---- Refund quick-add form (inside Refunds bucket) ----
-  wrap.querySelectorAll('form.fh-refund-add').forEach(form => {
-    form.addEventListener('submit', ev => {
-      ev.preventDefault();
-      const month = form.dataset.month;
-      const recipient = form.querySelector('.ref-recipient').value.trim();
-      const amount = parseFloat(form.querySelector('.ref-amount').value) || 0;
-      if (!recipient || !amount) return;
-      state.refunds = state.refunds || [];
-      state.refunds.push({ id: uid(), month, recipient, amount, date: isoDate(new Date()) });
-      saveState();
-      renderFinanceHub();
-      renderOverviewIfActive();
-      updateNavCounts();
-    });
-  });
-
 }
 
 // Tiny ephemeral toast at bottom-center (used by + Task shortcut)
@@ -4441,13 +4438,22 @@ function fhRecalcTeamTotals(monthId) {
 // Caller appends the returned element into the bucket body.
 function renderInlineExpenseForm(monthId, bucket, onClose) {
   const cat = bucket.categoryMap || bucket.name;
+  const isRefund = bucket.kind === 'refund';
+  const isFounder = bucket.id === 'founder';
+  const founder = isFounder ? (state.team || []).find(t => t.isFounder) : null;
+  // Re-label the first field for the special buckets so it reads naturally.
+  const vendorLabel = isRefund ? 'Recipient (client)' : (isFounder ? 'Founder (vendor)' : 'Vendor');
+  const vendorPlaceholder = isRefund
+    ? 'Client name…'
+    : (isFounder ? (founder ? `Auto: ${founder.name}` : 'Set a founder in Team roster first…') : 'Search vendors or type a new one…');
+  const initialVendor = isFounder && founder ? founder.name : '';
   const wrap = document.createElement('div');
   wrap.className = 'fh-inline-form';
   wrap.innerHTML = `
     <div>
-      <label>Vendor</label>
+      <label>${vendorLabel}</label>
       <div class="fh-vendor-search">
-        <input type="text" class="vendor-inp" placeholder="Search vendors or type a new one…" autocomplete="off" />
+        <input type="text" class="vendor-inp" placeholder="${vendorPlaceholder}" autocomplete="off" value="${escapeHtml(initialVendor)}" />
         <div class="fh-suggest"></div>
       </div>
     </div>
@@ -4465,7 +4471,7 @@ function renderInlineExpenseForm(monthId, bucket, onClose) {
     </div>
     <div class="full">
       <label>Notes (optional)</label>
-      <textarea class="notes-inp" rows="2" placeholder="Anything else worth tracking"></textarea>
+      <textarea class="notes-inp" rows="2" placeholder="${isRefund ? 'Why refunded?' : 'Anything else worth tracking'}"></textarea>
     </div>
   `;
   // Autocomplete wired against the vendor library
@@ -4504,7 +4510,10 @@ function renderInlineExpenseForm(monthId, bucket, onClose) {
     const amount = parseFloat(amountInp.value);
     const date = wrap.querySelector('.date-inp').value;
     const notes = wrap.querySelector('.notes-inp').value.trim();
-    if (!vendor || !isFinite(amount) || amount <= 0 || !date) { alert('Vendor, amount, and date are required'); return; }
+    if (!vendor || !isFinite(amount) || amount <= 0 || !date) {
+      alert(isRefund ? 'Recipient, amount, and date are required' : 'Vendor, amount, and date are required');
+      return;
+    }
     const month = monthOf(date);
     if (!state.months[month]) {
       state.months[month] = {
@@ -4513,14 +4522,20 @@ function renderInlineExpenseForm(monthId, bucket, onClose) {
         newClients: 0, activeClients: 0, churnedClients: 0,
       };
     }
-    state.expenses.push({ id: uid(), date, vendor, category: cat, amount, month, notes });
-    const existing = state.vendors.find(v => v.name.toLowerCase() === vendor.toLowerCase() && v.category === cat);
-    if (existing) {
-      const all = state.expenses.filter(x => x.vendor === existing.name && x.category === existing.category);
-      existing.typicalAmount = Math.round((all.reduce((s,x) => s+x.amount, 0) / all.length) * 100) / 100;
-      if (all.length >= 2) existing.recurring = true;
+    if (isRefund) {
+      // Refunds live in state.refunds[], not state.expenses[].
+      state.refunds = state.refunds || [];
+      state.refunds.push({ id: uid(), date, month, recipient: vendor, amount, notes });
     } else {
-      state.vendors.push({ id: uid(), name: vendor, category: cat, typicalAmount: amount, recurring: false });
+      state.expenses.push({ id: uid(), date, vendor, category: cat, amount, month, notes });
+      const existing = state.vendors.find(v => v.name.toLowerCase() === vendor.toLowerCase() && v.category === cat);
+      if (existing) {
+        const all = state.expenses.filter(x => x.vendor === existing.name && x.category === existing.category);
+        existing.typicalAmount = Math.round((all.reduce((s,x) => s+x.amount, 0) / all.length) * 100) / 100;
+        if (all.length >= 2) existing.recurring = true;
+      } else {
+        state.vendors.push({ id: uid(), name: vendor, category: cat, typicalAmount: amount, recurring: false });
+      }
     }
     saveState();
     renderFinanceHub();
@@ -4528,35 +4543,6 @@ function renderInlineExpenseForm(monthId, bucket, onClose) {
     updateNavCounts();
   });
   return wrap;
-}
-
-// Render the Team & Payouts bucket footer: per-member payouts already
-// logged + a picker of active team members the user can add.
-// Single-number bucket editor (Founder comp, Referral payouts, Merchant fees).
-// Wires straight to state.months[monthId][bucket.monthField].
-function renderMonthFieldEditor(bucket, monthId, currentValue) {
-  return `<div class="fh-mf-editor" data-bucket-id="${bucket.id}" data-month-field="${bucket.monthField}">
-    <div class="lbl">Amount for ${escapeHtml(fmtMonth(monthId))}</div>
-    <div class="fh-mf-input-row">
-      <span class="cur">£</span>
-      <input type="number" step="0.01" min="0" class="fh-mf-input" value="${currentValue || 0}" placeholder="0.00" />
-      <button type="button" class="fh-mf-clear" data-act="mf-clear" title="Set to zero">Clear</button>
-    </div>
-    <div class="help" style="margin-top:6px">Sets <code>${bucket.monthField}</code> for this month. Total above updates live.</div>
-  </div>`;
-}
-
-// Quick-add for the Refunds bucket — recipient + amount, appends to state.refunds.
-function renderRefundQuickAdd(bucket, monthId) {
-  return `<form class="fh-refund-add" data-act="add-refund" data-month="${monthId}" autocomplete="off">
-    <div class="lbl">Add refund for ${escapeHtml(fmtMonth(monthId))}</div>
-    <div class="fh-refund-row">
-      <input type="text" class="ref-recipient" placeholder="Recipient (client name)" required />
-      <span class="cur">£</span>
-      <input type="number" step="0.01" min="0" class="ref-amount" placeholder="0.00" required />
-      <button type="submit" class="primary small">Add refund</button>
-    </div>
-  </form>`;
 }
 
 function renderTeamPickerFor(bucket, monthId) {
@@ -5059,18 +5045,23 @@ const BUDGET_ROWS = [
   { section: 'People', items: [
     { key: 'salariesTotal',    label: 'Team salaries',    source: 'month', icon: '🏷',  color: '#30d158' },
     { key: 'commissionsTotal', label: 'Commissions',      source: 'month', icon: '💰',  color: '#34c759' },
-    { key: 'founderComp',      label: 'Founder compensation', source: 'month', icon: '👑', color: '#d4a017' },
+    // Line-item bucket: actual = sum of 'Founder comp' expense items (with month-field fallback).
+    { key: 'Founder comp',     label: 'Founder compensation', source: 'category', icon: '👑', color: '#d4a017', fallbackMonthField: 'founderComp' },
   ]},
   { section: 'Other', items: [
-    { key: 'referralPayoutsTotal', label: 'Referral payouts',     source: 'month', icon: '🤝', color: '#ff8a3d' },
-    { key: 'merchantFees',         label: 'Merchant / Stripe fees', source: 'month', icon: '💳', color: '#7c8aa3' },
-    { key: 'refundsTotal',         label: 'Refunds (cap)',        source: 'month', icon: '↩️', color: '#ff453a' },
+    { key: 'Referral payouts', label: 'Referral payouts',     source: 'category', icon: '🤝', color: '#ff8a3d', fallbackMonthField: 'referralPayoutsTotal' },
+    { key: 'Merchant fees',    label: 'Merchant / Stripe fees', source: 'category', icon: '💳', color: '#7c8aa3', fallbackMonthField: 'merchantFees' },
+    { key: 'refundsTotal',     label: 'Refunds (cap)',        source: 'month',   icon: '↩️', color: '#ff453a' },
   ]},
 ];
 
 function actualForBudgetRow(item, monthId) {
   if (item.source === 'category') {
-    return categoryTotals(monthId)[item.key] || 0;
+    const fromItems = categoryTotals(monthId)[item.key] || 0;
+    // Fall back to legacy month-field aggregate when no line items exist yet.
+    if (fromItems > 0) return fromItems;
+    if (item.fallbackMonthField) return (state.months[monthId] || {})[item.fallbackMonthField] || 0;
+    return 0;
   }
   // month field — special handling for refundsTotal which may sum from refunds[]
   if (item.key === 'refundsTotal') {
@@ -5251,24 +5242,40 @@ function renderBudget() {
     }).join('')}
   `;
 
-  // Wire bucket card inputs
+  // Wire bucket card inputs (number input + slider stay in sync).
   wrap.querySelectorAll('.bg-bucket').forEach(card => {
     const key = card.dataset.key;
-    const input = card.querySelector('.bg-bucket-input');
-    function commit() {
-      budget[key] = parseFloat(input.value) || 0;
+    const input  = card.querySelector('.bg-bucket-input');
+    const slider = card.querySelector('.bg-bucket-slider');
+    const updatePctVar = () => {
+      if (!slider) return;
+      const max = parseFloat(slider.max) || 1;
+      slider.style.setProperty('--pct', ((slider.value / max) * 100).toFixed(1) + '%');
+    };
+    function setValue(v, source) {
+      const num = parseFloat(v) || 0;
+      budget[key] = num;
+      if (source !== 'input' && input)  input.value  = num;
+      if (source !== 'slider' && slider) slider.value = Math.min(num, parseFloat(slider.max));
+      updatePctVar();
       markBudgetSaved();
+    }
+    function commit() {
+      // Full re-render so pie + KPIs + status bars all refresh
       renderBudget();
     }
+    input.addEventListener('input', e => setValue(e.target.value, 'input'));
     input.addEventListener('blur', commit);
     input.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); } });
+    if (slider) {
+      slider.addEventListener('input',  e => setValue(e.target.value, 'slider'));
+      slider.addEventListener('change', commit);   // mouseup / keyup
+    }
     const suggestBtn = card.querySelector('.bg-bucket-suggest');
     if (suggestBtn) {
       suggestBtn.addEventListener('click', () => {
-        const v = parseFloat(suggestBtn.dataset.suggest) || 0;
-        budget[key] = v;
-        markBudgetSaved();
-        renderBudget();
+        setValue(parseFloat(suggestBtn.dataset.suggest) || 0, 'btn');
+        commit();
       });
     }
   });
@@ -5295,6 +5302,11 @@ function renderBudgetBucketCard(item, monthId, budget, prev) {
   const suggestedNote = suggested > 0
     ? `<button type="button" class="bg-bucket-suggest" data-suggest="${suggested}" title="Use previous-month actual ${money(suggested)}">↻ ${money(suggested)} (prev)</button>`
     : '';
+  // Slider range: 2× the largest of (prev actual, current budget, current actual, baseline).
+  const baseline = item.kind === 'goal' ? 10000 : 1000;
+  const sliderMax = Math.max(baseline, Math.ceil(Math.max(suggested * 2, budgetValue * 1.5, actual * 1.5) / 100) * 100);
+  const step = sliderMax >= 10000 ? 100 : sliderMax >= 1000 ? 10 : 1;
+  const sliderPctVar = sliderMax > 0 ? ((budgetValue / sliderMax) * 100).toFixed(1) + '%' : '0%';
   return `<div class="bg-bucket ${item.kind === 'goal' ? 'is-goal' : ''}" data-key="${item.key}" style="--bucket-color:${item.color || '#5e9eff'}">
     <div class="bg-bucket-head">
       <span class="icon">${item.icon || '•'}</span>
@@ -5303,6 +5315,10 @@ function renderBudgetBucketCard(item, monthId, budget, prev) {
     <div class="bg-bucket-amount">
       <span class="cur">£</span>
       <input type="number" class="bg-bucket-input" min="0" step="0.01" value="${budgetValue}" />
+    </div>
+    <div class="bg-bucket-dial">
+      <input type="range" class="bg-bucket-slider" min="0" max="${sliderMax}" step="${step}" value="${budgetValue}" style="--pct:${sliderPctVar}" />
+      <div class="bg-bucket-dial-meta"><span>£0</span><span>${money(sliderMax)}</span></div>
     </div>
     <div class="bg-bucket-bar"><div class="fill ${status}" style="width:${fillPct.toFixed(1)}%"></div></div>
     <div class="bg-bucket-meta">
@@ -5718,7 +5734,7 @@ function renderVendors() {
             <td><input type="text" data-vfield="name" value="${escapeHtml(v.name)}" style="padding:4px 6px;font-size:13px" /></td>
             <td>
               <select data-vfield="category" style="padding:4px 6px;font-size:13px">
-                ${['Base Software','LinkedIn Channel','Email Channel','SMS','One off'].map(c => `<option ${c===v.category?'selected':''}>${c}</option>`).join('')}
+                ${CATEGORY_ORDER.map(c => `<option ${c===v.category?'selected':''}>${c}</option>`).join('')}
               </select>
             </td>
             <td class="num"><input type="number" step="0.01" min="0" data-vfield="typicalAmount" value="${v.typicalAmount}" style="padding:4px 6px;font-size:13px;width:90px;text-align:right" /></td>
@@ -5808,7 +5824,7 @@ function renderTeam() {
             <span class="count">${members.length} · ${members.filter(t => t.active !== false).length} active</span>
             <span class="total-amt">${money(roleTotal)}/mo</span>
           </div>
-          ${members.map(t => `<div class="tr-member-row" data-id="${t.id}">
+          ${members.map(t => `<div class="tr-member-row${t.isFounder ? ' is-founder' : ''}" data-id="${t.id}">
             <input type="text" class="name" data-tfield="name" value="${escapeHtml(t.name)}" placeholder="Member name" />
             <div class="amt-wrap">
               <span class="amt-sym">£</span>
@@ -5818,6 +5834,7 @@ function renderTeam() {
               <button type="button" data-type="salary" class="${t.payType === 'salary' ? 'active' : ''}">Salary</button>
               <button type="button" data-type="commission" class="${t.payType === 'commission' ? 'active' : ''}">Commission</button>
             </div>
+            <button type="button" class="tr-founder-toggle ${t.isFounder ? 'active' : ''}" data-act="toggle-founder" title="${t.isFounder ? 'This is the founder. Click to unset.' : 'Mark as founder. Only one founder allowed — Founder bucket items prefill with this name.'}">👑</button>
             <button type="button" class="tr-active-toggle ${t.active !== false ? '' : 'inactive'}" data-act="toggle-active" title="${t.active !== false ? 'Active — click to deactivate' : 'Inactive — click to activate'}">${t.active !== false ? '✓' : '−'}</button>
             <button type="button" class="del" data-act="del-team">×</button>
           </div>`).join('')}
@@ -5910,6 +5927,14 @@ function renderTeam() {
       });
       row.querySelector('[data-act="toggle-active"]').addEventListener('click', () => {
         t.active = !(t.active !== false);
+        saveState();
+        renderTeam();
+      });
+      row.querySelector('[data-act="toggle-founder"]').addEventListener('click', () => {
+        const newVal = !t.isFounder;
+        // Only one founder allowed — clear the flag on everyone else.
+        if (newVal) state.team.forEach(x => { x.isFounder = false; });
+        t.isFounder = newVal;
         saveState();
         renderTeam();
       });
