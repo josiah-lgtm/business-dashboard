@@ -2314,8 +2314,7 @@
   <!-- Sidebar nav -->
   <nav class="sidebar">
     <div class="nav-item" data-view="overview"><span>Overview</span></div>
-    <div class="nav-item" data-view="expenses"><span>Expenses</span><span class="num" id="nav-count-expenses">0</span></div>
-    <div class="nav-item" data-view="revenue"><span>Revenue & Team</span></div>
+    <div class="nav-item" data-view="expenses"><span>Finance hub</span><span class="num" id="nav-count-expenses">0</span></div>
     <div class="nav-item" data-view="budget"><span>Budget</span></div>
     <div class="nav-item" data-view="tasks"><span>Tasks</span><span class="num" id="nav-count-tasks">0</span></div>
     <div class="nav-item" data-view="invoices"><span>Invoices</span><span class="num" id="nav-count-invoices">0</span></div>
@@ -2336,22 +2335,22 @@
       <div id="overview-content"></div>
     </section>
 
-    <!-- Expenses -->
+    <!-- Finance hub (was: Expenses + Revenue & Team — now merged) -->
     <section class="panel" data-view="expenses">
       <div class="panel-header">
         <div>
           <h2>Finance hub</h2>
-          <div class="sub">Revenue, team payouts, and expense buckets for the active month — one unified view. Each bucket shows total + share of revenue.</div>
+          <div class="sub">Revenue, team payouts, refunds, and expense buckets for the active month — one unified view. Each bucket shows total + share of revenue.</div>
         </div>
         <div class="actions">
           <select id="fh-month" class="small"></select>
         </div>
       </div>
 
-      <!-- Revenue card -->
+      <!-- Revenue card (big KPI tiles + entries) -->
       <div id="fh-revenue-card"></div>
 
-      <!-- Bucket cards -->
+      <!-- Bucket cards (expense + team buckets) -->
       <div id="fh-buckets-wrap"></div>
 
       <!-- Add bucket button + vendor library -->
@@ -2360,6 +2359,50 @@
         <button id="fh-vendor-lib-btn" class="ghost">Vendor library (<span id="vendor-count-inline">0</span>)</button>
         <button id="exp-export-btn" class="ghost">Export CSV</button>
       </div>
+
+      <!-- Top-line per-month form (was Revenue & Team page) -->
+      <details class="card" id="fh-topline-card" style="padding:0">
+        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Top-line — per-month overrides &amp; all-months table</summary>
+        <div style="padding:0 18px 18px">
+          <div id="revenue-content"></div>
+        </div>
+      </details>
+
+      <!-- Team roster + per-person pay (was Revenue & Team page) -->
+      <details class="card" style="padding:0">
+        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Team roster + per-person pay (<span id="team-count-inline">0</span>)</summary>
+        <div style="padding:0 18px 18px">
+          <div style="margin-bottom:10px">
+            <button id="team-add-btn" class="small">+ Add person</button>
+          </div>
+          <div id="team-table-wrap"></div>
+        </div>
+      </details>
+
+      <!-- Refunds (was Revenue & Team page) -->
+      <details class="card" style="padding:0">
+        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Refunds (<span id="refunds-count-inline">0</span>)</summary>
+        <div style="padding:0 18px 18px">
+          <form id="refund-form" class="grid grid-auto" style="align-items:flex-end;margin-bottom:14px">
+            <div>
+              <label>Month</label>
+              <select id="ref-month"></select>
+            </div>
+            <div>
+              <label>Recipient</label>
+              <input id="ref-recipient" type="text" required />
+            </div>
+            <div>
+              <label>Amount (£)</label>
+              <input id="ref-amount" type="number" step="0.01" min="0" required />
+            </div>
+            <div>
+              <button type="submit" class="primary small">Add refund</button>
+            </div>
+          </form>
+          <div id="refunds-table-wrap"></div>
+        </div>
+      </details>
 
       <details class="card" id="fh-vendor-lib-card" style="padding:0;display:none">
         <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Vendor library</summary>
@@ -2408,51 +2451,6 @@
         <div class="fh-modal-body" id="fh-modal-body"></div>
       </div>
     </div>
-
-    <!-- Revenue & Team -->
-    <section class="panel" data-view="revenue">
-      <div class="panel-header">
-        <div>
-          <h2>Revenue & Team</h2>
-          <div class="sub">Per-month totals. Edits save automatically.</div>
-        </div>
-      </div>
-      <div id="revenue-content"></div>
-
-      <details class="card" style="padding:0">
-        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Team roster + per-person pay (<span id="team-count-inline">0</span>)</summary>
-        <div style="padding:0 18px 18px">
-          <div style="margin-bottom:10px">
-            <button id="team-add-btn" class="small">+ Add person</button>
-          </div>
-          <div id="team-table-wrap"></div>
-        </div>
-      </details>
-
-      <details class="card" style="padding:0">
-        <summary style="padding:16px 18px;color:var(--text);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px">Refunds (<span id="refunds-count-inline">0</span>)</summary>
-        <div style="padding:0 18px 18px">
-          <form id="refund-form" class="grid grid-auto" style="align-items:flex-end;margin-bottom:14px">
-            <div>
-              <label>Month</label>
-              <select id="ref-month"></select>
-            </div>
-            <div>
-              <label>Recipient</label>
-              <input id="ref-recipient" type="text" required />
-            </div>
-            <div>
-              <label>Amount (£)</label>
-              <input id="ref-amount" type="number" step="0.01" min="0" required />
-            </div>
-            <div>
-              <button type="submit" class="primary small">Add refund</button>
-            </div>
-          </form>
-          <div id="refunds-table-wrap"></div>
-        </div>
-      </details>
-    </section>
 
     <!-- Hidden helpers — these inputs are needed by the daily/weekly + projection render functions
          but the controls now live inside Overview. Kept as a single container we can populate. -->
@@ -2803,8 +2801,6 @@ const DEFAULT_TARGETS = {
   gmPct: 60, nmPct: 25, taxPct: 15, cashMonths: 3,
   founderTaxPct: 20,
   refundPctMax: 10, overheadPctMax: 20,
-  ltvCacDouble: 3, ltvCacMaintain: 2,
-  paybackDouble: 3, paybackCut: 6,
 };
 
 const DEFAULT_BUSINESS = {
@@ -3149,8 +3145,7 @@ function calcMonth(monthId) {
 }
 
 function calcAggregates(monthIds) {
-  let revenue = 0, marketing = 0, newClients = 0, grossProfit = 0, totalExp = 0, netProfit = 0;
-  let activeSum = 0, churnedSum = 0;
+  let revenue = 0, marketing = 0, grossProfit = 0, totalExp = 0, netProfit = 0;
   let n = 0;
   monthIds.forEach(id => {
     const c = calcMonth(id);
@@ -3161,44 +3156,29 @@ function calcAggregates(monthIds) {
     grossProfit += c.grossProfit;
     totalExp += c.totalExpenses;
     netProfit += c.netProfit;
-    newClients += c.raw.newClients || 0;
-    activeSum += c.raw.activeClients || 0;
-    churnedSum += c.raw.churnedClients || 0;
   });
-  const avgActive = n > 0 ? activeSum / n : 0;
-  const avgGpPerClient = avgActive > 0 ? (grossProfit / n) / avgActive : null;
-  const churnRatePerMonth = avgActive > 0 ? (churnedSum / n) / avgActive : 0;
-  const lifespan = churnRatePerMonth > 0 ? 1 / churnRatePerMonth : null;
-  const ltvGross = (avgGpPerClient && lifespan) ? avgGpPerClient * lifespan : null;
-  const cac = newClients > 0 ? marketing / newClients : null;
-  const ltvCac = (ltvGross && cac) ? ltvGross / cac : null;
-  const payback = (cac && avgGpPerClient) ? cac / avgGpPerClient : null;
-  return {
-    n, revenue, marketing, grossProfit, totalExp, netProfit, newClients,
-    cac, ltvGross, ltvCac, payback, avgGpPerClient, churnRatePerMonth, lifespan,
-  };
+  return { n, revenue, marketing, grossProfit, totalExp, netProfit };
 }
 
 function decisionForCategory(cat) {
-  // Treat each acquisition category as a "channel": LinkedIn / Email / SMS / One off
-  // Compare its share of marketing spend vs share of (rough proxy) revenue contribution.
-  // Without per-channel client data we use heuristic: compare last-3-month spend trend.
+  // Channel spend snapshot — last 3 months average and direction.
+  // Compares the most-recent month to the prior 2 to flag rising / falling spend.
   const ids = sortedMonthIds().slice(-3);
-  let total = 0;
-  ids.forEach(id => { total += categoryTotals(id)[cat] || 0; });
-  const avg = ids.length > 0 ? total / ids.length : 0;
-  const t = state.targets;
-  const aggregates = calcAggregates(ids);
-  if (!aggregates.ltvCac || !aggregates.payback) {
-    return { action: 'fix', label: 'NO DATA', ltvCac: null, payback: null, monthlySpend: avg };
+  if (!ids.length) {
+    return { action: 'maintain', label: 'NO DATA', monthlySpend: 0, trendPct: 0 };
   }
-  let action = 'maintain', label = 'MAINTAIN';
-  if (aggregates.ltvCac >= t.ltvCacDouble && aggregates.payback <= t.paybackDouble) {
-    action = 'double-down'; label = 'DOUBLE DOWN';
-  } else if (aggregates.ltvCac < t.ltvCacMaintain || aggregates.payback > t.paybackCut) {
-    action = 'fix'; label = 'FIX OR CUT';
-  }
-  return { action, label, ltvCac: aggregates.ltvCac, payback: aggregates.payback, monthlySpend: avg };
+  const perMonth = ids.map(id => categoryTotals(id)[cat] || 0);
+  const total = perMonth.reduce((s, v) => s + v, 0);
+  const avg = total / ids.length;
+  const recent = perMonth[perMonth.length - 1] || 0;
+  const earlier = perMonth.slice(0, -1);
+  const earlierAvg = earlier.length ? earlier.reduce((s, v) => s + v, 0) / earlier.length : 0;
+  const trendPct = earlierAvg > 0 ? ((recent - earlierAvg) / earlierAvg) * 100 : 0;
+  let action = 'maintain', label = 'STEADY';
+  if (avg <= 0) { action = 'maintain'; label = 'NO SPEND'; }
+  else if (trendPct >= 25) { action = 'double-down'; label = 'SCALING UP'; }
+  else if (trendPct <= -25) { action = 'fix'; label = 'WINDING DOWN'; }
+  return { action, label, monthlySpend: avg, trendPct };
 }
 
 // ============================================================
@@ -3210,8 +3190,14 @@ function renderAll() {
   const view = state.meta.activeView;
   switch (view) {
     case 'overview': renderOverview(); break;
-    case 'expenses': renderExpenses(); renderVendors(); break;
-    case 'revenue': renderRevenue(); renderTeam(); renderRefunds(); break;
+    case 'expenses':
+      renderExpenses();
+      renderVendors();
+      // Revenue & Team page was merged into Finance hub — render its three sections here too.
+      renderRevenue();
+      renderTeam();
+      renderRefunds();
+      break;
     case 'budget': renderBudget(); break;
     case 'tasks': renderTasks(); break;
     case 'invoices': renderInvoices(); break;
@@ -3278,7 +3264,6 @@ function renderOverview() {
     const cls = d >= 0 ? 'good' : 'bad';
     return `<div class="sub" style="color:var(--${d >= 0 ? 'good' : 'bad'})">${d >= 0 ? '+' : ''}${pctC.toFixed(1)}% vs ${fmtMonthShort(ids[idx-1])}</div>`;
   }
-  const aggregates3 = calcAggregates(ids.slice(-3));
   // The 3 numbers that matter most, big and clean
   const html = `
     <div class="grid grid-3">
@@ -3326,6 +3311,11 @@ function renderOverview() {
     </div>
 
     <div class="card">
+      <h3>Team roster &amp; pay — ${fmtMonth(monthId)}</h3>
+      <div id="overview-team"></div>
+    </div>
+
+    <div class="card">
       <h3>Next 6 months — projection</h3>
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
         <div style="flex:0 0 auto"><label style="font-size:11px">Based on last</label><select id="proj-window-inline" style="width:80px"><option value="2">2 mo</option><option value="3" selected>3 mo</option><option value="6">6 mo</option></select></div>
@@ -3336,28 +3326,14 @@ function renderOverview() {
     </div>
 
     <div class="card">
-      <h3>Channel decisions (last 3 months)</h3>
+      <h3>Channel spend (last 3 months)</h3>
       <div id="overview-decisions"></div>
     </div>
-
-    <details>
-      <summary>Show CAC, LTV:CAC, payback (last 3 months)</summary>
-      <div class="card" style="margin-top:8px">
-        <div class="grid grid-3">
-          <div class="kpi"><div class="lbl">Revenue (3 mo)</div><div class="val">${money(aggregates3.revenue)}</div></div>
-          <div class="kpi"><div class="lbl">Net profit (3 mo)</div><div class="val ${aggregates3.netProfit >= 0 ? 'good' : 'bad'}">${money(aggregates3.netProfit)}</div></div>
-          <div class="kpi"><div class="lbl">Marketing spend</div><div class="val">${money(aggregates3.marketing)}</div></div>
-          <div class="kpi"><div class="lbl">CAC</div><div class="val">${aggregates3.cac == null ? '—' : money(aggregates3.cac)}</div></div>
-          <div class="kpi"><div class="lbl">LTV:CAC</div><div class="val ${aggregates3.ltvCac >= state.targets.ltvCacDouble ? 'good' : aggregates3.ltvCac < state.targets.ltvCacMaintain ? 'bad' : 'warn'}">${aggregates3.ltvCac == null ? '—' : aggregates3.ltvCac.toFixed(1) + 'x'}</div></div>
-          <div class="kpi"><div class="lbl">Payback</div><div class="val">${aggregates3.payback == null ? '—' : aggregates3.payback.toFixed(1) + ' mo'}</div></div>
-        </div>
-        ${aggregates3.cac == null ? '<div class="help" style="margin-top:8px;color:var(--warn)">CAC / LTV require client counts — fill them on Revenue & Team.</div>' : ''}
-      </div>
-    </details>
   `;
   document.getElementById('overview-content').innerHTML = html;
   // Render the embedded analytics
   renderOverviewDaily();
+  renderOverviewTeam();
   renderOverviewProjections();
   renderOverviewDecisions();
   // Wire projection inputs
@@ -3452,15 +3428,85 @@ function renderOverviewProjections() {
   `;
 }
 
+// Compact team roster + per-person pay block for the Overview page.
+// Sits between "Last 12 weeks" and the projections card; reuses
+// state.team (roster) + state.teamPayouts (actual paid amounts this month)
+// so the numbers line up with the Finance hub team bucket.
+function renderOverviewTeam() {
+  const host = document.getElementById('overview-team');
+  if (!host) return;
+  const monthId = state.meta.activeMonth;
+  const roster = (state.team || []).slice();
+  if (!roster.length) {
+    host.innerHTML = '<div class="help">No team members yet. Add people in the Finance hub → Team roster.</div>';
+    return;
+  }
+  const payouts = (state.teamPayouts || []).filter(p => p.month === monthId);
+  const paidByMember = {};
+  payouts.forEach(p => { paidByMember[p.memberId] = (paidByMember[p.memberId] || 0) + (Number(p.amount) || 0); });
+
+  // Group by role
+  const groups = new Map();
+  roster.forEach(t => {
+    const key = (t.role || '').trim() || 'No role';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(t);
+  });
+  const sortedGroups = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const activeRoster = roster.filter(t => t.active !== false);
+  const rosterSalaryTotal = activeRoster.filter(t => t.payType === 'salary').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const rosterCommTotal   = activeRoster.filter(t => t.payType === 'commission').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const paidTotal = payouts.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+  host.innerHTML = `
+    <div class="grid grid-4" style="margin-bottom:14px">
+      <div class="kpi"><div class="lbl">Active team</div><div class="val">${activeRoster.length}</div><div class="sub">of ${roster.length} on roster</div></div>
+      <div class="kpi"><div class="lbl">Salary roll</div><div class="val">${money(rosterSalaryTotal)}</div><div class="sub">monthly target</div></div>
+      <div class="kpi"><div class="lbl">Commission roll</div><div class="val">${money(rosterCommTotal)}</div><div class="sub">monthly target</div></div>
+      <div class="kpi"><div class="lbl">Paid this month</div><div class="val ${paidTotal > 0 ? 'good' : ''}">${money(paidTotal)}</div><div class="sub">${payouts.length} payout${payouts.length === 1 ? '' : 's'}</div></div>
+    </div>
+    ${sortedGroups.map(([role, members]) => {
+      const roleTarget = members.filter(t => t.active !== false).reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const rolePaid = members.reduce((s, t) => s + (paidByMember[t.id] || 0), 0);
+      return `
+        <div style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;padding:6px 0;border-bottom:1px solid var(--border-subtle)">
+            <span>${escapeHtml(role)} · ${members.filter(t => t.active !== false).length}/${members.length} active</span>
+            <span style="color:var(--text);font-variant-numeric:tabular-nums">${money(roleTarget)}/mo · paid ${money(rolePaid)}</span>
+          </div>
+          ${members.map(t => {
+            const target = Number(t.amount) || 0;
+            const paid = paidByMember[t.id] || 0;
+            const isActive = t.active !== false;
+            return `<div style="display:grid;grid-template-columns:1fr 110px 110px 110px;gap:12px;align-items:center;padding:8px 2px;font-size:13px;${isActive ? '' : 'opacity:0.45'}">
+              <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font-weight:500">${escapeHtml(t.name)}</span> <span style="color:var(--text-tertiary);font-size:11px;margin-left:4px">${t.payType === 'commission' ? 'commission' : 'salary'}${isActive ? '' : ' · inactive'}</span></div>
+              <div style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text-secondary)">${money(target)}<span style="color:var(--text-tertiary);font-size:11px;margin-left:4px">/mo</span></div>
+              <div style="text-align:right;font-variant-numeric:tabular-nums;color:${paid > 0 ? 'var(--good)' : 'var(--text-tertiary)'}">${money(paid)}<span style="color:var(--text-tertiary);font-size:11px;margin-left:4px">paid</span></div>
+              <div style="text-align:right;font-variant-numeric:tabular-nums;font-size:11px;color:var(--text-tertiary)">${target > 0 ? (paid >= target ? '<span style="color:var(--good)">✓ on target</span>' : `${money(target - paid)} to go`) : '—'}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
 function renderOverviewDecisions() {
   const cats = ['LinkedIn Channel', 'Email Channel', 'SMS', 'One off'];
   const decisions = cats.map(cat => ({ cat, ...decisionForCategory(cat) }));
-  document.getElementById('overview-decisions').innerHTML = `
+  const host = document.getElementById('overview-decisions');
+  if (!host) return;
+  host.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px">
-      ${decisions.map(d => `<div class="decision-card ${d.action}" style="margin:0">
-        <div class="head"><span class="name"><span class="pill ${catClass(d.cat)}">${d.cat}</span></span><span class="pill ${d.action}">${d.label}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px"><span>3-mo avg</span><span style="color:var(--text);font-variant-numeric:tabular-nums">${money(d.monthlySpend)}</span></div>
-      </div>`).join('')}
+      ${decisions.map(d => {
+        const trendArrow = d.trendPct >= 5 ? '↑' : d.trendPct <= -5 ? '↓' : '→';
+        const trendColor = d.action === 'double-down' ? 'var(--good)' : d.action === 'fix' ? 'var(--bad)' : 'var(--muted)';
+        return `<div class="decision-card ${d.action}" style="margin:0">
+          <div class="head"><span class="name"><span class="pill ${catClass(d.cat)}">${d.cat}</span></span><span class="pill ${d.action}">${d.label}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px"><span>3-mo avg</span><span style="color:var(--text);font-variant-numeric:tabular-nums">${money(d.monthlySpend)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px"><span>Trend</span><span style="color:${trendColor};font-variant-numeric:tabular-nums">${trendArrow} ${Math.abs(d.trendPct).toFixed(0)}%</span></div>
+        </div>`;
+      }).join('')}
     </div>
   `;
 }
@@ -4425,6 +4471,7 @@ function setupExpenseAutocomplete() {
 function renderRevenue() {
   const ids = sortedMonthIds();
   const wrap = document.getElementById('revenue-content');
+  if (!wrap) return; // panel is hidden when finance hub isn't active
   if (!ids.length) {
     wrap.innerHTML = '<div class="empty"><h3>No months yet</h3><p>Click "+ New Month" above.</p></div>';
     return;
@@ -4440,13 +4487,8 @@ function renderRevenue() {
     ['commissionsTotal', 'Setter & sales commissions', '£'],
     ['founderComp', 'Founder compensation (your draw / salary)', '£'],
     ['referralPayoutsTotal', 'Referral payouts', '£'],
-    ['refundsTotal', 'Refunds (override — defaults to sum from Refunds page)', '£'],
+    ['refundsTotal', 'Refunds (override — defaults to sum from Refunds section)', '£'],
     ['taxPct', 'Corporate tax % (for set-aside)', '%'],
-  ];
-  const clientFields = [
-    ['newClients', 'New clients this month'],
-    ['activeClients', 'Active clients (end of month)'],
-    ['churnedClients', 'Churned this month'],
   ];
 
   const pay = calcTeamPayForMonth(monthId);
@@ -4462,23 +4504,12 @@ function renderRevenue() {
               <label>${label}</label>
               <div style="display:flex;gap:6px;align-items:center">
                 <input type="number" step="0.01" min="0" data-month-field="${k}" value="${m[k] ?? 0}" style="flex:1" />
-                ${isTeamPay ? `<button type="button" class="small ghost" data-sync-from-team="${k}" title="Apply team-page calc: ${money(teamCalc)}">↻ ${money(teamCalc)}</button>` : ''}
+                ${isTeamPay ? `<button type="button" class="small ghost" data-sync-from-team="${k}" title="Apply roster calc: ${money(teamCalc)}">↻ ${money(teamCalc)}</button>` : ''}
               </div>
             </div>
           `;
         }).join('')}
       </div>
-      <details style="margin-top:14px">
-        <summary>Client counts (optional — for CAC / LTV math)</summary>
-        <div class="grid grid-3" style="margin-top:10px">
-          ${clientFields.map(([k, label]) => `
-            <div>
-              <label>${label}</label>
-              <input type="number" step="1" min="0" data-month-field="${k}" value="${m[k] ?? 0}" />
-            </div>
-          `).join('')}
-        </div>
-      </details>
     </div>
     <div class="card">
       <h3>All months — at a glance</h3>
@@ -4791,10 +4822,12 @@ function renderBudgetRow(item, monthId, budget, prev) {
 // ---------- Refunds ----------
 function renderRefunds() {
   const sel = document.getElementById('ref-month');
+  if (!sel) return; // panel not visible
   const ids = sortedMonthIds();
   sel.innerHTML = ids.map(id => `<option value="${id}">${fmtMonth(id)}</option>`).join('');
   sel.value = state.meta.activeMonth;
   const wrap = document.getElementById('refunds-table-wrap');
+  if (!wrap) return;
   if (!state.refunds.length) {
     wrap.innerHTML = '<div class="empty"><h3>No refunds recorded</h3></div>';
     return;
@@ -5123,38 +5156,6 @@ function renderMultiTrendChart(points, splitIdx) {
   </svg>`;
 }
 
-// ---------- Decisions ----------
-function renderDecisions() {
-  const cats = ['LinkedIn Channel', 'Email Channel', 'SMS', 'One off'];
-  const decisions = cats.map(cat => ({ cat, ...decisionForCategory(cat) }));
-  const aggregates = calcAggregates(sortedMonthIds().slice(-3));
-  const wrap = document.getElementById('decisions-content');
-  wrap.innerHTML = `
-    <div class="card">
-      <h3>3-month aggregate context</h3>
-      <div class="grid grid-4">
-        <div class="kpi"><div class="lbl">Marketing spend</div><div class="val">${money(aggregates.marketing)}</div></div>
-        <div class="kpi"><div class="lbl">New clients</div><div class="val">${aggregates.newClients || '—'}</div></div>
-        <div class="kpi"><div class="lbl">CAC</div><div class="val">${aggregates.cac == null ? '—' : money(aggregates.cac)}</div></div>
-        <div class="kpi"><div class="lbl">LTV:CAC</div><div class="val">${aggregates.ltvCac == null ? '—' : aggregates.ltvCac.toFixed(1) + 'x'}</div></div>
-      </div>
-      ${aggregates.cac == null ? '<div class="help" style="margin-top:10px;color:var(--warn)">Heads up — channel decisions need <b>New clients</b> and <b>Active clients</b> filled in on the Revenue & Team page to produce real CAC / LTV math. Without them, decisions default to NO DATA.</div>' : ''}
-    </div>
-    ${decisions.map(d => `
-      <div class="decision-card ${d.action}">
-        <div class="head">
-          <span class="name"><span class="pill ${catClass(d.cat)}">${d.cat}</span></span>
-          <span class="pill ${d.action}">${d.label}</span>
-        </div>
-        <div class="metrics">
-          <div class="metric"><div class="lbl">3-mo avg spend</div><div class="val">${money(d.monthlySpend)}</div></div>
-          <div class="metric"><div class="lbl">LTV:CAC</div><div class="val">${d.ltvCac == null ? '—' : d.ltvCac.toFixed(1) + 'x'}</div></div>
-          <div class="metric"><div class="lbl">Payback</div><div class="val">${d.payback == null ? '—' : d.payback.toFixed(1) + ' mo'}</div></div>
-        </div>
-      </div>
-    `).join('')}
-  `;
-}
 
 // ---------- Vendors ----------
 function renderVendors() {
@@ -5247,6 +5248,7 @@ function calcTeamPayForMonth(monthId) {
 
 function renderTeam() {
   const wrap = document.getElementById('team-table-wrap');
+  if (!wrap) return; // panel not active
   if (!state.team.length) {
     wrap.innerHTML = '<div class="empty"><h3>No team members</h3></div>';
     return;
@@ -6521,10 +6523,6 @@ function renderSettings() {
     ['cashMonths', 'Cash reserve target (× overhead)'],
     ['refundPctMax', 'Max refund rate alert (%)'],
     ['overheadPctMax', 'Max overhead/rev alert (%)'],
-    ['ltvCacDouble', 'LTV:CAC threshold — double down'],
-    ['ltvCacMaintain', 'LTV:CAC threshold — maintain (min)'],
-    ['paybackDouble', 'Payback threshold (mo) — double down'],
-    ['paybackCut', 'Payback threshold (mo) — fix/cut'],
   ];
   document.getElementById('targets-grid').innerHTML = fields.map(([k, label]) => `
     <div>
@@ -6550,6 +6548,8 @@ function renderOverviewIfActive() {
 // Event wiring
 // ============================================================
 function switchView(view) {
+  // Legacy redirect: 'revenue' panel was merged into the Finance hub.
+  if (view === 'revenue') view = 'expenses';
   state.meta.activeView = view;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
   document.querySelectorAll('.panel').forEach(el => el.classList.toggle('active', el.dataset.view === view));
