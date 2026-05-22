@@ -2318,7 +2318,6 @@
     <div class="nav-item" data-view="budget"><span>Budget</span></div>
     <div class="nav-item" data-view="tasks"><span>Tasks</span><span class="num" id="nav-count-tasks">0</span></div>
     <div class="nav-item" data-view="invoices"><span>Invoices</span><span class="num" id="nav-count-invoices">0</span></div>
-    <div class="nav-item" data-view="team-invoices"><span>Team Invoices</span><span class="num" id="nav-count-team-invoices">0</span></div>
     <div class="nav-item" data-view="settings"><span>Settings</span></div>
   </nav>
 
@@ -2545,12 +2544,19 @@
       <div class="panel-header">
         <div>
           <h2>Invoices</h2>
-          <div class="sub">Generate professional invoices with your company details + bank info. Print to PDF from the preview.</div>
+          <div class="sub" id="inv-sub">Outbound (your client invoices) &amp; inbound (team / vendor invoices) — all in one place.</div>
         </div>
         <div class="actions">
+          <div class="ti-view-toggle" id="inv-top-tabs" style="margin-right:8px">
+            <button class="ti-toggle-btn active" data-inv-tab="outbound">Outbound</button>
+            <button class="ti-toggle-btn" data-inv-tab="inbound">Inbound</button>
+          </div>
           <button id="invoice-new-btn" class="primary">+ New invoice</button>
         </div>
       </div>
+
+      <!-- ===== OUTBOUND (client invoices we send) ===== -->
+      <div id="inv-outbound">
       <div class="card" id="invoice-form-card" style="display:none">
         <h3 id="invoice-form-title">New invoice</h3>
         <form id="invoice-form">
@@ -2623,20 +2629,18 @@
         <h3>Saved invoices</h3>
         <div id="invoices-table-wrap"></div>
       </div>
-    </section>
+      </div><!-- /#inv-outbound -->
 
-    <!-- Team Invoices -->
-    <section class="panel" data-view="team-invoices">
-      <div class="panel-header">
+      <!-- ===== INBOUND (team + vendor invoices to us) ===== -->
+      <div id="inv-inbound" style="display:none">
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
         <div>
-          <h2>Team Invoices</h2>
-          <div class="sub">Inbound invoices from team members + vendors. Admin manages everyone's profile; team members can switch into <b>Member view</b> to file their own. Each invoice generates a PDF with your AA branding.</div>
+          <div style="font-weight:600;font-size:14px;color:var(--text)">Inbound from team &amp; vendors</div>
+          <div class="help" style="margin-top:4px">Admin manages everyone's profile; team members can switch into <b>Member view</b> to file their own. Each invoice generates a PDF with your AA branding.</div>
         </div>
-        <div class="actions">
-          <div class="ti-view-toggle">
-            <button id="ti-admin-btn" class="ti-toggle-btn active">Admin view</button>
-            <button id="ti-member-btn" class="ti-toggle-btn">Member view</button>
-          </div>
+        <div class="ti-view-toggle">
+          <button id="ti-admin-btn" class="ti-toggle-btn active">Admin view</button>
+          <button id="ti-member-btn" class="ti-toggle-btn">Member view</button>
         </div>
       </div>
 
@@ -2726,6 +2730,7 @@
           <div id="ti-member-history"></div>
         </div>
       </div>
+      </div><!-- /#inv-inbound -->
     </section>
 
     <!-- Settings -->
@@ -3200,17 +3205,45 @@ function renderAll() {
       break;
     case 'budget': renderBudget(); break;
     case 'tasks': renderTasks(); break;
-    case 'invoices': renderInvoices(); break;
-    case 'team-invoices': renderTeamInvoices(); break;
+    case 'invoices':
+      // Outbound + Inbound merged into a single tabbed panel. Render both;
+      // the visible tab is controlled by invSetTab().
+      renderInvoices();
+      renderTeamInvoices();
+      invSetTab(invActiveTab());
+      break;
     case 'settings': renderSettings(); break;
   }
+}
+
+// ---- Invoices page (Outbound + Inbound) tab toggle ----
+function invActiveTab() {
+  const t = state.meta && state.meta.invoicesTab;
+  return t === 'inbound' ? 'inbound' : 'outbound';
+}
+function invSetTab(tab) {
+  if (tab !== 'outbound' && tab !== 'inbound') tab = 'outbound';
+  state.meta = state.meta || {};
+  state.meta.invoicesTab = tab;
+  document.querySelectorAll('#inv-top-tabs .ti-toggle-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.invTab === tab);
+  });
+  const out = document.getElementById('inv-outbound');
+  const inn = document.getElementById('inv-inbound');
+  if (out) out.style.display = tab === 'outbound' ? '' : 'none';
+  if (inn) inn.style.display = tab === 'inbound' ? '' : 'none';
+  const newBtn = document.getElementById('invoice-new-btn');
+  if (newBtn) newBtn.style.display = tab === 'outbound' ? '' : 'none';
 }
 
 function updateNavCounts() {
   const el = id => document.getElementById(id);
   if (el('nav-count-expenses')) el('nav-count-expenses').textContent = state.expenses.length;
   if (el('nav-count-tasks')) el('nav-count-tasks').textContent = state.tasks.length;
-  if (el('nav-count-invoices')) el('nav-count-invoices').textContent = state.invoices.length;
+  // Combined count: outbound + inbound
+  if (el('nav-count-invoices')) {
+    el('nav-count-invoices').textContent = (state.invoices.length + (state.teamInvoices || []).length);
+  }
   if (el('nav-count-team-invoices')) el('nav-count-team-invoices').textContent = (state.teamInvoices || []).length;
   if (el('vendor-count-inline')) el('vendor-count-inline').textContent = state.vendors.length;
   if (el('refunds-count-inline')) el('refunds-count-inline').textContent = state.refunds.length;
@@ -5501,6 +5534,7 @@ function tiSetTab(tab) {
 }
 
 function renderTeamInvoices() {
+  if (!document.getElementById('inv-inbound')) return; // panel not active
   tiSetTab(tiActiveTab());
   renderTiPendingList();
   renderTiMembers();
@@ -6199,6 +6233,7 @@ function renderTiMemberView() {
 function renderInvoices() {
   // hide form by default; "+ New invoice" reveals it
   // pre-fill defaults if showing
+  if (!document.getElementById('invoices-table-wrap')) return; // panel not active
   if (!state.invoices.length) {
     document.getElementById('invoices-table-wrap').innerHTML = '<div class="empty"><h3>No invoices yet</h3><p>Click <b>+ New invoice</b> to create one. Your business + bank details auto-populate from Settings.</p></div>';
   } else {
@@ -6550,6 +6585,13 @@ function renderOverviewIfActive() {
 function switchView(view) {
   // Legacy redirect: 'revenue' panel was merged into the Finance hub.
   if (view === 'revenue') view = 'expenses';
+  // Legacy redirect: 'team-invoices' was merged into the Invoices page;
+  // also flip the in-page tab to Inbound so the user lands where they expect.
+  if (view === 'team-invoices') {
+    view = 'invoices';
+    state.meta = state.meta || {};
+    state.meta.invoicesTab = 'inbound';
+  }
   state.meta.activeView = view;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
   document.querySelectorAll('.panel').forEach(el => el.classList.toggle('active', el.dataset.view === view));
@@ -6825,7 +6867,15 @@ function wireUp() {
     saveInvoice(editId || null);
   });
 
-  // ---- Team Invoices ----
+  // ---- Invoices page top tabs (Outbound / Inbound) ----
+  document.querySelectorAll('#inv-top-tabs .ti-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      invSetTab(btn.dataset.invTab);
+      saveState();
+    });
+  });
+
+  // ---- Team Invoices (inbound) admin/member sub-toggle ----
   const tiAdminBtn = document.getElementById('ti-admin-btn');
   const tiMemberBtn = document.getElementById('ti-member-btn');
   if (tiAdminBtn) tiAdminBtn.addEventListener('click', () => { tiSetTab('admin'); renderTeamInvoices(); });
