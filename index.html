@@ -1742,17 +1742,52 @@
   }
   .tr-member-row {
     display: grid;
-    grid-template-columns: 1.4fr 130px auto auto auto auto;
+    grid-template-columns: 18px 1.4fr 130px auto auto auto auto;
     gap: 8px;
     align-items: center;
     padding: 8px 10px;
     background: rgba(255,255,255,0.025);
     border-radius: 8px;
+    transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
   }
   .tr-member-row.is-founder {
     background: linear-gradient(135deg, rgba(212,160,23,0.10), rgba(255,255,255,0.03));
     border: 1px solid rgba(212,160,23,0.22);
   }
+  .tr-member-row.is-dragging {
+    opacity: 0.4;
+    transform: scale(0.99);
+  }
+  .tr-drag {
+    color: var(--text-quaternary);
+    cursor: grab;
+    user-select: none;
+    line-height: 1;
+    font-size: 16px;
+    text-align: center;
+    transition: color 0.12s;
+    -webkit-user-drag: element;
+  }
+  .tr-drag:hover { color: var(--accent); }
+  .tr-drag:active { cursor: grabbing; }
+  .tr-role-bucket.is-drop-target {
+    background: rgba(212,160,23,0.06);
+    box-shadow: inset 0 0 0 2px var(--accent);
+    border-radius: 10px;
+  }
+  .tr-drop-hint {
+    display: none;
+    margin-top: 8px;
+    padding: 10px;
+    border: 1.5px dashed var(--accent);
+    border-radius: 8px;
+    text-align: center;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 500;
+    background: rgba(212,160,23,0.04);
+  }
+  .tr-role-bucket.is-drop-target .tr-drop-hint { display: block; }
   .tr-member-row input.name {
     background: transparent; border: 1px solid transparent;
     color: var(--text); font-size: 13.5px; font-weight: 500;
@@ -5825,6 +5860,7 @@ function renderTeam() {
             <span class="total-amt">${money(roleTotal)}/mo</span>
           </div>
           ${members.map(t => `<div class="tr-member-row${t.isFounder ? ' is-founder' : ''}" data-id="${t.id}">
+            <span class="tr-drag" draggable="true" title="Drag to move ${escapeHtml(t.name)} to another role">⠿</span>
             <input type="text" class="name" data-tfield="name" value="${escapeHtml(t.name)}" placeholder="Member name" />
             <div class="amt-wrap">
               <span class="amt-sym">£</span>
@@ -5839,6 +5875,7 @@ function renderTeam() {
             <button type="button" class="del" data-act="del-team">×</button>
           </div>`).join('')}
           <button type="button" class="tr-role-add-member" data-act="add-member">+ Add member to ${escapeHtml(role)}</button>
+          <div class="tr-drop-hint">Drop here to assign to <b>${escapeHtml(role)}</b></div>
         </div>`;
       }).join('')}
     </div>
@@ -5901,6 +5938,38 @@ function renderTeam() {
       renderTeam();
       updateNavCounts();
     });
+
+    // ──── Drop-target wiring ──────────────────────────────────────
+    // Bucket accepts a member dragged from another bucket; on drop we
+    // rewrite that member's role to this bucket's role and re-render.
+    bucket.addEventListener('dragover', ev => {
+      // Only react to our own member drags (member-id payload set on dragstart).
+      const types = ev.dataTransfer && ev.dataTransfer.types;
+      if (!types || !Array.from(types).includes('application/x-team-member-id')) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'move';
+      bucket.classList.add('is-drop-target');
+    });
+    bucket.addEventListener('dragleave', ev => {
+      // Only clear when the cursor genuinely leaves the bucket — dragleave
+      // also fires when moving over children. Compare relatedTarget.
+      if (ev.relatedTarget && bucket.contains(ev.relatedTarget)) return;
+      bucket.classList.remove('is-drop-target');
+    });
+    bucket.addEventListener('drop', ev => {
+      ev.preventDefault();
+      bucket.classList.remove('is-drop-target');
+      const memberId = ev.dataTransfer.getData('application/x-team-member-id');
+      if (!memberId) return;
+      const member = state.team.find(x => x.id === memberId);
+      if (!member) return;
+      const newRole = role === 'No role' ? '' : role;
+      const oldRole = (member.role || '').trim();
+      if (oldRole === newRole) return;
+      member.role = newRole;
+      saveState();
+      renderTeam();
+    });
     bucket.querySelectorAll('.tr-member-row').forEach(row => {
       const id = row.dataset.id;
       const t = state.team.find(x => x.id === id);
@@ -5944,6 +6013,27 @@ function renderTeam() {
         renderTeam();
         updateNavCounts();
       });
+      // Drag grip — only this little handle is draggable so the row's
+      // inputs/buttons stay fully clickable. Cross-browser quirk: dragstart
+      // fires on the parent <div> of the grip element when the user grabs
+      // it, so we walk up to the .tr-member-row to flip the .is-dragging
+      // class.
+      const grip = row.querySelector('.tr-drag');
+      if (grip) {
+        grip.addEventListener('dragstart', ev => {
+          ev.dataTransfer.effectAllowed = 'move';
+          ev.dataTransfer.setData('application/x-team-member-id', id);
+          // Use the whole row as the drag image so the user sees what
+          // they're moving.
+          try { ev.dataTransfer.setDragImage(row, 12, 18); } catch (_) {}
+          row.classList.add('is-dragging');
+        });
+        grip.addEventListener('dragend', () => {
+          row.classList.remove('is-dragging');
+          // Belt-and-braces: clear any stuck drop-target outlines.
+          document.querySelectorAll('.tr-role-bucket.is-drop-target').forEach(el => el.classList.remove('is-drop-target'));
+        });
+      }
     });
   });
 }
