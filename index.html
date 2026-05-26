@@ -1562,12 +1562,13 @@
 
   /* Editable item rows in vendor drill-down */
   .fh-vendor-row .v-items-list .it.editable {
-    grid-template-columns: 110px 1fr 100px auto auto;
+    grid-template-columns: 110px 1fr 100px 50px auto auto auto;
     gap: 6px;
     align-items: center;
     padding: 5px 6px;
   }
-  .fh-vendor-row .v-items-list .it.editable input {
+  .fh-vendor-row .v-items-list .it.editable input,
+  .fh-vendor-row .v-items-list .it.editable select.it-currency {
     background: var(--surface-input);
     border: 1px solid transparent;
     color: var(--text);
@@ -1577,6 +1578,28 @@
     font-family: inherit;
     font-variant-numeric: tabular-nums;
     width: 100%;
+  }
+  .fh-vendor-row .v-items-list .it.editable select.it-currency {
+    text-align: center;
+    cursor: pointer;
+  }
+  .fh-vendor-row .v-items-list .it.editable select.it-currency:hover { border-color: var(--border); }
+  .fh-vendor-row .v-items-list .it .it-invoice-link {
+    background: rgba(212,160,23,0.10);
+    border: 1px solid rgba(212,160,23,0.35);
+    color: var(--accent);
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .fh-vendor-row .v-items-list .it .it-invoice-link:hover {
+    background: rgba(212,160,23,0.20);
+    border-color: var(--accent);
   }
   .fh-vendor-row .v-items-list .it.editable input.it-amount { text-align: right; }
   .fh-vendor-row .v-items-list .it.editable input:hover { border-color: var(--border); }
@@ -2621,12 +2644,13 @@
       <select id="currency-select">
         <option value="GBP">£ GBP</option>
         <option value="USD">$ USD</option>
+        <option value="EUR">€ EUR</option>
       </select>
     </div>
-    <div class="control">
+    <div class="control" id="fx-rate-wrap">
       <label for="fx-rate" style="margin:0">1£=</label>
       <input id="fx-rate" type="number" step="0.01" min="0.1" />
-      <span style="font-size:12px;color:var(--muted)">$</span>
+      <span id="fx-rate-sym" style="font-size:12px;color:var(--muted)">$</span>
     </div>
     <span id="save-status" class="save-status">Saved</span>
     <div class="spacer"></div>
@@ -3163,7 +3187,11 @@ function makeInitialState() {
       activeView: 'overview',
       activeMonth: monthIds[monthIds.length - 1] || isoMonth(new Date()),
       currency: 'GBP',
-      fxRate: 1.27,
+      // FX rates expressed as "1 GBP = X foreign". Used to convert between
+      // the GBP-canonical storage and the user's selected view currency,
+      // plus to convert per-expense amounts entered in non-GBP currencies.
+      fxRates: { USD: 1.27, EUR: 1.17 },
+      fxRate: 1.27,  // legacy — mirrors fxRates.USD for any old code still reading it
       invoiceCounter: 1,
     },
     months, expenses, vendors, refunds, team,
@@ -3190,6 +3218,17 @@ function loadState() {
     const s = JSON.parse(raw);
     s.targets = { ...DEFAULT_TARGETS, ...(s.targets || {}) };
     s.meta = { activeView: 'overview', currency: 'GBP', fxRate: 1.27, invoiceCounter: 1, ...(s.meta || {}) };
+    // EUR/USD FX rates introduced after the original single fxRate. Seed
+    // from the legacy single field when missing so existing data keeps
+    // working.
+    if (!s.meta.fxRates || typeof s.meta.fxRates !== 'object') {
+      s.meta.fxRates = { USD: Number(s.meta.fxRate) || 1.27, EUR: 1.17 };
+    } else {
+      if (!s.meta.fxRates.USD) s.meta.fxRates.USD = Number(s.meta.fxRate) || 1.27;
+      if (!s.meta.fxRates.EUR) s.meta.fxRates.EUR = 1.17;
+    }
+    // Keep legacy fxRate mirroring fxRates.USD for any caller still reading it
+    s.meta.fxRate = s.meta.fxRates.USD;
     // Migrations for v2.1 (tasks, invoices, business, team.monthlySalary)
     if (!s.tasks) s.tasks = [];
     if (!s.invoices) s.invoices = [];
@@ -3336,25 +3375,51 @@ function fmtMonthShort(id) {
   const [y, m] = id.split('-').map(Number);
   return new Date(y, m-1, 1).toLocaleString('en-GB', { month: 'short', year: '2-digit' });
 }
+// Currency helpers
+const CURRENCY_SYMBOLS = { GBP: '£', USD: '$', EUR: '€' };
+function fxRateFor(cur) {
+  if (cur === 'GBP') return 1;
+  const rates = (state.meta && state.meta.fxRates) || {};
+  return Number(rates[cur]) || (cur === 'USD' ? 1.27 : cur === 'EUR' ? 1.17 : 1);
+}
+// Convert an amount in `currency` to its GBP equivalent (canonical storage).
+function toGbp(amount, currency) {
+  if (!amount || isNaN(amount)) return 0;
+  const c = currency || 'GBP';
+  if (c === 'GBP') return Number(amount);
+  return Number(amount) / fxRateFor(c);  // 1 GBP = X foreign → foreign / X = GBP
+}
+// Per-expense GBP equivalent. Tolerates expenses that pre-date the
+// currency field (treated as GBP).
+function gbpAmount(e) { return toGbp(Number(e.amount) || 0, e.currency || 'GBP'); }
+
 function money(gbp) {
   if (gbp == null || isNaN(gbp)) return '—';
-  const cur = state.meta.currency;
-  const v = cur === 'USD' ? gbp * state.meta.fxRate : gbp;
-  const sign = cur === 'USD' ? '$' : '£';
+  const cur = state.meta.currency || 'GBP';
+  const v = cur === 'GBP' ? gbp : gbp * fxRateFor(cur);
+  const sign = CURRENCY_SYMBOLS[cur] || '£';
   const abs = Math.abs(v);
   const formatted = abs.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return v < 0 ? `-${sign}${formatted}` : `${sign}${formatted}`;
 }
 function moneyShort(gbp) {
   if (gbp == null || isNaN(gbp)) return '—';
-  const cur = state.meta.currency;
-  const v = cur === 'USD' ? gbp * state.meta.fxRate : gbp;
-  const sign = cur === 'USD' ? '$' : '£';
+  const cur = state.meta.currency || 'GBP';
+  const v = cur === 'GBP' ? gbp : gbp * fxRateFor(cur);
+  const sign = CURRENCY_SYMBOLS[cur] || '£';
   const abs = Math.abs(v);
   let s;
   if (abs >= 1000) s = (v/1000).toFixed(1) + 'k';
   else s = v.toFixed(0);
   return v < 0 && abs >= 1000 ? `-${sign}${(abs/1000).toFixed(1)}k` : `${sign}${s}`;
+}
+// Format an amount that's already in `srcCurrency` (no conversion) — used
+// to show the original-currency value next to a line item.
+function moneyIn(amount, srcCurrency) {
+  if (amount == null || isNaN(amount)) return '—';
+  const sign = CURRENCY_SYMBOLS[srcCurrency] || '£';
+  const abs = Math.abs(amount);
+  return (amount < 0 ? '-' : '') + sign + abs.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function pct(x) { return (x == null || isNaN(x) || !isFinite(x)) ? '—' : `${x.toFixed(1)}%`; }
 function fmtDate(s) {
@@ -3388,7 +3453,7 @@ function categoryTotals(monthId) {
     'Founder comp':0, 'Referral payouts':0, 'Merchant fees':0,
   };
   expensesForMonth(monthId).forEach(e => {
-    if (totals[e.category] != null) totals[e.category] += e.amount;
+    if (totals[e.category] != null) totals[e.category] += gbpAmount(e);
   });
   return totals;
 }
@@ -3576,7 +3641,25 @@ function populateMonthSelects() {
     expFilter.value = expFilter.dataset.value || state.meta.activeMonth;
   }
   document.getElementById('currency-select').value = state.meta.currency;
-  document.getElementById('fx-rate').value = state.meta.fxRate;
+  refreshFxControl();
+}
+
+// Mirror the topbar FX field to the currently-selected view currency.
+// GBP view → hide the input (no conversion needed). USD/EUR view →
+// show "1£ = X $|€" with the matching fxRates[currency] value.
+function refreshFxControl() {
+  const cur = state.meta.currency || 'GBP';
+  const wrap = document.getElementById('fx-rate-wrap');
+  if (!wrap) return;
+  if (cur === 'GBP') {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  const inp = document.getElementById('fx-rate');
+  const sym = document.getElementById('fx-rate-sym');
+  if (inp) inp.value = fxRateFor(cur);
+  if (sym) sym.textContent = CURRENCY_SYMBOLS[cur] || '$';
 }
 
 // ---------- Overview ----------
@@ -4187,8 +4270,14 @@ function renderFhBuckets(monthId) {
           entry.total += Number(p.amount) || 0;
           entry.count++;
           entry._payouts.push(p);
-          // Synthesise expense-shaped rows so the drill-down list works
-          entry.expenses.push({ id: p.id, date: p.date, vendor: name, amount: p.amount, _payoutId: p.id });
+          // Synthesise expense-shaped rows so the drill-down list works.
+          // Carry the invoice link through so we can render a badge.
+          entry.expenses.push({
+            id: p.id, date: p.date, vendor: name, amount: p.amount,
+            _payoutId: p.id,
+            _invoiceId: p.invoiceId || null,
+            _invoiceNumber: p.invoiceNumber || null,
+          });
         });
         items = Object.values(byMember).sort((a, b) => b.total - a.total);
         total = items.reduce((s, v) => s + v.total, 0);
@@ -4219,7 +4308,7 @@ function renderFhBuckets(monthId) {
       const vendors = {};
       expenseList.forEach(e => {
         const v = vendors[e.vendor] || (vendors[e.vendor] = { vendor: e.vendor, total: 0, count: 0, expenses: [] });
-        v.total += e.amount;
+        v.total += gbpAmount(e);  // GBP-canonical so the view-currency display works
         v.count++;
         v.expenses.push(e);
       });
@@ -4259,10 +4348,21 @@ function renderFhBuckets(monthId) {
             ${v.expenses.length ? `<button class="v-items" data-act="toggle-items" title="Show items">›</button>` : '<span></span>'}
             ${v.expenses.length ? `<div class="v-items-list">${v.expenses.sort((a,b)=>b.date.localeCompare(a.date)).map(e => {
               const isPayout = !!e._payoutId;
+              const cur = e.currency || 'GBP';
+              const fxTip = cur === 'GBP' ? '' : `title="${moneyIn(e.amount, cur)} → ${money(gbpAmount(e))} (auto-converted via 1£ = ${fxRateFor(cur)} ${cur})"`;
+              const invBadge = e._invoiceNumber
+                ? `<button type="button" class="it-invoice-link" data-act="open-invoice" data-invoice-id="${e._invoiceId}" title="Open invoice #${escapeHtml(e._invoiceNumber)}">📄 #${escapeHtml(e._invoiceNumber)}</button>`
+                : '';
               return `<div class="it editable" data-expense-id="${e.id}"${isPayout ? ' data-payout="1"' : ''}>
                 <input type="date" class="it-date" value="${e.date}" />
                 <input type="text" class="it-vendor" value="${escapeHtml(e.vendor)}" />
                 <input type="number" step="0.01" min="0" class="it-amount" value="${e.amount}" />
+                <select class="it-currency" ${fxTip} title="Currency this charge was paid in">
+                  <option value="GBP" ${cur==='GBP'?'selected':''}>£</option>
+                  <option value="USD" ${cur==='USD'?'selected':''}>$</option>
+                  <option value="EUR" ${cur==='EUR'?'selected':''}>€</option>
+                </select>
+                ${invBadge}
                 <button class="it-task" title="Create a task linked to this item">📋</button>
                 <button class="it-del" title="Delete">×</button>
               </div>`;
@@ -4335,12 +4435,14 @@ function renderFhBuckets(monthId) {
         if (field === 'amount') r.amount = parseFloat(value) || 0;
         else if (field === 'date') r.date = value;
         else if (field === 'vendor') r.recipient = value;
+        else if (field === 'currency') r.currency = value;
       } else {
         const e = state.expenses.find(x => x.id === id);
         if (!e) return;
         if (field === 'amount') e.amount = parseFloat(value) || 0;
         else if (field === 'date') { e.date = value; e.month = monthOf(value); }
         else if (field === 'vendor') e.vendor = value;
+        else if (field === 'currency') e.currency = value;
       }
       saveState();
     }
@@ -4348,6 +4450,8 @@ function renderFhBuckets(monthId) {
     row.querySelector('.it-date').addEventListener('change', ev => { update('date', ev.target.value); renderFinanceHub(); });
     const vendorInp = row.querySelector('.it-vendor');
     if (vendorInp) vendorInp.addEventListener('change', ev => { update('vendor', ev.target.value); renderFinanceHub(); });
+    const curInp = row.querySelector('.it-currency');
+    if (curInp) curInp.addEventListener('change', ev => { update('currency', ev.target.value); renderFinanceHub(); renderOverviewIfActive(); });
     // Re-render on amount blur so totals refresh
     row.querySelector('.it-amount').addEventListener('blur', () => { renderFinanceHub(); renderOverviewIfActive(); });
   });
@@ -4386,6 +4490,26 @@ function renderFhBuckets(monthId) {
     }, 50);
   }));
   // 📋 Add task shortcut — creates a task linked to this item
+  // Open the linked invoice → switch to the combined Invoices view + flip
+  // the tab to Inbound (Admin sub-tab) so the user lands on the row.
+  wrap.querySelectorAll('[data-act="open-invoice"]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    state.meta = state.meta || {};
+    state.meta.invoicesTab = 'inbound';
+    if (typeof tiSetTab === 'function') tiSetTab('admin');
+    switchView('invoices');
+    // After re-render, scroll the matching invoice row into view.
+    const iid = btn.dataset.invoiceId;
+    setTimeout(() => {
+      const row = document.querySelector(`.ti-invoice-row[data-iid="${iid}"]`);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.style.transition = 'background 0.6s';
+        row.style.background = 'var(--accent-tint)';
+        setTimeout(() => { row.style.background = ''; }, 1500);
+      }
+    }, 120);
+  }));
   wrap.querySelectorAll('.it-task').forEach(btn => btn.addEventListener('click', ev => {
     ev.stopPropagation();
     const row = btn.closest('.it');
@@ -4493,8 +4617,15 @@ function renderInlineExpenseForm(monthId, bucket, onClose) {
       </div>
     </div>
     <div>
-      <label>Amount (£)</label>
-      <input type="number" class="amount-inp" step="0.01" min="0" placeholder="0.00" />
+      <label>Amount</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" class="amount-inp" step="0.01" min="0" placeholder="0.00" style="flex:1" />
+        <select class="currency-inp" title="Entry currency — auto-converted to GBP for totals" style="width:74px;padding:6px 8px">
+          <option value="GBP">£ GBP</option>
+          <option value="USD">$ USD</option>
+          <option value="EUR">€ EUR</option>
+        </select>
+      </div>
     </div>
     <div>
       <label>Date</label>
@@ -4512,6 +4643,8 @@ function renderInlineExpenseForm(monthId, bucket, onClose) {
   // Autocomplete wired against the vendor library
   const vendorInp = wrap.querySelector('.vendor-inp');
   const amountInp = wrap.querySelector('.amount-inp');
+  const currencyInp = wrap.querySelector('.currency-inp');
+  if (currencyInp) currencyInp.value = state.meta.currency || 'GBP';
   const search = wrap.querySelector('.fh-vendor-search');
   const suggest = search.querySelector('.fh-suggest');
   function update() {
@@ -4543,6 +4676,7 @@ function renderInlineExpenseForm(monthId, bucket, onClose) {
   wrap.querySelector('.save').addEventListener('click', () => {
     const vendor = vendorInp.value.trim();
     const amount = parseFloat(amountInp.value);
+    const currency = wrap.querySelector('.currency-inp').value || 'GBP';
     const date = wrap.querySelector('.date-inp').value;
     const notes = wrap.querySelector('.notes-inp').value.trim();
     if (!vendor || !isFinite(amount) || amount <= 0 || !date) {
@@ -4560,16 +4694,16 @@ function renderInlineExpenseForm(monthId, bucket, onClose) {
     if (isRefund) {
       // Refunds live in state.refunds[], not state.expenses[].
       state.refunds = state.refunds || [];
-      state.refunds.push({ id: uid(), date, month, recipient: vendor, amount, notes });
+      state.refunds.push({ id: uid(), date, month, recipient: vendor, amount, currency, notes });
     } else {
-      state.expenses.push({ id: uid(), date, vendor, category: cat, amount, month, notes });
+      state.expenses.push({ id: uid(), date, vendor, category: cat, amount, currency, month, notes });
       const existing = state.vendors.find(v => v.name.toLowerCase() === vendor.toLowerCase() && v.category === cat);
       if (existing) {
         const all = state.expenses.filter(x => x.vendor === existing.name && x.category === existing.category);
-        existing.typicalAmount = Math.round((all.reduce((s,x) => s+x.amount, 0) / all.length) * 100) / 100;
+        existing.typicalAmount = Math.round((all.reduce((s,x) => s + gbpAmount(x), 0) / all.length) * 100) / 100;
         if (all.length >= 2) existing.recurring = true;
       } else {
-        state.vendors.push({ id: uid(), name: vendor, category: cat, typicalAmount: amount, recurring: false });
+        state.vendors.push({ id: uid(), name: vendor, category: cat, typicalAmount: gbpAmount({ amount, currency }), recurring: false });
       }
     }
     saveState();
@@ -6270,24 +6404,48 @@ function tiAcceptInvoice(iid, overrideAmount) {
   if (!inv) return;
   const m = state.team.find(t => t.id === inv.memberId);
   const finalAmount = Number(overrideAmount) || Number(inv.amount) || 0;
-  if (!confirm(`Accept ${m?.name || 'invoice'} for ${money(finalAmount)}?\n\nThis adds ${money(finalAmount)} to ${(inv.itemCategory || 'Commission').toLowerCase().includes('salary') ? 'salaries' : 'commissions'} for ${fmtTiMonth(inv.period)}.`)) return;
+  // Service type → payout type. We use the structured cats first; fall back
+  // to old free-text "...salary..." string match for legacy invoices.
+  const cat = (inv.itemCategory || 'Commission').toLowerCase();
+  const isSalary = cat.includes('retainer') || cat.includes('salary');
+  const payoutType = isSalary ? 'salary' : 'commission';
+  const periodLabel = fmtTiMonth(inv.period);
+  if (!confirm(`Accept ${m?.name || 'invoice'} for ${money(finalAmount)}?\n\nThis creates a ${payoutType} payout for ${periodLabel} linked to invoice #${inv.number}.`)) return;
   inv.amount = finalAmount;
   inv.status = 'accepted';
   inv.acceptedAt = new Date().toISOString();
-  // Push into the appropriate month bucket
+  // Ensure the month exists.
   state.months = state.months || {};
   const period = inv.period || (inv.date || '').slice(0, 7);
   if (period && !state.months[period]) {
     state.months[period] = { revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0, referralPayoutsTotal: 0, refundsTotal: 0, founderComp: 0, taxPct: state.targets?.taxPct ?? 15, newClients: 0, activeClients: 0, churnedClients: 0 };
   }
+  // Link: create (or update) the team payout that this invoice represents.
+  // Storing invoiceId both ways lets us surface the link in the Team bucket
+  // and roll back cleanly on decline/delete.
   if (period) {
-    const mb = state.months[period];
-    const cat = (inv.itemCategory || '').toLowerCase();
-    if (cat.includes('salary')) {
-      mb.salariesTotal = (mb.salariesTotal || 0) + finalAmount;
+    state.teamPayouts = state.teamPayouts || [];
+    let payout = state.teamPayouts.find(p => p.invoiceId === inv.id);
+    if (payout) {
+      payout.amount = finalAmount;
+      payout.type = payoutType;
+      payout.month = period;
+      payout.date = isoDate(new Date());
     } else {
-      mb.commissionsTotal = (mb.commissionsTotal || 0) + finalAmount;
+      payout = {
+        id: uid(),
+        memberId: inv.memberId,
+        month: period,
+        date: isoDate(new Date()),
+        amount: finalAmount,
+        type: payoutType,
+        invoiceId: inv.id,
+        invoiceNumber: inv.number,
+        notes: `Accepted from invoice #${inv.number}`,
+      };
+      state.teamPayouts.push(payout);
     }
+    fhRecalcTeamTotals(period);   // recompute salariesTotal/commissionsTotal from payouts
   }
   saveState();
   renderTeamInvoices();
@@ -6301,8 +6459,13 @@ function tiDeclineInvoice(iid) {
   if (!confirm('Decline this invoice? It will be moved back to draft so the member can edit and resubmit.')) return;
   inv.status = 'draft';
   inv.declinedAt = new Date().toISOString();
+  // Roll back the linked payout if one was created at accept-time.
+  const before = (state.teamPayouts || []).length;
+  state.teamPayouts = (state.teamPayouts || []).filter(p => p.invoiceId !== inv.id);
+  if (state.teamPayouts.length !== before && inv.period) fhRecalcTeamTotals(inv.period);
   saveState();
   renderTeamInvoices();
+  if (typeof renderAll === 'function') renderAll();
   updateNavCounts();
 }
 
@@ -6455,9 +6618,17 @@ function renderTiMonths() {
   wrap.querySelectorAll('[data-act="ti-del"]').forEach(b => b.addEventListener('click', () => {
     const iid = b.closest('.ti-invoice-row').dataset.iid;
     if (!confirm('Delete this invoice?')) return;
+    // Roll back any linked payout so the Team bucket total stays accurate.
+    const inv = (state.teamInvoices || []).find(i => i.id === iid);
     state.teamInvoices = (state.teamInvoices || []).filter(i => i.id !== iid);
+    if (inv) {
+      const before = (state.teamPayouts || []).length;
+      state.teamPayouts = (state.teamPayouts || []).filter(p => p.invoiceId !== iid);
+      if (state.teamPayouts.length !== before && inv.period) fhRecalcTeamTotals(inv.period);
+    }
     saveState();
     renderTeamInvoices();
+    if (typeof renderAll === 'function') renderAll();
     updateNavCounts();
   }));
 }
@@ -6487,10 +6658,15 @@ function openTiInvoiceEditor(memberId, invoiceId) {
     const [y, m] = period.split('-').map(Number);
     return new Date(y, m - 1, 1).toLocaleString('en-GB', { month: 'long' });
   })();
+  // Default service type → infer from the team member's payType (Retainer
+  // service = salary, Commission services = commission). Falls back to
+  // Commission services if no payType set.
+  const memberPayType = (m && m.payType) || 'commission';
+  const defaultCat = memberPayType === 'salary' ? 'Retainer service' : 'Commission services';
   const inv = existing || {
     id: uid(), memberId, number: tiNextInvoiceNumber(memberId),
     date: today, dueDate: dueDefault, period,
-    itemCategory: 'Commission',
+    itemCategory: defaultCat,
     services: periodMonthName,  // description column
     hours: 0, rate: 0, amount: 0, taxPct: 0, currency: 'EUR',
     notes: '', status: 'draft',
@@ -6499,7 +6675,7 @@ function openTiInvoiceEditor(memberId, invoiceId) {
   // Backfill new fields on older invoices
   if (existing) {
     if (inv.dueDate === undefined) inv.dueDate = dueDefault;
-    if (inv.itemCategory === undefined) inv.itemCategory = 'Commission';
+    if (inv.itemCategory === undefined) inv.itemCategory = defaultCat;
     if (inv.taxPct === undefined) inv.taxPct = 0;
     if (!inv.services && periodMonthName) inv.services = periodMonthName;
   }
@@ -6525,7 +6701,13 @@ function openTiInvoiceEditor(memberId, invoiceId) {
         </select></div>
       </div>
       <div class="grid grid-auto" style="gap:12px;margin-top:12px">
-        <div><label>Items (category)</label><input type="text" data-f="itemCategory" value="${escapeHtml(inv.itemCategory || 'Commission')}" placeholder="Commission" /></div>
+        <div>
+          <label>Service type</label>
+          <select data-f="itemCategory" title="Retainer = fixed monthly fee (salary). Services = % of cash (commission).">
+            <option value="Retainer service" ${/retainer|salary/i.test(inv.itemCategory || '') ? 'selected' : ''}>🏷 Retainer service (salary)</option>
+            <option value="Commission services" ${!/retainer|salary/i.test(inv.itemCategory || '') ? 'selected' : ''}>💰 Commission services</option>
+          </select>
+        </div>
         <div style="grid-column:span 2"><label>Description</label><input type="text" data-f="services" value="${escapeHtml(inv.services || '')}" placeholder="e.g. March" /></div>
       </div>
       <div class="grid grid-auto" style="gap:12px;margin-top:12px">
@@ -7289,11 +7471,16 @@ function wireUp() {
   });
   document.getElementById('currency-select').addEventListener('change', e => {
     state.meta.currency = e.target.value;
+    refreshFxControl();
     saveState();
     renderAll();
   });
   document.getElementById('fx-rate').addEventListener('input', e => {
-    state.meta.fxRate = parseFloat(e.target.value) || 1.27;
+    const cur = state.meta.currency || 'GBP';
+    if (cur === 'GBP') return; // editing FX while in GBP is a no-op
+    state.meta.fxRates = state.meta.fxRates || { USD: 1.27, EUR: 1.17 };
+    state.meta.fxRates[cur] = parseFloat(e.target.value) || fxRateFor(cur);
+    if (cur === 'USD') state.meta.fxRate = state.meta.fxRates.USD; // keep legacy mirror
     saveState();
     renderAll();
   });
