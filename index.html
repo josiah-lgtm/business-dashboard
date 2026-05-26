@@ -2150,6 +2150,17 @@
     font-size: 11px;
     border-radius: 5px;
   }
+  /* "✓ In Team" — invoice already mirrored to a Team & Payouts entry */
+  .ti-invoice-row .row-actions button.in-team {
+    background: rgba(48,209,88,0.14);
+    border: 1px solid rgba(48,209,88,0.32);
+    color: var(--good);
+    font-weight: 600;
+  }
+  .ti-invoice-row .row-actions button.in-team:hover {
+    background: rgba(48,209,88,0.22);
+    border-color: var(--good);
+  }
 
   .ti-profile-form {
     display: grid;
@@ -6413,56 +6424,78 @@ function renderTiPendingList() {
   }));
 }
 
-// Accept: stamp the invoice, set the override amount, push it into the month's
-// salaries or commissions total based on item category, save, re-render.
+// Create (or update) the team payout that mirrors an invoice into the
+// Finance hub Team bucket. Returns the payout. Does NOT change the
+// invoice's status — that's the Accept flow's job. Safe to call multiple
+// times: re-runs upsert the same payout via invoiceId.
+function tiAddInvoiceToTeamExpense(iid, overrideAmount) {
+  const inv = (state.teamInvoices || []).find(i => i.id === iid);
+  if (!inv) return null;
+  const finalAmount = Number(overrideAmount) || Number(inv.amount) || 0;
+  if (!finalAmount) {
+    alert('Set an amount on the invoice first.');
+    return null;
+  }
+  // Service type → payout type. Use the structured cats first; fall back
+  // to old free-text "...salary..." string match for legacy invoices.
+  const cat = (inv.itemCategory || 'Commission').toLowerCase();
+  const isSalary = cat.includes('retainer') || cat.includes('salary');
+  const payoutType = isSalary ? 'salary' : 'commission';
+  // Ensure the month exists.
+  state.months = state.months || {};
+  const period = inv.period || (inv.date || '').slice(0, 7);
+  if (!period) {
+    alert('Invoice has no period — set a month before adding to team expenses.');
+    return null;
+  }
+  if (!state.months[period]) {
+    state.months[period] = { revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0, referralPayoutsTotal: 0, refundsTotal: 0, founderComp: 0, taxPct: state.targets?.taxPct ?? 15, newClients: 0, activeClients: 0, churnedClients: 0 };
+  }
+  state.teamPayouts = state.teamPayouts || [];
+  let payout = state.teamPayouts.find(p => p.invoiceId === inv.id);
+  if (payout) {
+    payout.amount = finalAmount;
+    payout.type = payoutType;
+    payout.month = period;
+    payout.date = isoDate(new Date());
+    payout.invoiceNumber = inv.number;   // keep the badge label in sync if invoice # changed
+  } else {
+    payout = {
+      id: uid(),
+      memberId: inv.memberId,
+      month: period,
+      date: isoDate(new Date()),
+      amount: finalAmount,
+      type: payoutType,
+      invoiceId: inv.id,
+      invoiceNumber: inv.number,
+      notes: `From invoice #${inv.number}`,
+    };
+    state.teamPayouts.push(payout);
+  }
+  fhRecalcTeamTotals(period);   // salariesTotal/commissionsTotal derive from payouts
+  return payout;
+}
+
+// Convenience check: does this invoice already have a linked team payout?
+function tiInvoiceHasPayout(iid) {
+  return (state.teamPayouts || []).some(p => p.invoiceId === iid);
+}
+
+// Accept: stamp the invoice, set the override amount, create the linked
+// team payout in one shot. Wraps the shared helper above.
 function tiAcceptInvoice(iid, overrideAmount) {
   const inv = (state.teamInvoices || []).find(i => i.id === iid);
   if (!inv) return;
   const m = state.team.find(t => t.id === inv.memberId);
   const finalAmount = Number(overrideAmount) || Number(inv.amount) || 0;
-  // Service type → payout type. We use the structured cats first; fall back
-  // to old free-text "...salary..." string match for legacy invoices.
   const cat = (inv.itemCategory || 'Commission').toLowerCase();
-  const isSalary = cat.includes('retainer') || cat.includes('salary');
-  const payoutType = isSalary ? 'salary' : 'commission';
-  const periodLabel = fmtTiMonth(inv.period);
-  if (!confirm(`Accept ${m?.name || 'invoice'} for ${money(finalAmount)}?\n\nThis creates a ${payoutType} payout for ${periodLabel} linked to invoice #${inv.number}.`)) return;
+  const payoutType = (cat.includes('retainer') || cat.includes('salary')) ? 'salary' : 'commission';
+  if (!confirm(`Accept ${m?.name || 'invoice'} for ${money(finalAmount)}?\n\nThis creates a ${payoutType} payout for ${fmtTiMonth(inv.period)} linked to invoice #${inv.number}.`)) return;
   inv.amount = finalAmount;
   inv.status = 'accepted';
   inv.acceptedAt = new Date().toISOString();
-  // Ensure the month exists.
-  state.months = state.months || {};
-  const period = inv.period || (inv.date || '').slice(0, 7);
-  if (period && !state.months[period]) {
-    state.months[period] = { revenue: 0, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0, referralPayoutsTotal: 0, refundsTotal: 0, founderComp: 0, taxPct: state.targets?.taxPct ?? 15, newClients: 0, activeClients: 0, churnedClients: 0 };
-  }
-  // Link: create (or update) the team payout that this invoice represents.
-  // Storing invoiceId both ways lets us surface the link in the Team bucket
-  // and roll back cleanly on decline/delete.
-  if (period) {
-    state.teamPayouts = state.teamPayouts || [];
-    let payout = state.teamPayouts.find(p => p.invoiceId === inv.id);
-    if (payout) {
-      payout.amount = finalAmount;
-      payout.type = payoutType;
-      payout.month = period;
-      payout.date = isoDate(new Date());
-    } else {
-      payout = {
-        id: uid(),
-        memberId: inv.memberId,
-        month: period,
-        date: isoDate(new Date()),
-        amount: finalAmount,
-        type: payoutType,
-        invoiceId: inv.id,
-        invoiceNumber: inv.number,
-        notes: `Accepted from invoice #${inv.number}`,
-      };
-      state.teamPayouts.push(payout);
-    }
-    fhRecalcTeamTotals(period);   // recompute salariesTotal/commissionsTotal from payouts
-  }
+  tiAddInvoiceToTeamExpense(iid, finalAmount);
   saveState();
   renderTeamInvoices();
   if (typeof renderAll === 'function') renderAll();
@@ -6599,6 +6632,14 @@ function renderTiMonths() {
       <div class="ti-month-body">
         ${list.map(i => {
           const m = state.team.find(t => t.id === i.memberId);
+          const inTeam = tiInvoiceHasPayout(i.id);
+          // Either shows "✓ In Team" badge (already linked) or a one-click
+          // "+ Team expense" button (creates the linked payout without
+          // changing the invoice's status — useful for drafts and paid
+          // invoices alike).
+          const teamBtn = inTeam
+            ? `<button class="small ghost in-team" data-act="ti-team-expense" title="Click to refresh the linked payout (e.g. after editing the amount)">✓ In Team</button>`
+            : `<button class="small" data-act="ti-team-expense" title="Create a Team & Payouts entry linked to this invoice">+ Team expense</button>`;
           return `<div class="ti-invoice-row" data-iid="${i.id}">
             <div class="num">${escapeHtml(i.number)}</div>
             <div class="from">${escapeHtml(m ? m.name : 'Unknown')}</div>
@@ -6606,6 +6647,7 @@ function renderTiMonths() {
             <div class="amt">${money(Number(i.amount) || 0)}</div>
             <span class="pill ${i.status || 'draft'}">${(i.status || 'draft').toUpperCase()}</span>
             <div class="row-actions">
+              ${teamBtn}
               <button class="small" data-act="ti-view">View / PDF</button>
               <button class="small ghost" data-act="ti-edit">Edit</button>
               <button class="small ghost" data-act="ti-del">×</button>
@@ -6626,6 +6668,21 @@ function renderTiMonths() {
     });
   });
   wrap.querySelectorAll('[data-act="ti-view"]').forEach(b => b.addEventListener('click', () => showTiInvoicePreview(b.closest('.ti-invoice-row').dataset.iid)));
+  wrap.querySelectorAll('[data-act="ti-team-expense"]').forEach(b => b.addEventListener('click', () => {
+    const iid = b.closest('.ti-invoice-row').dataset.iid;
+    const inv = (state.teamInvoices || []).find(i => i.id === iid);
+    if (!inv) return;
+    const wasLinked = tiInvoiceHasPayout(iid);
+    const payout = tiAddInvoiceToTeamExpense(iid);
+    if (!payout) return;
+    saveState();
+    renderTeamInvoices();
+    if (typeof renderAll === 'function') renderAll();
+    updateNavCounts();
+    fhToast(wasLinked
+      ? `Refreshed Team expense for #${inv.number}`
+      : `Added #${inv.number} to Team expenses (${payout.type})`);
+  }));
   wrap.querySelectorAll('[data-act="ti-edit"]').forEach(b => b.addEventListener('click', () => {
     const iid = b.closest('.ti-invoice-row').dataset.iid;
     const inv = (state.teamInvoices || []).find(i => i.id === iid);
