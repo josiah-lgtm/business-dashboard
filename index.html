@@ -4446,14 +4446,30 @@ function renderFhBuckets(monthId) {
       }
       saveState();
     }
-    row.querySelector('.it-amount').addEventListener('change', ev => update('amount', ev.target.value));
-    row.querySelector('.it-date').addEventListener('change', ev => { update('date', ev.target.value); renderFinanceHub(); });
+    // Per-keystroke autosave. `change` only fires on blur/Enter — if the
+    // user types and reloads before blur, the value is lost. `input` fires
+    // for every keystroke so every change persists immediately. We still
+    // wait for blur to re-render the bucket (so the cursor isn't ripped
+    // out of the active input mid-typing).
+    const amtInp = row.querySelector('.it-amount');
+    if (amtInp) {
+      amtInp.addEventListener('input', ev => update('amount', ev.target.value));
+      amtInp.addEventListener('blur', () => { renderFinanceHub(); renderOverviewIfActive(); });
+    }
+    const dateInp = row.querySelector('.it-date');
+    if (dateInp) {
+      dateInp.addEventListener('input', ev => update('date', ev.target.value));
+      dateInp.addEventListener('change', () => renderFinanceHub());
+    }
     const vendorInp = row.querySelector('.it-vendor');
-    if (vendorInp) vendorInp.addEventListener('change', ev => { update('vendor', ev.target.value); renderFinanceHub(); });
+    if (vendorInp) {
+      vendorInp.addEventListener('input', ev => update('vendor', ev.target.value));
+      vendorInp.addEventListener('blur', () => renderFinanceHub());
+    }
     const curInp = row.querySelector('.it-currency');
-    if (curInp) curInp.addEventListener('change', ev => { update('currency', ev.target.value); renderFinanceHub(); renderOverviewIfActive(); });
-    // Re-render on amount blur so totals refresh
-    row.querySelector('.it-amount').addEventListener('blur', () => { renderFinanceHub(); renderOverviewIfActive(); });
+    if (curInp) {
+      curInp.addEventListener('change', ev => { update('currency', ev.target.value); renderFinanceHub(); renderOverviewIfActive(); });
+    }
   });
   // + Add another charge for same vendor (multi-charge in same month)
   wrap.querySelectorAll('.it-add-charge').forEach(btn => btn.addEventListener('click', ev => {
@@ -6745,7 +6761,27 @@ function openTiInvoiceEditor(memberId, invoiceId) {
   }
   hoursIn.addEventListener('input', syncAmt);
   rateIn.addEventListener('input', syncAmt);
-  const close = () => overlay.remove();
+  const startedNew = !existing;
+  const close = () => {
+    // If autosave materialised a brand-new invoice and the user closes
+    // without putting any real content in, roll it back so we don't
+    // leave an empty row hanging around.
+    if (startedNew) {
+      const idx = (state.teamInvoices || []).findIndex(i => i.id === inv.id);
+      if (idx >= 0) {
+        const hasContent = (Number(inv.amount) || 0) > 0
+          || (inv.services && inv.services.trim() && inv.services !== periodMonthName)
+          || (inv.notes && inv.notes.trim());
+        if (!hasContent) {
+          state.teamInvoices.splice(idx, 1);
+          saveState();
+          renderTeamInvoices();
+          updateNavCounts();
+        }
+      }
+    }
+    overlay.remove();
+  };
   overlay.querySelectorAll('[data-act="close"]').forEach(b => b.addEventListener('click', close));
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   const collect = () => {
@@ -6757,25 +6793,50 @@ function openTiInvoiceEditor(memberId, invoiceId) {
     });
     inv.updatedAt = new Date().toISOString();
   };
-  const save = (alsoSubmit) => {
-    collect();
-    if (alsoSubmit) inv.status = 'pending';
-    if (!state.teamInvoices) state.teamInvoices = [];
+
+  // ─── Autosave on every keystroke ───────────────────────────────
+  // Materialise the invoice into state.teamInvoices the first time the
+  // user touches anything, then sync field-by-field on each input. Keeps
+  // the Save button working as a "confirm + close" action.
+  if (!state.teamInvoices) state.teamInvoices = [];
+  const ensurePersisted = () => {
     const idx = state.teamInvoices.findIndex(i => i.id === inv.id);
     if (idx >= 0) state.teamInvoices[idx] = inv;
     else state.teamInvoices.push(inv);
+  };
+  const statusPill = overlay.querySelector('#ti-edit-status');
+  let savedTimer;
+  const autoSave = () => {
+    collect();
+    ensurePersisted();
+    saveState();
+    if (statusPill) {
+      statusPill.textContent = 'Saving…';
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(() => { statusPill.textContent = 'Saved ✓'; }, 350);
+    }
+    updateNavCounts();
+  };
+  overlay.querySelectorAll('[data-f]').forEach(inp => {
+    inp.addEventListener('input', autoSave);
+    inp.addEventListener('change', autoSave);  // catches <select>
+  });
+
+  const save = (alsoSubmit) => {
+    collect();
+    if (alsoSubmit) inv.status = 'pending';
+    ensurePersisted();
     saveState();
     renderTeamInvoices();
     updateNavCounts();
-    const status = overlay.querySelector('#ti-edit-status');
     if (alsoSubmit && state.slackWebhookUrl) {
-      status.textContent = 'Saved · posting to Slack…';
+      if (statusPill) statusPill.textContent = 'Saved · posting to Slack…';
       tiPostToSlack(inv).then(ok => {
-        status.textContent = ok ? 'Saved & posted to Slack ✓' : 'Saved, but Slack post failed (check webhook URL)';
+        if (statusPill) statusPill.textContent = ok ? 'Saved & posted to Slack ✓' : 'Saved, but Slack post failed (check webhook URL)';
         if (ok) setTimeout(close, 900);
       });
     } else {
-      status.textContent = alsoSubmit ? 'Saved & submitted ✓' : 'Saved ✓';
+      if (statusPill) statusPill.textContent = alsoSubmit ? 'Saved & submitted ✓' : 'Saved ✓';
       setTimeout(close, 600);
     }
   };
@@ -7071,7 +7132,11 @@ function newInvoiceDefaults() {
 function showInvoiceForm(editId) {
   document.getElementById('invoice-form-card').style.display = 'block';
   document.getElementById('invoice-form-title').textContent = editId ? 'Edit invoice' : 'New invoice';
-  document.getElementById('invoice-form').dataset.editId = editId || '';
+  const form = document.getElementById('invoice-form');
+  form.dataset.editId = editId || '';
+  // Track whether this session started as a brand-new invoice so the
+  // Cancel handler can roll back an empty autosave-materialised row.
+  form.dataset.startedNew = editId ? '' : '1';
   if (editId) {
     const inv = state.invoices.find(x => x.id === editId);
     document.getElementById('inv-number').value = inv.number;
@@ -7098,6 +7163,47 @@ function showInvoiceForm(editId) {
     currentInvoiceItems = [{ description: '', qty: 1, rate: 0 }];
   }
   renderInvoiceItemsForm();
+}
+
+// Outbound invoice form — sync the form into state.invoices on every
+// keystroke. If we're creating a new invoice, materialise it on first
+// input so a refresh doesn't lose your work; the explicit Save button
+// just confirms + closes.
+function autoSaveOutboundInvoice() {
+  const form = document.getElementById('invoice-form');
+  if (!form) return;
+  let editId = form.dataset.editId;
+  let inv;
+  if (editId) {
+    inv = state.invoices.find(x => x.id === editId);
+    if (!inv) return;
+  } else {
+    // First keystroke on a new invoice → materialise + remember the id
+    inv = { id: uid(), items: [], client: {} };
+    state.invoices.push(inv);
+    state.meta.invoiceCounter = (state.meta.invoiceCounter || 1) + 1;
+    form.dataset.editId = inv.id;
+  }
+  inv.number   = document.getElementById('inv-number').value.trim();
+  inv.date     = document.getElementById('inv-date').value;
+  inv.currency = document.getElementById('inv-currency').value;
+  inv.status   = document.getElementById('inv-status').value;
+  inv.client = {
+    name:    document.getElementById('inv-client-name').value.trim(),
+    email:   document.getElementById('inv-client-email').value.trim(),
+    address: document.getElementById('inv-client-address').value.trim(),
+  };
+  inv.items = currentInvoiceItems
+    .filter(i => (i.description || '').trim() || i.qty || i.rate)
+    .map(i => ({ ...i }));
+  inv.taxPct   = parseFloat(document.getElementById('inv-tax-pct').value) || 0;
+  inv.notes    = document.getElementById('inv-notes').value.trim();
+  inv.subtotal = inv.items.reduce((s, i) => s + (i.qty || 0) * (i.rate || 0), 0);
+  inv.tax      = inv.subtotal * inv.taxPct / 100;
+  inv.total    = inv.subtotal + inv.tax;
+  inv.updatedAt = new Date().toISOString();
+  saveState();
+  updateNavCounts();
 }
 
 function renderInvoiceItemsForm() {
@@ -7647,6 +7753,23 @@ function wireUp() {
     document.getElementById('invoice-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   document.getElementById('invoice-form-cancel').addEventListener('click', () => {
+    // If autosave materialised a brand-new invoice during this session
+    // and the user cancels, roll it back so we don't leave a junk row.
+    const form = document.getElementById('invoice-form');
+    if (form.dataset.startedNew === '1' && form.dataset.editId) {
+      const id = form.dataset.editId;
+      const inv = state.invoices.find(x => x.id === id);
+      const hasContent = inv && (
+        (inv.client && (inv.client.name || inv.client.email || inv.client.address)) ||
+        (inv.items && inv.items.length > 0) ||
+        (inv.notes && inv.notes.trim() !== 'Thank you for your business.')
+      );
+      if (!hasContent) {
+        state.invoices = state.invoices.filter(x => x.id !== id);
+        saveState();
+        renderInvoices();
+      }
+    }
     document.getElementById('invoice-form-card').style.display = 'none';
   });
   document.getElementById('inv-item-add').addEventListener('click', () => {
@@ -7655,9 +7778,16 @@ function wireUp() {
   });
   document.getElementById('inv-currency').addEventListener('change', renderInvoiceItemsForm);
   document.getElementById('inv-tax-pct').addEventListener('input', recomputeInvoiceTotals);
-  document.getElementById('invoice-form').addEventListener('submit', e => {
+  // Per-keystroke autosave on every form field — input fires on every
+  // character typed, change catches the <select>s. Both route through
+  // autoSaveOutboundInvoice() so the in-progress invoice persists
+  // even if the user closes the tab before clicking Save invoice.
+  const invForm = document.getElementById('invoice-form');
+  invForm.addEventListener('input', autoSaveOutboundInvoice);
+  invForm.addEventListener('change', autoSaveOutboundInvoice);
+  invForm.addEventListener('submit', e => {
     e.preventDefault();
-    const editId = document.getElementById('invoice-form').dataset.editId;
+    const editId = invForm.dataset.editId;
     saveInvoice(editId || null);
   });
 
