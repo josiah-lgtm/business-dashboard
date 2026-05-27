@@ -1408,17 +1408,67 @@
   }
   .fh-entries .entry {
     display: grid;
-    grid-template-columns: 90px 1fr auto auto;
-    gap: 10px;
+    grid-template-columns: 130px 1fr 130px auto;
+    gap: 8px;
     padding: 6px 10px;
     background: rgba(0,0,0,0.20);
     border-radius: 7px;
     font-size: 12.5px;
     align-items: center;
+    transition: background 0.15s, border-color 0.15s;
+    border: 1px solid transparent;
   }
-  .fh-entries .entry .date { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-  .fh-entries .entry .source { color: var(--text); }
-  .fh-entries .entry .amt { color: var(--good); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .fh-entries .entry.is-legacy {
+    background: rgba(212,160,23,0.06);
+    border: 1px dashed rgba(212,160,23,0.45);
+  }
+  .fh-entries .entry.is-legacy .re-source {
+    font-style: italic;
+    color: var(--accent) !important;
+  }
+  /* Inline edit inputs on every entry row */
+  .fh-entries .entry .re-date,
+  .fh-entries .entry .re-source,
+  .fh-entries .entry .re-amount {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid transparent;
+    color: var(--text);
+    font-size: 12.5px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    width: 100%;
+  }
+  .fh-entries .entry .re-source { font-variant-numeric: normal; }
+  .fh-entries .entry .re-date { color: var(--text-tertiary); }
+  .fh-entries .entry .re-date:hover,
+  .fh-entries .entry .re-source:hover,
+  .fh-entries .entry .re-amount:hover {
+    border-color: var(--border);
+    background: rgba(255,255,255,0.06);
+  }
+  .fh-entries .entry .re-date:focus,
+  .fh-entries .entry .re-source:focus,
+  .fh-entries .entry .re-amount:focus {
+    outline: none;
+    border-color: var(--good);
+    background: var(--surface);
+    box-shadow: 0 0 0 2px rgba(48,209,88,0.18);
+  }
+  .fh-entries .entry .re-amt-wrap {
+    position: relative;
+  }
+  .fh-entries .entry .re-amt-wrap .re-amt-sym {
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    color: var(--good); font-size: 12px; font-weight: 600; pointer-events: none;
+  }
+  .fh-entries .entry .re-amt-wrap .re-amount {
+    padding-left: 20px;
+    color: var(--good);
+    font-weight: 700;
+    text-align: right;
+  }
   .fh-entries .entry .del {
     background: transparent; border: none; color: var(--text-tertiary);
     cursor: pointer; padding: 2px 6px; border-radius: 4px;
@@ -3363,6 +3413,28 @@ function saveState() {
   }, 250);
 }
 
+// Synchronous flush — runs when the tab is closing, when the user
+// navigates away, or when the page goes hidden (mobile background).
+// Guarantees the in-memory edits the user just made hit localStorage
+// before the page unloads, even if the 250ms debounce hasn't fired.
+function flushSaveStateNow() {
+  if (!dirty) return;
+  clearTimeout(saveTimer);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    dirty = false;
+    setSaveStatus('Saved', false);
+  } catch (e) {
+    console.error('flushSaveStateNow failed:', e);
+  }
+}
+// Attach the flush handlers as early as possible.
+window.addEventListener('beforeunload', flushSaveStateNow);
+window.addEventListener('pagehide', flushSaveStateNow);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSaveStateNow();
+});
+
 function setSaveStatus(text, isDirty) {
   const el = document.getElementById('save-status');
   el.textContent = text;
@@ -4180,7 +4252,27 @@ function fhRevenueForMonth(monthId) {
     const total = entries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
     return { total, entries: entries.sort((a, b) => (b.date || '').localeCompare(a.date || '')), fromEntries: true };
   }
-  return { total: state.months[monthId]?.revenue || 0, entries: [], fromEntries: false };
+  // No real entries — synthesise a "Carryover" row from the legacy single
+  // monthly figure (e.g. £28,348 May from backfill) so the user can see +
+  // edit it inline. The `_legacy` flag tells the renderer to materialise
+  // it into state.revenueEntries on first edit.
+  const legacyAmount = state.months[monthId]?.revenue || 0;
+  if (legacyAmount > 0) {
+    return {
+      total: legacyAmount,
+      entries: [{
+        id: '__legacy__',
+        month: monthId,
+        date: monthId + '-01',
+        amount: legacyAmount,
+        source: 'Carryover',
+        notes: '',
+        _legacy: true,
+      }],
+      fromEntries: false,
+    };
+  }
+  return { total: 0, entries: [], fromEntries: false };
 }
 
 function renderExpenses() {
@@ -4208,10 +4300,16 @@ function renderFhRevenueCard(monthId) {
   const profitClass = profit >= 0 ? 'good' : 'bad';
   const expensePctOfRev = rev.total > 0 ? ((grossExpenses / rev.total) * 100).toFixed(1) + '%' : '—';
   const marginPct = rev.total > 0 ? ((profit / rev.total) * 100).toFixed(1) + '%' : '—';
-  const entriesHtml = rev.entries.map(e => `<div class="entry" data-entry-id="${e.id}">
-    <span class="date">${fmtDate(e.date)}</span>
-    <span class="source">${escapeHtml(e.source || '—')}${e.notes ? ` · <span style="color:var(--text-tertiary)">${escapeHtml(e.notes)}</span>` : ''}</span>
-    <span class="amt">${money(e.amount)}</span>
+  // Each entry row is inline-editable. The synthetic "Carryover" row
+  // (from a legacy state.months[m].revenue) shows in italic so the user
+  // knows it's not a real entry yet — first edit materialises it.
+  const entriesHtml = rev.entries.map(e => `<div class="entry editable${e._legacy ? ' is-legacy' : ''}" data-entry-id="${e.id}"${e._legacy ? ' data-legacy="1"' : ''}>
+    <input type="date" class="re-date" value="${e.date || ''}" title="Date" />
+    <input type="text" class="re-source" value="${escapeHtml(e.source || '')}" placeholder="Source / client" title="Source" />
+    <div class="re-amt-wrap">
+      <span class="re-amt-sym">£</span>
+      <input type="number" step="0.01" min="0" class="re-amount" value="${e.amount || 0}" title="Amount" />
+    </div>
     <button class="del" title="Delete entry">×</button>
   </div>`).join('');
   host.innerHTML = `<div class="fh-headline">
@@ -4242,10 +4340,78 @@ function renderFhRevenueCard(monthId) {
     </div>
   </div>`;
   host.querySelector('.add-entry').addEventListener('click', () => fhOpenAddRevenueModal(monthId));
+
+  // Materialise the synthetic "Carryover" row into state.revenueEntries
+  // the first time the user touches any field on it. Returns the real id
+  // so subsequent edits target the right record.
+  function materialiseLegacy(rowEl) {
+    if (rowEl.dataset.legacy !== '1') return rowEl.dataset.entryId;
+    const m = monthId;
+    const legacyAmount = state.months[m]?.revenue || 0;
+    state.revenueEntries = state.revenueEntries || [];
+    const newId = uid();
+    state.revenueEntries.push({
+      id: newId,
+      month: m,
+      date: rowEl.querySelector('.re-date').value || (m + '-01'),
+      amount: parseFloat(rowEl.querySelector('.re-amount').value) || legacyAmount,
+      source: rowEl.querySelector('.re-source').value || 'Carryover',
+      notes: '',
+    });
+    rowEl.dataset.entryId = newId;
+    rowEl.dataset.legacy = '';
+    rowEl.classList.remove('is-legacy');
+    return newId;
+  }
+
+  function syncMonthRevenue(month) {
+    // Keep state.months[m].revenue in sync with the sum of entries so
+    // calcMonth() + downstream readers stay accurate.
+    const sum = (state.revenueEntries || [])
+      .filter(e => e.month === month)
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    if (state.months[month]) state.months[month].revenue = sum;
+  }
+
+  host.querySelectorAll('.entry.editable').forEach(row => {
+    function updateField(field, value) {
+      const id = materialiseLegacy(row);
+      const entry = state.revenueEntries.find(x => x.id === id);
+      if (!entry) return;
+      if (field === 'amount') entry.amount = parseFloat(value) || 0;
+      else if (field === 'date') {
+        entry.date = value;
+        entry.month = monthOf(value);
+      }
+      else if (field === 'source') entry.source = value;
+      syncMonthRevenue(monthId);
+      saveState();
+    }
+    const dateInp   = row.querySelector('.re-date');
+    const srcInp    = row.querySelector('.re-source');
+    const amtInp    = row.querySelector('.re-amount');
+    if (dateInp) {
+      dateInp.addEventListener('input', ev => updateField('date',  ev.target.value));
+      dateInp.addEventListener('change', () => renderFinanceHub());
+    }
+    if (srcInp) srcInp.addEventListener('input', ev => updateField('source', ev.target.value));
+    if (amtInp) {
+      amtInp.addEventListener('input', ev => updateField('amount', ev.target.value));
+      amtInp.addEventListener('blur', () => { renderFinanceHub(); renderOverviewIfActive(); });
+    }
+  });
+
   host.querySelectorAll('.entry .del').forEach(btn => btn.addEventListener('click', ev => {
     ev.stopPropagation();
-    const id = btn.closest('.entry').dataset.entryId;
-    state.revenueEntries = state.revenueEntries.filter(x => x.id !== id);
+    const row = btn.closest('.entry');
+    const id = row.dataset.entryId;
+    if (row.dataset.legacy === '1') {
+      // Deleting the carryover row zeros the legacy monthly figure.
+      if (state.months[monthId]) state.months[monthId].revenue = 0;
+    } else {
+      state.revenueEntries = state.revenueEntries.filter(x => x.id !== id);
+      syncMonthRevenue(monthId);
+    }
     saveState();
     renderFinanceHub();
     renderOverviewIfActive();
