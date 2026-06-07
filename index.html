@@ -167,6 +167,27 @@
   .topbar .save-status.dirty::before { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
   @keyframes pulse { 0%,100% {opacity:0.4} 50% {opacity:1} }
 
+  /* Cloud-sync pill — appears next to Saved when cloud sync is on */
+  .topbar .cloud-status {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin-left: 8px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--surface-raised);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .topbar .cloud-status::before {
+    content: '☁';
+    font-size: 12px;
+  }
+  .topbar .cloud-status.ok  { background: rgba(48,209,88,0.14); color: var(--good); }
+  .topbar .cloud-status.err { background: rgba(255,69,58,0.14); color: var(--bad); }
+  .topbar .cloud-status.syncing { background: rgba(255,159,10,0.12); color: var(--warn); }
+
   .topbar .spacer { flex: 1; }
 
   /* ============================================================
@@ -2714,6 +2735,7 @@
       <span id="fx-rate-sym" style="font-size:12px;color:var(--muted)">$</span>
     </div>
     <span id="save-status" class="save-status">Saved</span>
+    <span id="cloud-status" class="cloud-status" style="display:none" title="Cloud sync status — Settings → Cloud sync">—</span>
     <div class="spacer"></div>
     <button id="add-month-btn" class="small">+ New Month</button>
   </div>
@@ -3148,6 +3170,43 @@
         </details>
       </div>
       <div class="card">
+        <h3>☁️ Cloud sync — same data on every device</h3>
+        <p class="help" style="margin-top:0">
+          By default the dashboard saves to <b>this browser only</b>. Enable cloud
+          sync so the data follows you and your team across logins, browsers, and
+          countries. The workspace key is your team's "room number" — anyone with
+          the same key sees the same data. Share it privately.
+        </p>
+        <div class="setting-row" style="margin-bottom:8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="cs-enabled" /> <span><b>Enable cloud sync</b> to <code>tracker.agencyadvanta.com</code></span>
+          </label>
+        </div>
+        <div class="setting-row" style="margin-bottom:8px">
+          <label for="cs-key">Workspace key</label>
+          <input id="cs-key" type="text" placeholder="bd-myworkspace-abc123" autocomplete="off" />
+          <button type="button" id="cs-gen-key" class="ghost small">↻ Generate</button>
+          <button type="button" id="cs-copy-key" class="ghost small">📋 Copy</button>
+        </div>
+        <div class="setting-row" style="margin-bottom:8px">
+          <label for="cs-url">Endpoint URL</label>
+          <input id="cs-url" type="url" />
+        </div>
+        <div class="setting-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button type="button" id="cs-pull-now" class="ghost">⬇ Pull from cloud now</button>
+          <button type="button" id="cs-push-now" class="primary">⬆ Push to cloud now</button>
+          <span id="cs-status" class="help" style="margin-left:6px;align-self:center">—</span>
+        </div>
+        <div class="help" style="margin-top:10px">
+          <b>How it works:</b> every keystroke saves locally; the local copy is
+          mirrored to the server every ~1.5s. Other devices on the same key
+          poll every 30s and replace their copy when the server is newer.
+          Last-write-wins. Don't enter the same fields on two devices at the
+          exact same time.
+        </div>
+      </div>
+
+      <div class="card">
         <h3>Targets & thresholds</h3>
         <div class="grid grid-auto" id="targets-grid"></div>
       </div>
@@ -3411,6 +3470,8 @@ function saveState() {
       setSaveStatus('Save error', true);
     }
   }, 250);
+  // Mirror to the shared cloud store too — no-op if cloud sync is off.
+  if (typeof cloudPushSoon === 'function') cloudPushSoon();
 }
 
 // Synchronous flush — runs when the tab is closing, when the user
@@ -3429,16 +3490,194 @@ function flushSaveStateNow() {
   }
 }
 // Attach the flush handlers as early as possible.
-window.addEventListener('beforeunload', flushSaveStateNow);
-window.addEventListener('pagehide', flushSaveStateNow);
+window.addEventListener('beforeunload', () => { flushSaveStateNow(); cloudFlushNow(); });
+window.addEventListener('pagehide', () => { flushSaveStateNow(); cloudFlushNow(); });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') flushSaveStateNow();
+  if (document.visibilityState === 'hidden') { flushSaveStateNow(); cloudFlushNow(); }
 });
 
 function setSaveStatus(text, isDirty) {
   const el = document.getElementById('save-status');
   el.textContent = text;
   el.classList.toggle('dirty', isDirty);
+}
+
+// ============================================================
+// Cloud sync — shared state across devices via team-tracker /api/external/kv
+// ============================================================
+// State persists to localStorage as the source of truth + mirrors to the
+// shared server on every save (debounced). On load we pull the server
+// copy, and if it's newer than the local one we replace local with it so
+// every device sees what every other device wrote. Last-write-wins.
+//
+// Settings live on state.cloudSync = { url, key, enabled }. Defaults to
+// the team-tracker URL + a workspace key derived from the saved business
+// name so each tenant has its own slot. Disabled by default — the user
+// flips it on once and all devices logged into the same workspace key
+// see the same data.
+const CLOUD_DEFAULTS = {
+  url: 'https://tracker.agencyadvanta.com/api/external/kv',
+  enabled: false,    // user enables once from Settings → Cloud sync
+  key: '',           // generated on first enable, persists in localStorage
+};
+let cloudTimer = null;
+let cloudInflight = false;
+let cloudPendingPush = false;
+let cloudLastPulledAt = null;  // ISO string of the server's updated_at last time we pulled
+
+function cloudCfg() {
+  if (!state.cloudSync) state.cloudSync = { ...CLOUD_DEFAULTS };
+  return state.cloudSync;
+}
+function cloudIsEnabled() { return !!(cloudCfg().enabled && cloudCfg().key && cloudCfg().url); }
+
+function setCloudStatus(text, cls) {
+  const el = document.getElementById('cloud-status');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'cloud-status ' + (cls || '');
+  el.style.display = cloudIsEnabled() ? '' : 'none';
+}
+
+// PULL — fetch the remote state and replace local if remote is newer.
+// Called on boot + on demand from Settings.
+async function cloudPull() {
+  if (!cloudIsEnabled()) return { ok: false, reason: 'disabled' };
+  const cfg = cloudCfg();
+  setCloudStatus('Syncing ↓', 'syncing');
+  try {
+    const r = await fetch(`${cfg.url}/${encodeURIComponent(cfg.key)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    if (!data || !data.value) {
+      // Nothing on the server yet — first run for this key. Push our local
+      // state so a fresh device that pulls after will see it.
+      setCloudStatus('Synced (no remote yet)', 'ok');
+      cloudPushNow();
+      return { ok: true, applied: false };
+    }
+    const remoteUpdated = data.updated_at || '';
+    const localUpdated  = state.meta?.cloudUpdatedAt || '';
+    // Replace local if remote is strictly newer. Equal timestamps = same
+    // copy we already have (we just pushed it).
+    if (remoteUpdated > localUpdated) {
+      // Preserve the user's cloudSync config across replace — don't pull
+      // someone else's URL/key over our own.
+      const cloud = state.cloudSync;
+      state = data.value;
+      state.cloudSync = cloud;
+      state.meta = state.meta || {};
+      state.meta.cloudUpdatedAt = remoteUpdated;
+      saveState();              // mirror to localStorage
+      if (typeof renderAll === 'function') renderAll();
+      setCloudStatus('Synced ✓ (pulled remote)', 'ok');
+      return { ok: true, applied: true };
+    }
+    cloudLastPulledAt = remoteUpdated;
+    setCloudStatus('Synced ✓', 'ok');
+    return { ok: true, applied: false };
+  } catch (e) {
+    console.error('cloudPull failed:', e);
+    setCloudStatus('Offline (local only)', 'err');
+    return { ok: false, error: e.message };
+  }
+}
+
+// PUSH — send local state to the server. Debounced so rapid edits collapse.
+function cloudPushSoon() {
+  if (!cloudIsEnabled()) return;
+  cloudPendingPush = true;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(cloudPushNow, 1500);
+  setCloudStatus('Saving to cloud…', 'syncing');
+}
+async function cloudPushNow() {
+  if (!cloudIsEnabled()) return;
+  if (cloudInflight) { cloudPendingPush = true; return; }
+  clearTimeout(cloudTimer);
+  cloudInflight = true;
+  cloudPendingPush = false;
+  const cfg = cloudCfg();
+  try {
+    const r = await fetch(`${cfg.url}/${encodeURIComponent(cfg.key)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: state, updated_by: cloudWho() }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    state.meta = state.meta || {};
+    state.meta.cloudUpdatedAt = data.updated_at || new Date().toISOString();
+    // Don't trigger saveState (would loop). Write straight to localStorage.
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+    setCloudStatus(`Synced ✓ ${cloudRelativeTime(state.meta.cloudUpdatedAt)}`, 'ok');
+  } catch (e) {
+    console.error('cloudPushNow failed:', e);
+    setCloudStatus('Cloud save failed — will retry', 'err');
+  } finally {
+    cloudInflight = false;
+    if (cloudPendingPush) cloudPushSoon();
+  }
+}
+// Synchronous best-effort flush during page unload. fetch with keepalive
+// is the only way to send during unload reliably across browsers.
+function cloudFlushNow() {
+  if (!cloudIsEnabled() || !cloudPendingPush) return;
+  const cfg = cloudCfg();
+  try {
+    // navigator.sendBeacon doesn't let us set Content-Type to JSON; use
+    // fetch with keepalive instead.
+    fetch(`${cfg.url}/${encodeURIComponent(cfg.key)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: state, updated_by: cloudWho() }),
+      keepalive: true,
+    }).catch(() => {});
+    cloudPendingPush = false;
+  } catch (_) {}
+}
+function cloudWho() {
+  // Best-effort device label so "updated_by" is readable on the server.
+  let dev = localStorage.getItem('bd-device-label');
+  if (!dev) {
+    dev = (navigator.platform || 'web') + '-' + Math.random().toString(36).slice(2, 6);
+    try { localStorage.setItem('bd-device-label', dev); } catch (_) {}
+  }
+  return dev;
+}
+function cloudRelativeTime(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  const sec = Math.round((Date.now() - then) / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  if (sec < 3600) return `${Math.round(sec / 60)}m ago`;
+  if (sec < 86400) return `${Math.round(sec / 3600)}h ago`;
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+// Generate a stable, hard-to-guess workspace key when the user first
+// enables cloud sync. They can override it in Settings to invite others
+// to the same workspace.
+function cloudGenerateKey() {
+  const seed = (state.business?.name || 'workspace').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 20);
+  const rand = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+  return `bd-${seed}-${rand}`;
+}
+
+// Polling — every 30s while the tab is visible, pull again so other
+// devices' changes filter in within half a minute. Cheap because the
+// payload is gzipped JSON + we only re-render when remote is newer.
+function cloudStartPolling() {
+  if (cloudStartPolling._timer) clearInterval(cloudStartPolling._timer);
+  cloudStartPolling._timer = setInterval(() => {
+    if (document.visibilityState === 'visible' && cloudIsEnabled() && !cloudInflight && !cloudPendingPush) {
+      cloudPull();
+    }
+  }, 30_000);
 }
 
 // ============================================================
@@ -7689,6 +7928,75 @@ function renderSettings() {
     });
   });
   renderBusinessSettings();
+  renderCloudSyncSettings();
+}
+
+// ☁️ Cloud sync — settings card wiring
+function renderCloudSyncSettings() {
+  const cfg = cloudCfg();
+  const enabled = document.getElementById('cs-enabled');
+  const keyInp  = document.getElementById('cs-key');
+  const urlInp  = document.getElementById('cs-url');
+  const statusEl= document.getElementById('cs-status');
+  if (!enabled) return;
+  enabled.checked = !!cfg.enabled;
+  keyInp.value = cfg.key || '';
+  urlInp.value = cfg.url || CLOUD_DEFAULTS.url;
+
+  const refreshStatus = () => {
+    if (!cfg.enabled) { statusEl.textContent = 'Off — local only'; statusEl.style.color = 'var(--text-tertiary)'; return; }
+    if (!cfg.key) { statusEl.textContent = 'Set a workspace key first'; statusEl.style.color = 'var(--warn)'; return; }
+    const last = state.meta?.cloudUpdatedAt;
+    statusEl.textContent = last ? `Last sync ${cloudRelativeTime(last)}` : 'Not synced yet';
+    statusEl.style.color = 'var(--text-secondary)';
+  };
+  refreshStatus();
+
+  enabled.onchange = () => {
+    cfg.enabled = enabled.checked;
+    if (cfg.enabled && !cfg.key) {
+      cfg.key = cloudGenerateKey();
+      keyInp.value = cfg.key;
+    }
+    saveState();
+    setCloudStatus(cfg.enabled ? 'Connecting…' : 'Off', cfg.enabled ? 'syncing' : '');
+    if (cfg.enabled) {
+      cloudPull().then(refreshStatus);
+      cloudStartPolling();
+    }
+    refreshStatus();
+  };
+  keyInp.onchange = () => { cfg.key = keyInp.value.trim(); saveState(); refreshStatus(); };
+  urlInp.onchange = () => { cfg.url = urlInp.value.trim() || CLOUD_DEFAULTS.url; saveState(); refreshStatus(); };
+  document.getElementById('cs-gen-key').onclick = () => {
+    cfg.key = cloudGenerateKey();
+    keyInp.value = cfg.key;
+    saveState();
+    refreshStatus();
+  };
+  document.getElementById('cs-copy-key').onclick = () => {
+    if (!cfg.key) return;
+    navigator.clipboard?.writeText(cfg.key);
+    statusEl.textContent = 'Key copied — share privately with your team';
+    statusEl.style.color = 'var(--good)';
+    setTimeout(refreshStatus, 2200);
+  };
+  document.getElementById('cs-pull-now').onclick = async () => {
+    statusEl.textContent = 'Pulling…';
+    const r = await cloudPull();
+    if (r.ok && r.applied) statusEl.textContent = '✓ Pulled remote — your view was replaced';
+    else if (r.ok) statusEl.textContent = '✓ Already up-to-date';
+    else statusEl.textContent = 'Pull failed — check console';
+    statusEl.style.color = r.ok ? 'var(--good)' : 'var(--bad)';
+    setTimeout(refreshStatus, 2500);
+  };
+  document.getElementById('cs-push-now').onclick = async () => {
+    statusEl.textContent = 'Pushing…';
+    await cloudPushNow();
+    statusEl.textContent = '✓ Pushed to cloud';
+    statusEl.style.color = 'var(--good)';
+    setTimeout(refreshStatus, 2200);
+  };
 }
 
 // ---------- Re-render helpers ----------
@@ -8099,6 +8407,14 @@ function wireUp() {
 // ============================================================
 wireUp();
 switchView(state.meta.activeView || 'overview');
+
+// ☁️ Cloud sync — boot. If the user has cloud sync enabled, pull the
+// remote state first (will replace local if remote is newer) and start
+// the 30s poll so other devices' changes filter in.
+if (cloudIsEnabled()) {
+  setCloudStatus('Connecting…', 'syncing');
+  cloudPull().then(() => cloudStartPolling());
+}
 </script>
 </body>
 </html>
