@@ -7,6 +7,14 @@ npm install      # first time / on a fresh machine
 npm run build    # type-checks, then outputs static files to dist/
 ```
 
+cd /opt/business-dashboard
+npm ci
+npm run build
+mkdir -p /var/www/businessdashboard
+rsync -a --delete dist/ /var/www/businessdashboard/
+
+
+
 Everything to publish is in **`dist/`** (an `index.html` + hashed files under `dist/assets/`).
 
 ## Hosting requirements
