@@ -7,6 +7,7 @@ import { decisionForCategory } from '@/lib/calc'
 import { money, pct } from '@/lib/money'
 import { fmtMonth, fmtMonthShort, fmtDate, isoDate, isoMonth, sortedMonthIds, monthOf } from '@/lib/format'
 import { renderSpendBars, renderTrendChart, renderDailyChart, renderMultiTrendChart } from '@/lib/charts-render'
+import { vChartTip } from '@/lib/chart-tip'
 
 const store = useDashboard()
 const { state } = storeToRefs(store)
@@ -41,6 +42,7 @@ const trendHtml = computed(() =>
     }),
     'var(--accent)',
     'var(--good)',
+    { primary: 'Revenue', secondary: 'Net profit' },
   ),
 )
 
@@ -246,13 +248,13 @@ void monthOf
       <!-- Spend bars -->
       <div class="card">
         <h3>Where the money went — {{ fmtMonth(monthId) }}</h3>
-        <div v-html="spendBarsHtml"></div>
+        <div v-chart-tip class="chart-host" v-html="spendBarsHtml"></div>
       </div>
 
       <!-- Trend -->
       <div class="card">
         <h3>Trend</h3>
-        <div v-html="trendHtml"></div>
+        <div v-chart-tip class="chart-host" v-html="trendHtml"></div>
         <div class="chart-legend" style="margin-top: 8px; justify-content: center">
           <span><span class="dot" style="background: var(--accent)"></span>Revenue</span>
           <span><span class="dot" style="background: var(--good)"></span>Net profit</span>
@@ -262,7 +264,7 @@ void monthOf
       <!-- Daily -->
       <div class="card">
         <h3>Last 12 weeks of spend</h3>
-        <div v-html="dailyHtml"></div>
+        <div v-chart-tip class="chart-host" v-html="dailyHtml"></div>
       </div>
 
       <!-- Team -->
@@ -367,7 +369,7 @@ void monthOf
             <span><span class="dot" style="background: var(--good)"></span>Net profit</span>
             <span style="margin-left: auto; font-style: italic; color: var(--text-tertiary)">Solid = actual · Dashed = projected</span>
           </div>
-          <div v-html="projection.html"></div>
+          <div v-chart-tip class="chart-host" v-html="projection.html"></div>
         </template>
       </div>
 

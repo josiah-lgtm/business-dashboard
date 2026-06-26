@@ -2,6 +2,7 @@
 // string — purely visual, rendered via v-html (ported from the legacy app's
 // renderBudgetPie). No interactivity, so a string renderer is appropriate.
 import { money } from '@/lib/money'
+import { tipMarkup, tipAttr } from '@/lib/chart-tip'
 
 export interface BudgetPieItem {
   label: string
@@ -39,7 +40,17 @@ export function renderBudgetPie(items: BudgetPieItem[], total: number): string {
         y3 = cy + rInner * Math.sin(end)
       const x4 = cx + rInner * Math.cos(start),
         y4 = cy + rInner * Math.sin(start)
-      return `<path d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rInner} ${rInner} 0 ${large} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z" fill="${it.color}" stroke="var(--surface)" stroke-width="2" />`
+      // Pull the slice outward along its mid-angle on hover.
+      const mid = (start + end) / 2
+      const tx = (Math.cos(mid) * 7).toFixed(2)
+      const ty = (Math.sin(mid) * 7).toFixed(2)
+      const tip = tipAttr(
+        tipMarkup(`${it.icon ? it.icon + ' ' : ''}${it.label}`, [
+          { label: 'Budget', value: money(it.value), color: it.color },
+          { label: 'Share', value: `${(frac * 100).toFixed(1)}%` },
+        ]),
+      )
+      return `<path class="bg-pie-slice" style="--tx:${tx}px;--ty:${ty}px" d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rInner} ${rInner} 0 ${large} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z" fill="${it.color}" stroke="var(--surface)" stroke-width="2" ${tip} />`
     })
     .join('')
   return `<svg viewBox="0 0 ${size} ${size}" style="width:${size}px;height:${size}px;display:block">

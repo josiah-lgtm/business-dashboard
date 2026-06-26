@@ -1,8 +1,9 @@
 // Chart renderers that build SVG/HTML strings — ported verbatim from the
 // legacy app. Used via v-html for the purely-visual charts (no interactivity).
 import { money, moneyShort } from './money'
-import { catClass, fmtMonthShort } from './format'
+import { catClass, fmtMonth, fmtMonthShort } from './format'
 import { smoothPath, niceTicks } from './charts'
+import { tipMarkup, tipAttr } from './chart-tip'
 import { CATEGORY_ORDER } from './buckets'
 import type { MonthCalc } from '@/types'
 
@@ -29,10 +30,16 @@ export function renderSpendBars(c: MonthCalc): string {
       .map((i) => {
         const pct = (i.val / max) * 100
         const sharePct = total > 0 ? (i.val / total) * 100 : 0
-        return `<div style="display:grid;grid-template-columns:170px 1fr 110px;gap:14px;align-items:center;font-size:13px">
+        const tip = tipAttr(
+          tipMarkup(i.label, [
+            { label: 'Spend', value: money(i.val) },
+            { label: 'Share of spend', value: `${sharePct.toFixed(1)}%` },
+          ]),
+        )
+        return `<div class="ct-bar-row" ${tip} style="display:grid;grid-template-columns:170px 1fr 110px;gap:14px;align-items:center;font-size:13px">
         <div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-0.005em">${i.cls ? `<span class="pill ${i.cls}">${i.label}</span>` : i.label}</div>
         <div style="background:var(--surface-input);height:8px;border-radius:4px;position:relative;overflow:hidden">
-          <div style="background:linear-gradient(90deg,var(--accent),var(--accent-hover));height:100%;width:${pct}%;border-radius:4px;box-shadow:0 0 8px var(--accent-shadow)"></div>
+          <div class="ct-bar-fill" style="background:linear-gradient(90deg,var(--accent),var(--accent-hover));height:100%;width:${pct}%;border-radius:4px;box-shadow:0 0 8px var(--accent-shadow)"></div>
         </div>
         <div style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text);font-weight:500;letter-spacing:-0.01em">${money(i.val)}<span style="color:var(--text-tertiary);font-size:11px;font-weight:400;margin-left:6px">${sharePct.toFixed(0)}%</span></div>
       </div>`
@@ -41,8 +48,15 @@ export function renderSpendBars(c: MonthCalc): string {
   </div>`
 }
 
-export function renderTrendChart(points: TrendPoint[], color: string, color2?: string): string {
+export function renderTrendChart(
+  points: TrendPoint[],
+  color: string,
+  color2?: string,
+  labels?: { primary?: string; secondary?: string },
+): string {
   if (!points.length) return '<div class="empty"><p>No data</p></div>'
+  const labelP = labels?.primary || 'Value'
+  const labelS = labels?.secondary || 'Value 2'
   const w = 800,
     h = 240
   const padL = 56,
@@ -91,6 +105,24 @@ export function renderTrendChart(points: TrendPoint[], color: string, color2?: s
   const lastY = yOf(lastP.val)
   const lastY2 = has2 ? yOf(lastP.val2 as number) : null
 
+  const hoverCols = points
+    .map((p, i) => {
+      const x = xOf(i)
+      const left = i === 0 ? padL : x - xStep / 2
+      const right = i === lastI ? w - padR : x + xStep / 2
+      const bandW = Math.max(1, right - left)
+      const rows = [{ label: labelP, value: money(p.val), color }]
+      if (has2) rows.push({ label: labelS, value: money(p.val2 as number), color: color2 as string })
+      const tip = tipAttr(tipMarkup(fmtMonth(p.id), rows))
+      return `<g class="ct-col">
+      <line class="ct-guide" x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${(padT + innerH).toFixed(1)}" />
+      ${has2 ? `<circle class="ct-dot" cx="${x.toFixed(1)}" cy="${yOf(p.val2 as number).toFixed(1)}" r="4" style="--c:${color2}" />` : ''}
+      <circle class="ct-dot" cx="${x.toFixed(1)}" cy="${yOf(p.val).toFixed(1)}" r="4" style="--c:${color}" />
+      <rect class="ct-hit" x="${left.toFixed(1)}" y="${padT}" width="${bandW.toFixed(1)}" height="${innerH}" fill="transparent" pointer-events="all" ${tip} />
+    </g>`
+    })
+    .join('')
+
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:240px;overflow:visible">
     <defs>
       <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
@@ -107,6 +139,7 @@ export function renderTrendChart(points: TrendPoint[], color: string, color2?: s
     <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="5" fill="var(--bg)" stroke="${color}" stroke-width="2" />
     <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="11" fill="${color}" fill-opacity="0.15" />
     ${xLabels}
+    ${hoverCols}
   </svg>`
 }
 
@@ -162,9 +195,15 @@ export function renderDailyChart(
         if (v === 0) return ''
         const hSeg = (v / tMax) * innerH
         yAcc -= hSeg
-        return `<rect x="${x.toFixed(1)}" y="${yAcc.toFixed(1)}" width="${barW.toFixed(1)}" height="${hSeg.toFixed(1)}" fill="${colors[cat]}" clip-path="url(#${clipId})"><title>${cat}: ${money(v)}</title></rect>`
+        return `<rect class="ct-seg" x="${x.toFixed(1)}" y="${yAcc.toFixed(1)}" width="${barW.toFixed(1)}" height="${hSeg.toFixed(1)}" fill="${colors[cat]}" clip-path="url(#${clipId})" />`
       }).join('')
-      return `<defs><clipPath id="${clipId}"><path d="${clipPath}" /></clipPath></defs>${segments}`
+      const catRows = Object.entries(g.byCat)
+        .filter(([, v]) => v > 0)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat, v]) => ({ label: cat, value: money(v), color: colors[cat] }))
+      const tip = tipAttr(tipMarkup(bucketLabel(k), [...catRows, { label: 'Total', value: money(g.total) }]))
+      const hit = `<rect class="ct-hit" x="${(padL + i * colWidth).toFixed(1)}" y="${padT}" width="${colWidth.toFixed(1)}" height="${innerH}" fill="transparent" pointer-events="all" ${tip} />`
+      return `<g class="ct-col"><defs><clipPath id="${clipId}"><path d="${clipPath}" /></clipPath></defs>${segments}${hit}</g>`
     })
     .join('')
 
@@ -256,6 +295,37 @@ export function renderMultiTrendChart(points: MultiPoint[], splitIdx: number): s
 
   const splitX = splitIdx > 0 && splitIdx < points.length ? padL + (splitIdx - 0.5) * xStep : null
 
+  const seriesMeta: { key: keyof MultiPoint; label: string; color: string }[] = [
+    { key: 'rev', label: 'Revenue', color: 'var(--accent)' },
+    { key: 'exp', label: 'Expenses', color: 'var(--bad)' },
+    { key: 'net', label: 'Net profit', color: 'var(--good)' },
+  ]
+  const lastI = points.length - 1
+  const hoverCols = points
+    .map((p, i) => {
+      const x = xOf(i)
+      const left = i === 0 ? padL : x - xStep / 2
+      const right = i === lastI ? w - padR : x + xStep / 2
+      const bandW = Math.max(1, right - left)
+      const projected = i >= splitIdx
+      const title = `${fmtMonth(p.id)}${projected ? ' · projected' : ''}`
+      const tip = tipAttr(
+        tipMarkup(
+          title,
+          seriesMeta.map((s) => ({ label: s.label, value: money(p[s.key] as number), color: s.color })),
+        ),
+      )
+      const dots = seriesMeta
+        .map((s) => `<circle class="ct-dot" cx="${x.toFixed(1)}" cy="${yOf(p[s.key] as number).toFixed(1)}" r="4" style="--c:${s.color}" />`)
+        .join('')
+      return `<g class="ct-col">
+      <line class="ct-guide" x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${(padT + innerH).toFixed(1)}" />
+      ${dots}
+      <rect class="ct-hit" x="${left.toFixed(1)}" y="${padT}" width="${bandW.toFixed(1)}" height="${innerH}" fill="transparent" pointer-events="all" ${tip} />
+    </g>`
+    })
+    .join('')
+
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:280px;overflow:visible">
     ${yTicks}
     ${
@@ -273,5 +343,6 @@ export function renderMultiTrendChart(points: MultiPoint[], splitIdx: number): s
       })
       .join('')}
     ${xLabels}
+    ${hoverCols}
   </svg>`
 }

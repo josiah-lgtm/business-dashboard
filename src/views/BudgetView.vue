@@ -6,6 +6,7 @@ import { categoryTotals, refundsForMonth, prevMonthId } from '@/lib/calc'
 import { money, pct } from '@/lib/money'
 import { fmtMonth } from '@/lib/format'
 import { renderBudgetPie } from '@/components/finance/budget-pie'
+import { vChartTip } from '@/lib/chart-tip'
 import type { Budget } from '@/types'
 
 const store = useDashboard()
@@ -337,7 +338,7 @@ function resetToZero() {
 
       <!-- Pie / allocation -->
       <div class="bg-pie-card">
-        <div class="bg-pie-svg" v-html="pieSvg"></div>
+        <div class="bg-pie-svg chart-host" v-chart-tip v-html="pieSvg"></div>
         <div class="bg-pie-legend">
           <div class="bg-pie-title">Budget allocation — {{ fmtMonth(monthId) }}</div>
           <div v-if="!pieItems.length" class="help" style="margin-top: 8px">
