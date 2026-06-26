@@ -4,6 +4,7 @@ import type { State } from '@/types'
 import { STORAGE_KEY, DEFAULT_TARGETS, DEFAULT_BUSINESS, makeInitialState, BACKFILL } from '@/lib/seed'
 import { uid, isoMonth, sortedMonthIds } from '@/lib/format'
 import { bindState } from '@/lib/store-access'
+import { mergeStates } from '@/lib/merge'
 import { cloudPushSoon, cloudFlushNow, registerCloudHooks } from '@/lib/cloud'
 
 // ============================================================
@@ -52,6 +53,7 @@ function loadState(): State | null {
     if (!Array.isArray(s.revenueEntries)) s.revenueEntries = []
     if (!Array.isArray(s.customBuckets)) s.customBuckets = []
     if (!Array.isArray(s.teamPayouts)) s.teamPayouts = []
+    if (!s.deletions || typeof s.deletions !== 'object') s.deletions = {}
     // Unify each team member's pay into one amount + a payType.
     ;(s.team || []).forEach((t: any) => {
       if (t.payType == null) {
@@ -157,6 +159,46 @@ export const useDashboard = defineStore('dashboard', () => {
     persistNow()
   }
 
+  // ---- Deletion tombstones ----
+  // A non-reactive shadow of the ids present in each collection. When an id
+  // disappears between saves we record a tombstone (`${coll}:${id}` → ISO time)
+  // so the delete propagates through the cloud merge. Bulk replacements (remote
+  // apply, reset/wipe/import-replace) refresh this baseline WITHOUT emitting
+  // tombstones, so they can never mass-delete the shared dataset.
+  const ID_COLLECTIONS = [
+    'expenses', 'vendors', 'refunds', 'team', 'tasks',
+    'invoices', 'teamInvoices', 'revenueEntries', 'customBuckets', 'teamPayouts',
+  ] as const
+  const TRACKED = [...ID_COLLECTIONS, 'months'] as const
+  const knownIds: Record<string, Set<string>> = {}
+
+  function currentIdsOf(coll: string): Set<string> {
+    if (coll === 'months') return new Set(Object.keys(state.months || {}))
+    const arr = (state as any)[coll]
+    return new Set<string>(Array.isArray(arr) ? arr.map((x: any) => x?.id).filter((id: any) => id != null) : [])
+  }
+  function refreshKnownIds() {
+    for (const coll of TRACKED) knownIds[coll] = currentIdsOf(coll)
+  }
+  function reconcileTombstones() {
+    if (!state.deletions) state.deletions = {}
+    const now = new Date().toISOString()
+    for (const coll of TRACKED) {
+      const prev = knownIds[coll]
+      const cur = currentIdsOf(coll)
+      if (prev) {
+        for (const id of prev) {
+          if (!cur.has(id)) {
+            const key = `${coll}:${id}`
+            if (!state.deletions[key]) state.deletions[key] = now
+          }
+        }
+      }
+      knownIds[coll] = cur
+    }
+  }
+  refreshKnownIds() // seed the baseline from loaded state before the watch can fire
+
   watch(
     state,
     () => {
@@ -166,8 +208,12 @@ export const useDashboard = defineStore('dashboard', () => {
       if (saveTimer) clearTimeout(saveTimer)
       saveTimer = setTimeout(persistNow, 250)
       if (applyingRemote) {
-        applyingRemote = false // consumed: this change came from a remote pull / cloud meta write
+        // Remote pull / cloud meta write / bulk replace: rebase the tombstone
+        // baseline to the new state, but DON'T emit deletes for what it removed.
+        refreshKnownIds()
+        applyingRemote = false // consumed
       } else {
+        reconcileTombstones() // record any user-initiated deletions
         cloudPushSoon()
       }
     },
@@ -184,19 +230,21 @@ export const useDashboard = defineStore('dashboard', () => {
   }
 
   // ---- Cloud hooks ----
-  function applyRemoteState(remote: State, updatedAt: string) {
+  // MERGE the remote blob into local (union by id; never drop either side's
+  // data) rather than replacing it. Returns whether anything changed so the
+  // caller can push the merged union back to the server.
+  function applyRemoteState(remote: State, updatedAt: string, preferRemote: boolean): boolean {
+    const localUpdated = state.meta?.cloudUpdatedAt || ''
+    const { merged, changed } = mergeStates(state as State, remote, { preferRemote })
     mutateSilently(() => {
-      const cloud = state.cloudSync
-      for (const k of Object.keys(state)) {
-        if (!(k in remote)) delete (state as any)[k]
-      }
-      Object.assign(state, remote)
-      state.cloudSync = cloud
+      Object.assign(state, merged)
       state.meta = state.meta || ({} as any)
-      state.meta.cloudUpdatedAt = updatedAt
+      // Track the latest server version we've reconciled with (never move backward).
+      state.meta.cloudUpdatedAt = updatedAt > localUpdated ? updatedAt : localUpdated
     })
     persistNow()
     bindState(state as State)
+    return changed
   }
   function setCloudMeta(updatedAt: string) {
     mutateSilently(() => {
@@ -206,6 +254,24 @@ export const useDashboard = defineStore('dashboard', () => {
     persistNow()
   }
   registerCloudHooks({ applyRemote: applyRemoteState, setCloudMeta })
+
+  // Wholesale replace (import-replace / reset / wipe). Runs through the silent
+  // path: it rebases the tombstone baseline and does NOT push, so a local reset
+  // can't emit mass tombstones or clear the shared cloud copy. The next pull
+  // re-merges the server's data back in. For a deliberate hard restore, turn
+  // cloud sync off first.
+  function replaceWholeState(newState: State) {
+    mutateSilently(() => {
+      const s = state as any
+      for (const k of Object.keys(s)) {
+        if (!(k in (newState as any))) delete s[k]
+      }
+      Object.assign(s, newState)
+      if (!s.deletions || typeof s.deletions !== 'object') s.deletions = {}
+    })
+    persistNow()
+    bindState(state as State)
+  }
 
   // Unload flush handlers (parity with legacy beforeunload/pagehide/visibilitychange).
   window.addEventListener('beforeunload', () => {
@@ -292,6 +358,7 @@ export const useDashboard = defineStore('dashboard', () => {
     saveDirty,
     persistNow,
     flushSaveStateNow,
+    replaceWholeState,
     setActiveMonth,
     setCurrency,
     setFxRate,

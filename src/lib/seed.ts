@@ -99,6 +99,7 @@ export function makeInitialState(): State {
     revenueEntries: [],
     customBuckets: [],
     teamPayouts: [],
+    deletions: {},
   }
 }
 

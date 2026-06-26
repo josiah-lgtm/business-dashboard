@@ -28,11 +28,13 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 
 // Store-provided hooks (registered on boot) — keep this module free of a
 // hard dependency on the Pinia store (avoids an import cycle).
-let _applyRemote: (value: State, updatedAt: string) => void = () => {}
+// applyRemote MERGES the remote blob into local and returns whether the merge
+// changed anything (→ we push the union back so the server holds everyone's data).
+let _applyRemote: (value: State, updatedAt: string, preferRemote: boolean) => boolean = () => false
 let _setCloudMeta: (updatedAt: string) => void = () => {}
 
 export function registerCloudHooks(hooks: {
-  applyRemote: (value: State, updatedAt: string) => void
+  applyRemote: (value: State, updatedAt: string, preferRemote: boolean) => boolean
   setCloudMeta: (updatedAt: string) => void
 }) {
   _applyRemote = hooks.applyRemote
@@ -66,19 +68,26 @@ export async function cloudPull(): Promise<{ ok: boolean; applied?: boolean; rea
     })
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
     const data = await r.json()
-    if (!data || !data.value) {
+    if (!data || data.value == null) {
       setCloudStatus('Synced (no remote yet)', 'ok')
       cloudPushNow()
       return { ok: true, applied: false }
     }
     const remoteUpdated = data.updated_at || ''
     const localUpdated = S().meta?.cloudUpdatedAt || ''
-    if (remoteUpdated > localUpdated) {
-      _applyRemote(data.value as State, remoteUpdated)
-      setCloudStatus('Synced ✓ (pulled remote)', 'ok')
+    // Always merge (not just when remote is "newer"): an older-looking blob can
+    // still hold entries we lack — e.g. a teammate's data pushed before we were
+    // online. preferRemote is the tiebreak for genuine same-entity conflicts.
+    const preferRemote = remoteUpdated > localUpdated
+    const changed = _applyRemote(data.value as State, remoteUpdated, preferRemote)
+    cloudLastPulledAt = remoteUpdated
+    if (changed) {
+      // The merge produced a superset the server may not have yet — push it back
+      // so every device converges on the union of everyone's data.
+      setCloudStatus('Synced ✓ (merged)', 'ok')
+      cloudPushNow()
       return { ok: true, applied: true }
     }
-    cloudLastPulledAt = remoteUpdated
     setCloudStatus('Synced ✓', 'ok')
     return { ok: true, applied: false }
   } catch (e: any) {

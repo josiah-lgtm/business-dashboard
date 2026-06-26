@@ -233,6 +233,10 @@ export interface State {
   revenueEntries: RevenueEntry[]
   customBuckets: CustomBucket[]
   teamPayouts: TeamPayout[]
+  // Deletion tombstones: `${collection}:${id}` → ISO time of deletion. Lets a
+  // delete on one device propagate through the union merge instead of being
+  // resurrected by another device that still has the entry.
+  deletions: Record<string, string>
   cloudSync?: CloudSync
   _tiTab?: 'admin' | 'member'
 }

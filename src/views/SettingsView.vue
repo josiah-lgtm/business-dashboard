@@ -8,6 +8,7 @@ import {
   DEFAULT_BUSINESS,
   DEFAULT_TARGETS,
 } from '@/lib/seed'
+import { mergeStates } from '@/lib/merge'
 import {
   cloudCfg,
   cloudPull,
@@ -159,13 +160,11 @@ async function pushNow() {
 }
 
 // ---------- Data: export / import / reset / wipe ----------
-// Replace the whole reactive state in place so the autosave watcher persists it.
+// Wholesale replace runs through the store's silent path: it rebases the
+// tombstone baseline and does not push, so a local reset/wipe/replace can't
+// emit mass deletions or clear the shared cloud copy.
 function replaceState(newState: State) {
-  const s = state.value as any
-  for (const k of Object.keys(s)) {
-    if (!(k in (newState as any))) delete s[k]
-  }
-  Object.assign(s, newState)
+  store.replaceWholeState(newState)
 }
 
 function exportJson() {
@@ -196,10 +195,25 @@ function onImportChange(ev: Event) {
         alert('Invalid file — missing months/expenses')
         return
       }
-      if (!confirm('Replace all current data with import?')) return
       data.targets = { ...DEFAULT_TARGETS, ...(data.targets || {}) }
       data.meta = { activeView: 'overview', currency: 'GBP', fxRate: 1.27, ...(data.meta || {}) }
-      replaceState(data as State)
+      // Default to MERGE — combine the file's entries with current data so nothing
+      // is overwritten (the safe path for recovering a teammate's export). Replace
+      // is still available for a deliberate full restore.
+      const merge = confirm(
+        'Import this file?\n\n' +
+          'OK = MERGE: add the file\'s entries to your current data (nothing is overwritten).\n' +
+          'Cancel = choose REPLACE instead.',
+      )
+      if (merge) {
+        // preferRemote:false → on a same-entry conflict your current data wins;
+        // the import only fills in entries you don't already have.
+        const { merged } = mergeStates(state.value as State, data as State, { preferRemote: false })
+        replaceState(merged)
+      } else {
+        if (!confirm('REPLACE ALL current data with the import? This overwrites everything you have now.')) return
+        replaceState(data as State)
+      }
       refreshStatus()
     } catch (err: any) {
       alert('Import failed: ' + err.message)
@@ -262,6 +276,7 @@ function wipeAll() {
     revenueEntries: [],
     customBuckets: [],
     teamPayouts: [],
+    deletions: {},
   }
   fresh.months[activeMonth] = {
     revenue: 0,
