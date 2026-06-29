@@ -13,6 +13,20 @@ import type { State } from './types.js'
 
 type Dict = Record<string, any>
 
+/** The numeric figures that make a month "real". taxPct is excluded — its
+ * default (15) is present even on an untouched month, so it isn't evidence of data. */
+const MONTH_FIGURE_FIELDS = [
+  'revenue', 'merchantFees', 'salariesTotal', 'commissionsTotal',
+  'referralPayoutsTotal', 'refundsTotal', 'founderComp',
+  'newClients', 'activeClients', 'churnedClients',
+] as const
+
+/** True when a month record carries no figures — i.e. it was auto-created or never edited. */
+function isBlankMonth(m: Dict): boolean {
+  if (!m) return true
+  return MONTH_FIGURE_FIELDS.every((f) => !m[f])
+}
+
 /** Largest (lexically latest) ISO timestamp among the given fields, or '' if none. */
 function latestTs(obj: Dict, fields: string[]): string {
   let best = ''
@@ -112,7 +126,15 @@ export function mergeStates(
   merged.teamPayouts = unionById(local.teamPayouts, remote.teamPayouts, [], pr)
 
   // --- record maps ---
-  merged.months = mergeRecord(local.months, remote.months, (l, r) => pick(l, r))
+  // Months: a blank (all-zero) month never wins, so a device that just
+  // auto-created the current month can't wipe another device's real figures.
+  merged.months = mergeRecord(local.months, remote.months, (l, r) => {
+    const lBlank = isBlankMonth(l)
+    const rBlank = isBlankMonth(r)
+    if (lBlank && !rBlank) return r
+    if (rBlank && !lBlank) return l
+    return pick(l, r)
+  })
   merged.budgets = mergeRecord(local.budgets, remote.budgets, (l: any, r: any) => {
     const sl = l?._savedAt || ''
     const sr = r?._savedAt || ''

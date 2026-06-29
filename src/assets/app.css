@@ -4,6 +4,9 @@
   * { box-sizing: border-box; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
   :root {
+    /* Render native UI (select popups, scrollbars, pickers) dark to match. */
+    color-scheme: dark;
+
     /* Material layers (dark) — translucent stacking */
     --bg: #161616;
     --bg-elevated: #1c1c1e;
@@ -391,6 +394,14 @@
   }
   input[type="date"], input[type="month"] { color-scheme: dark; }
   input[type="checkbox"] { width: auto; accent-color: var(--accent); }
+
+  /* Native dropdown list items — keep them on-theme where the browser honors it. */
+  select option,
+  select optgroup {
+    background: var(--bg-elevated);
+    color: var(--text);
+  }
+  select option:checked { background: var(--accent-tint-strong); }
 
   /* ============================================================
      Buttons

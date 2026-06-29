@@ -89,6 +89,25 @@ test('months map unions and tombstoned month is dropped', () => {
   assert.deepEqual(Object.keys(merged.months), ['2026-02'])
 })
 
+test('a blank month never overwrites a populated one (either tiebreak side)', () => {
+  // Remote has real June figures; local just auto-created a blank June.
+  // Even with preferRemote=false (local blob "wins"), the populated side must survive.
+  const local = base()
+  local.months = { '2026-06': anyMonth(0) }
+  const remote = base()
+  remote.months = { '2026-06': anyMonth(28348) }
+  const a = mergeStates(local, remote, { preferRemote: false })
+  assert.equal(a.merged.months['2026-06'].revenue, 28348)
+
+  // And the symmetric case: local has the data, remote is the blank one.
+  const local2 = base()
+  local2.months = { '2026-06': anyMonth(28348) }
+  const remote2 = base()
+  remote2.months = { '2026-06': anyMonth(0) }
+  const b = mergeStates(local2, remote2, { preferRemote: true })
+  assert.equal(b.merged.months['2026-06'].revenue, 28348)
+})
+
 function anyMonth(revenue: number): any {
   return {
     revenue, merchantFees: 0, salariesTotal: 0, commissionsTotal: 0, referralPayoutsTotal: 0,

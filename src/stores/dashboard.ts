@@ -142,9 +142,38 @@ function loadState(): State | null {
   }
 }
 
+// A zeroed month record — same shape used by the backfill merge and addMonth.
+function blankMonth() {
+  return {
+    revenue: 0,
+    merchantFees: 0,
+    salariesTotal: 0,
+    commissionsTotal: 0,
+    referralPayoutsTotal: 0,
+    refundsTotal: 0,
+    founderComp: 0,
+    taxPct: 15,
+    newClients: 0,
+    activeClients: 0,
+    churnedClients: 0,
+  }
+}
+
 export const useDashboard = defineStore('dashboard', () => {
   const state = reactive<State>(loadState() || makeInitialState())
   bindState(state as State)
+
+  // Always make sure the current calendar month exists. The backfill data only
+  // runs through a fixed range, so without this the present month is missing
+  // from the picker until someone manually adds it via "+ New Month".
+  const curMonth = isoMonth(new Date())
+  if (!state.months[curMonth]) {
+    state.months[curMonth] = blankMonth()
+  }
+  // If the saved active month no longer exists, fall back to the current one.
+  if (!state.meta.activeMonth || !state.months[state.meta.activeMonth]) {
+    state.meta.activeMonth = curMonth
+  }
 
   // ---- Persistence (replaces the legacy mutate→saveState→renderX plumbing) ----
   const saveStatus = ref<string>('Saved')
