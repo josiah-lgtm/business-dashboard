@@ -7,3 +7,11 @@ node_modules/
 dist/
 *.local
 .vite/
+
+# Secrets / env (compose reads .env; never commit real secrets)
+.env
+.env.local
+
+# Backend build output (api/ has its own .gitignore too)
+api/node_modules/
+api/dist/

@@ -54,6 +54,19 @@ function loadState(): State | null {
     if (!Array.isArray(s.customBuckets)) s.customBuckets = []
     if (!Array.isArray(s.teamPayouts)) s.teamPayouts = []
     if (!s.deletions || typeof s.deletions !== 'object') s.deletions = {}
+    // One-time cutover: existing users have `cloudSync` already persisted with the
+    // retired team-tracker KV URL, so changing CLOUD_DEFAULTS alone won't move
+    // them. Repoint to this app's own backend (same-origin by default), turn sync
+    // on, and seed the shared workspace key if they don't have one.
+    if (s.cloudSync && typeof s.cloudSync === 'object') {
+      if (s.cloudSync.url === 'https://tracker.agencyadvanta.com/api/external/kv') {
+        s.cloudSync.url = import.meta.env.VITE_API_URL || '/api/external/kv'
+        s.cloudSync.enabled = true
+        if (!s.cloudSync.key && import.meta.env.VITE_WORKSPACE_KEY) {
+          s.cloudSync.key = import.meta.env.VITE_WORKSPACE_KEY
+        }
+      }
+    }
     // Unify each team member's pay into one amount + a payType.
     ;(s.team || []).forEach((t: any) => {
       if (t.payType == null) {

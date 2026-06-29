@@ -1,0 +1,357 @@
+// business-dashboard relational backend.
+//
+// Design: every entity in the SPA's `State` (src/types.ts) becomes a real
+// table with typed columns for SQL/reporting. Each row ALSO keeps a `raw`
+// jsonb of the original entity so the sync GET can reconstruct a blob that is
+// byte-equivalent to what the client holds (no sync churn). The typed columns
+// are a queryable projection of `raw`; reporting reads columns, sync reads raw.
+//
+// All entity tables are scoped by `workspaceId` (the secret sync key) with a
+// composite PK on (workspaceId, id) where `id` is the client-generated uid.
+// Soft-delete via `deletedAt`; the authoritative deletion map lives in
+// `Tombstone`. Money/percent are Float (JS numbers) to keep JSON byte-compat.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// One row per sync key. Holds the shared singletons + the blob-level clock.
+model Workspace {
+  key            String   @id
+  business       Json? // Business (incl. banks, logoDataUrl)
+  targets        Json? // Targets
+  fxRates        Json? // Meta.fxRates
+  fxRate         Float? // Meta.fxRate (legacy mirror of fxRates.USD)
+  invoiceCounter Int      @default(1) // Meta.invoiceCounter (monotonic)
+  slackWebhookUrl String  @default("")
+  dataUpdatedAt  DateTime @default(now()) // bumped on every changed POST -> GET updated_at
+  updatedBy      String? // last writer (device label) -> GET updated_by
+  createdAt      DateTime @default(now())
+
+  expenses            Expense[]
+  vendors             Vendor[]
+  refunds             Refund[]
+  team                TeamMember[]
+  tasks               Task[]
+  invoices            Invoice[]
+  teamInvoices        TeamInvoice[]
+  revenueEntries      RevenueEntry[]
+  customBuckets       CustomBucket[]
+  teamPayouts         TeamPayout[]
+  months              MonthFigure[]
+  budgets             Budget[]
+  teamInvoiceCounters TeamInvoiceCounter[]
+  teamInvoiceMonths   TeamInvoiceMonth[]
+  tombstones          Tombstone[]
+  snapshots           Snapshot[]
+
+  @@map("workspaces")
+}
+
+model Expense {
+  workspaceId String
+  id          String
+  date        String
+  vendor      String
+  category    String
+  amount      Float
+  currency    String?
+  month       String
+  raw         Json
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+  workspace   Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@index([workspaceId, month])
+  @@index([workspaceId, category])
+  @@map("expenses")
+}
+
+model Vendor {
+  workspaceId   String
+  id            String
+  name          String
+  category      String
+  typicalAmount Float     @default(0)
+  recurring     Boolean   @default(false)
+  raw           Json
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+  workspace     Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@map("vendors")
+}
+
+model Refund {
+  workspaceId String
+  id          String
+  month       String
+  date        String?
+  recipient   String
+  amount      Float
+  currency    String?
+  raw         Json
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+  workspace   Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@index([workspaceId, month])
+  @@map("refunds")
+}
+
+model TeamMember {
+  workspaceId      String
+  id               String
+  name             String
+  role             String
+  payType          String  @default("salary")
+  amount           Float   @default(0)
+  monthlySalary    Float   @default(0)
+  commissionAmount Float   @default(0)
+  active           Boolean @default(true)
+  isFounder        Boolean?
+  email            String  @default("")
+  address          String  @default("")
+  country          String  @default("GB")
+  bank             Json? // Record<string,string>
+  // NOTE: TeamMember.password (plaintext, portal login) lives ONLY in `raw`,
+  // never as a column, so reporting selects can never leak it. It is also
+  // stripped from Snapshot.value. See plan: harden portal auth later.
+  raw              Json
+  updatedAt        DateTime  @default(now()) @updatedAt
+  deletedAt        DateTime?
+  workspace        Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@map("team_members")
+}
+
+model Task {
+  workspaceId    String
+  id             String
+  title          String
+  status         String  @default("todo")
+  linkedVendorId String?
+  action         String  @default("")
+  notes          String  @default("")
+  createdAt      String
+  raw            Json
+  updatedAt      DateTime  @default(now()) @updatedAt
+  deletedAt      DateTime?
+  workspace      Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@index([workspaceId, status])
+  @@map("tasks")
+}
+
+model Invoice {
+  workspaceId     String
+  id              String
+  number          String
+  date            String
+  status          String  @default("draft")
+  currency        String  @default("GBP")
+  client          Json
+  items           Json
+  subtotal        Float   @default(0)
+  taxPct          Float   @default(0)
+  tax             Float   @default(0)
+  total           Float   @default(0)
+  notes           String  @default("")
+  clientUpdatedAt String? // -> JSON `updatedAt`
+  raw             Json
+  updatedAt       DateTime  @default(now()) @updatedAt
+  deletedAt       DateTime?
+  workspace       Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@index([workspaceId, status])
+  @@map("invoices")
+}
+
+model TeamInvoice {
+  workspaceId     String
+  id              String
+  memberId        String
+  number          String
+  date            String
+  dueDate         String?
+  period          String?
+  itemCategory    String?
+  services        String?
+  hours           Float?
+  rate            Float?
+  amount          Float     @default(0)
+  taxPct          Float?
+  currency        String?
+  notes           String?
+  status          String    @default("draft")
+  createdAt       String?
+  clientUpdatedAt String? // -> JSON `updatedAt`
+  acceptedAt      String?
+  declinedAt      String?
+  raw             Json
+  updatedAt       DateTime  @default(now()) @updatedAt
+  deletedAt       DateTime?
+  workspace       Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@index([workspaceId, memberId])
+  @@index([workspaceId, status])
+  @@map("team_invoices")
+}
+
+model RevenueEntry {
+  workspaceId String
+  id          String
+  month       String
+  date        String
+  amount      Float
+  source      String  @default("")
+  notes       String  @default("")
+  legacy      Boolean? // -> JSON `_legacy`
+  raw         Json
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+  workspace   Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@index([workspaceId, month])
+  @@map("revenue_entries")
+}
+
+model CustomBucket {
+  workspaceId       String
+  id                String
+  name              String
+  color             String  @default("")
+  icon              String?
+  kind              String?
+  categoryMap       String?
+  fallbackMonthField String?
+  raw               Json
+  updatedAt         DateTime  @default(now()) @updatedAt
+  deletedAt         DateTime?
+  workspace         Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@map("custom_buckets")
+}
+
+model TeamPayout {
+  workspaceId   String
+  id            String
+  memberId      String
+  month         String
+  date          String
+  amount        Float
+  type          String  @default("")
+  invoiceId     String?
+  invoiceNumber String?
+  notes         String?
+  raw           Json
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+  workspace     Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, id])
+  @@index([workspaceId, memberId])
+  @@index([workspaceId, month])
+  @@map("team_payouts")
+}
+
+// months: Record<'YYYY-MM', Month>
+model MonthFigure {
+  workspaceId          String
+  monthId              String
+  revenue              Float @default(0)
+  merchantFees         Float @default(0)
+  salariesTotal        Float @default(0)
+  commissionsTotal     Float @default(0)
+  referralPayoutsTotal Float @default(0)
+  refundsTotal         Float @default(0)
+  founderComp          Float @default(0)
+  taxPct               Float @default(0)
+  newClients           Float @default(0)
+  activeClients        Float @default(0)
+  churnedClients       Float @default(0)
+  raw                  Json
+  updatedAt            DateTime  @default(now()) @updatedAt
+  deletedAt            DateTime?
+  workspace            Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, monthId])
+  @@map("month_figures")
+}
+
+// budgets: Record<string, Budget> where Budget has dynamic numeric keys + _savedAt
+model Budget {
+  workspaceId String
+  budgetKey   String
+  savedAt     String? // -> JSON `_savedAt`
+  data        Json // the dynamic remainder
+  raw         Json
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+  workspace   Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, budgetKey])
+  @@map("budgets")
+}
+
+// teamInvoiceCounters: Record<string, number> (monotonic, MAX-merged)
+model TeamInvoiceCounter {
+  workspaceId String
+  counterKey  String
+  value       Int       @default(0)
+  workspace   Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, counterKey])
+  @@map("team_invoice_counters")
+}
+
+// teamInvoiceMonths: Record<string, any>
+model TeamInvoiceMonth {
+  workspaceId String
+  monthKey    String
+  value       Json
+  workspace   Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, monthKey])
+  @@map("team_invoice_months")
+}
+
+// Authoritative deletion map. key = "${collection}:${id}", value = ISO string.
+model Tombstone {
+  workspaceId String
+  key         String
+  deletedAt   String // client ISO string, compared lexically (delete-wins)
+  workspace   Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@id([workspaceId, key])
+  @@map("tombstones")
+}
+
+// Full post-merge blob snapshot for recovery (password stripped).
+model Snapshot {
+  id          String   @id @default(cuid())
+  workspaceId String
+  takenAt     DateTime @default(now())
+  updatedBy   String?
+  reason      String   @default("post")
+  value       Json
+  workspace   Workspace @relation(fields: [workspaceId], references: [key], onDelete: Cascade)
+
+  @@index([workspaceId, takenAt])
+  @@map("snapshots")
+}

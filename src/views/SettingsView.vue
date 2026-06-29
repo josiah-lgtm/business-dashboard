@@ -367,14 +367,14 @@ function wipeAll() {
     <div class="card">
       <h3>☁️ Cloud sync — same data on every device</h3>
       <p class="help" style="margin-top: 0">
-        By default the dashboard saves to <b>this browser only</b>. Enable cloud sync so the data follows you and your
+        The dashboard syncs to <b>this app's own server</b> (Postgres) so the data follows you and your
         team across logins, browsers, and countries. The workspace key is your team's "room number" — anyone with the
-        same key sees the same data. Share it privately.
+        same key sees the same data. Share it privately. Turn sync off to keep data in this browser only.
       </p>
       <div class="setting-row" style="margin-bottom: 8px">
         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
           <input type="checkbox" :checked="cfg.enabled" @change="onEnabledChange" />
-          <span><b>Enable cloud sync</b> to <code>tracker.agencyadvanta.com</code></span>
+          <span><b>Enable cloud sync</b> to this app's server</span>
         </label>
       </div>
       <div class="setting-row" style="margin-bottom: 8px">

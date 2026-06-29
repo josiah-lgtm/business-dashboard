@@ -9,9 +9,25 @@ import { S } from './store-access'
 import type { CloudSync, State } from '@/types'
 
 export const CLOUD_DEFAULTS: CloudSync = {
-  url: 'https://tracker.agencyadvanta.com/api/external/kv',
-  enabled: false,
-  key: '',
+  // Same-origin by default → the nginx proxy forwards to the api (no CORS) and
+  // injects the bearer token server-side. Override with VITE_API_URL for dev
+  // (e.g. http://localhost:54330/external/kv).
+  url: import.meta.env.VITE_API_URL || '/api/external/kv',
+  // Server persistence on out of the box, into the one shared workspace.
+  enabled: true,
+  key: import.meta.env.VITE_WORKSPACE_KEY || '',
+}
+
+// Old endpoint we migrate persisted configs away from (see loadState in the store).
+export const LEGACY_TRACKER_URL = 'https://tracker.agencyadvanta.com/api/external/kv'
+
+// Request headers for sync calls. In production the nginx proxy injects the
+// Authorization header server-side and VITE_API_TOKEN is unset, so nothing leaks
+// into the bundle. VITE_API_TOKEN is a dev/direct convenience only.
+function cloudHeaders(): Record<string, string> {
+  const h: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (import.meta.env.VITE_API_TOKEN) h.Authorization = `Bearer ${import.meta.env.VITE_API_TOKEN}`
+  return h
 }
 
 export const cloudStatus = ref<{ text: string; cls: string; visible: boolean }>({
@@ -64,7 +80,7 @@ export async function cloudPull(): Promise<{ ok: boolean; applied?: boolean; rea
   try {
     const r = await fetch(`${cfg.url}/${encodeURIComponent(cfg.key)}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: cloudHeaders(),
     })
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
     const data = await r.json()
@@ -119,7 +135,7 @@ export async function cloudPushNow() {
   try {
     const r = await fetch(`${cfg.url}/${encodeURIComponent(cfg.key)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: cloudHeaders(),
       body: JSON.stringify({ value: S(), updated_by: cloudWho() }),
     })
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -143,7 +159,7 @@ export function cloudFlushNow() {
   try {
     fetch(`${cfg.url}/${encodeURIComponent(cfg.key)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: cloudHeaders(),
       body: JSON.stringify({ value: S(), updated_by: cloudWho() }),
       keepalive: true,
     }).catch(() => {})

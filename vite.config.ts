@@ -17,4 +17,15 @@ export default defineConfig({
     outDir: 'dist',
     target: 'es2020',
   },
+  // Dev only: proxy /api to the running `web` container (which injects the API
+  // token and forwards to the api). This keeps `npm run dev` same-origin, so no
+  // VITE_API_TOKEN is needed locally. Adjust the port to your WEB_PORT.
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:54331',
+        changeOrigin: true,
+      },
+    },
+  },
 })

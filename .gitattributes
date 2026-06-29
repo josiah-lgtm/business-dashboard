@@ -1,0 +1,3 @@
+# Shell scripts must use LF even on Windows checkouts, or the container
+# `#!/bin/sh` shebang breaks.
+*.sh text eol=lf
