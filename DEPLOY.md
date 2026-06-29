@@ -2,6 +2,12 @@
 
 The app now ships as **three Docker containers** orchestrated by Compose:
 
+
+## SERVER 4
+
+cd /opt/business-dashboard && git pull && docker compose up -d --build
+
+
 | Service | What it is | Port (loopback) |
 |---------|-----------|-----------------|
 | `web`   | nginx serving the built Vue SPA **and** reverse-proxying `/api/*` to the api (injecting the API token server-side) | `WEB_PORT` (default 54331) |
