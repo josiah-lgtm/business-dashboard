@@ -83,20 +83,65 @@ returned): `/api/reports/<key>/{expenses,invoices,team,months,pnl}`.
 
 ## Migrating existing data onto the new backend
 
-No data is lost. Three paths (do **1** to seed, then **2** converges browsers):
+No data is lost. The new DB starts **empty** — nothing auto-seeds at deploy — so
+pick a seed path below, then let browsers converge.
 
-1. **Seed from the old team-tracker KV (run once):**
+> The recent + non-financial data (tasks, invoices, team invoices, budgets, any
+> month after the bundled `backfill.json` snapshot) lives **only in each user's
+> browser `localStorage`** and/or the old tracker — there is no copy in the repo.
+> So seeding pulls from one of those two sources.
+>
+> ⚠ **Do NOT seed the shared workspace from `backfill.json`.** Its rows have no
+> ids (the SPA assigns random ones per-browser at first run) and the server
+> unions by id — pushing it would duplicate every historical row against the ids
+> browsers already hold. `backfill.json` is for fresh **per-browser** first-run
+> seeding only. Seed the server only from **stable-id** sources (exports / tracker).
+
+**Recommended — import each user's legacy Export JSON (`npm run import`, idempotent):**
+
+1. Each user opens the **legacy** dashboard in the browser they actually use →
+   Settings → **Export JSON** → save the file into `seed-data/`. This is the
+   complete, real, stable-id snapshot of that user's data. Collect one per user
+   (`seed-data/` is gitignored — it holds PII + plaintext portal passwords).
+2. **Preview** the merge into prod first (writes nothing). The prod web nginx
+   injects the bearer token, so target the **public URL** and pass **no** token:
    ```bash
    cd api && npm install
-   OLD_KEY=<old-workspace-key> NEW_KEY=$VITE_WORKSPACE_KEY \
-   NEW_KV_URL=http://localhost:54330/external/kv API_TOKEN=$API_TOKEN \
-   npx tsx scripts/migrate-from-tracker.ts
+   SEED_DIR=../seed-data \
+   NEW_KEY=bd-agencyadvanta-shared \
+   NEW_KV_URL=https://businessdashboard.agencyadvanta.com/api/external/kv \
+   DRY_RUN=1 npm run import
    ```
-2. **Natural convergence:** each user opens the app once. Their browser pushes
-   its `localStorage` state; the server decomposes it into tables and union-merges
-   with everyone else's. (The cutover migration in the store auto-repoints anyone
-   still configured for the old endpoint.)
-3. **Fallback:** Settings → Export JSON on one device, Import (Merge) on another.
+   It prints, per collection, how many rows each export **adds vs. already
+   matches**, and the projected total. When it looks right, **drop `DRY_RUN=1`**
+   and re-run to merge. Re-running is always safe (union by id — nothing dupes,
+   nothing is removed).
+
+   - `SEED_DIR` imports every `*.json` in the folder; or list files explicitly
+     with `SEED_FILES=../seed-data/josiah.json,../seed-data/joanna.json`.
+   - Add `OLD_KEY=<old-workspace-key>` to also pull the old tracker in the same run.
+   - Running **on the server** instead of via the public URL? Target the api
+     directly and supply the token:
+     `NEW_KV_URL=http://localhost:54330/external/kv API_TOKEN=$API_TOKEN`.
+
+**Alternative — seed from the old team-tracker KV only (run once):**
+```bash
+cd api && npm install
+OLD_KEY=<old-workspace-key> NEW_KEY=$VITE_WORKSPACE_KEY \
+NEW_KV_URL=http://localhost:54330/external/kv API_TOKEN=$API_TOKEN \
+npm run migrate-from-tracker
+```
+> Note: the old tracker had an allow-list/CORS outage, so its server copy may be
+> **stale** (some users' latest edits never synced there). Prefer the Export-JSON
+> path when you can; you can run both — the merge unions them safely.
+
+**Then — natural convergence:** each user opens the app once. Their browser pushes
+its `localStorage` state; the server decomposes it into tables and union-merges
+with everyone else's. (The cutover migration in the store auto-repoints anyone
+still configured for the old endpoint.)
+
+**Fallback (no script):** Settings → Export JSON on one device, Import (**Merge**)
+on another.
 
 > Before cutover, have each user **Export JSON** as a backup.
 

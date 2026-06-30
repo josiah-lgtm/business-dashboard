@@ -11,6 +11,9 @@
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
+    "seed": "tsx scripts/seed.ts",
+    "import": "tsx scripts/seed.ts",
+    "migrate-from-tracker": "tsx scripts/migrate-from-tracker.ts",
     "test": "node --import tsx --test src/merge.test.ts src/serialize.test.ts"
   },
   "dependencies": {

@@ -15,3 +15,8 @@ dist/
 # Backend build output (api/ has its own .gitignore too)
 api/node_modules/
 api/dist/
+
+# Real exported workspace data fed to `npm run seed` — contains PII +
+# plaintext portal passwords. Keep it OUT of version control.
+seed-data/
+*.export.json

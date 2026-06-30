@@ -13,6 +13,7 @@ import {
   cloudCfg,
   cloudPull,
   cloudPushNow,
+  cloudIsEnabled,
   cloudGenerateKey,
   cloudStartPolling,
   cloudRelativeTime,
@@ -178,48 +179,159 @@ function exportJson() {
   URL.revokeObjectURL(url)
 }
 
+// ---------- Import & merge (preview-first) ----------
+// Collections the server keys by id (mirrors api/src/serialize.ts ID_COLLECTIONS).
+const IMPORT_COLLECTIONS: { key: keyof State; label: string }[] = [
+  { key: 'expenses', label: 'expenses' },
+  { key: 'vendors', label: 'vendors' },
+  { key: 'refunds', label: 'refunds' },
+  { key: 'team', label: 'team members' },
+  { key: 'tasks', label: 'tasks' },
+  { key: 'invoices', label: 'invoices' },
+  { key: 'teamInvoices', label: 'team invoices' },
+  { key: 'revenueEntries', label: 'revenue entries' },
+  { key: 'customBuckets', label: 'custom buckets' },
+  { key: 'teamPayouts', label: 'team payouts' },
+]
+
+interface ImportPreview {
+  fileName: string
+  data: State
+  rows: { label: string; add: number; match: number }[]
+  monthsAdd: number
+  monthsMatch: number
+  totalAdd: number
+}
+const importPreview = ref<ImportPreview | null>(null)
+const importMsg = ref<{ text: string; color: string } | null>(null)
+const importBusy = ref(false)
+
+function idSet(arr: unknown): Set<string> {
+  const s = new Set<string>()
+  if (Array.isArray(arr)) for (const e of arr) if (e && e.id != null) s.add(String(e.id))
+  return s
+}
+
 const importFile = ref<HTMLInputElement | null>(null)
 function pickImport() {
   importFile.value?.click()
 }
+
+// Parse the chosen file and build a preview of what a MERGE would add — without
+// touching anything yet. The user confirms from the preview card.
 function onImportChange(ev: Event) {
   const input = ev.target as HTMLInputElement
   const file = input.files && input.files[0]
   input.value = ''
+  importMsg.value = null
+  importPreview.value = null
   if (!file) return
   const reader = new FileReader()
   reader.onload = (e) => {
+    let data: any
     try {
-      const data: any = JSON.parse(String(e.target?.result || ''))
-      if (!data.months || !data.expenses) {
-        alert('Invalid file — missing months/expenses')
-        return
-      }
-      data.targets = { ...DEFAULT_TARGETS, ...(data.targets || {}) }
-      data.meta = { activeView: 'overview', currency: 'GBP', fxRate: 1.27, ...(data.meta || {}) }
-      // Default to MERGE — combine the file's entries with current data so nothing
-      // is overwritten (the safe path for recovering a teammate's export). Replace
-      // is still available for a deliberate full restore.
-      const merge = confirm(
-        'Import this file?\n\n' +
-          'OK = MERGE: add the file\'s entries to your current data (nothing is overwritten).\n' +
-          'Cancel = choose REPLACE instead.',
-      )
-      if (merge) {
-        // preferRemote:false → on a same-entry conflict your current data wins;
-        // the import only fills in entries you don't already have.
-        const { merged } = mergeStates(state.value as State, data as State, { preferRemote: false })
-        replaceState(merged)
-      } else {
-        if (!confirm('REPLACE ALL current data with the import? This overwrites everything you have now.')) return
-        replaceState(data as State)
-      }
-      refreshStatus()
+      data = JSON.parse(String(e.target?.result || ''))
     } catch (err: any) {
-      alert('Import failed: ' + err.message)
+      importMsg.value = { text: 'Not valid JSON: ' + (err?.message || err), color: 'var(--bad)' }
+      return
+    }
+    if (!data || typeof data !== 'object' || (!data.months && !Array.isArray(data.expenses))) {
+      importMsg.value = { text: 'This doesn’t look like a dashboard export (no months/expenses).', color: 'var(--bad)' }
+      return
+    }
+    // Refuse id-less rows (raw backfill/template data): the server keys by id, so
+    // those rows would be dropped on sync and any re-import would duplicate them.
+    let idless = 0
+    for (const c of IMPORT_COLLECTIONS) {
+      const arr = (data as any)[c.key]
+      if (Array.isArray(arr)) idless += arr.filter((x: any) => !x || x.id == null).length
+    }
+    if (idless) {
+      importMsg.value = {
+        text:
+          `This file has ${idless} row(s) with no ID — it looks like raw backfill/template data, not a ` +
+          'real export. Use a file from Settings → Export JSON (in this app or the legacy one).',
+        color: 'var(--bad)',
+      }
+      return
+    }
+    // Build the delta vs. current data (which already reflects the synced team copy).
+    const rows: { label: string; add: number; match: number }[] = []
+    let totalAdd = 0
+    for (const c of IMPORT_COLLECTIONS) {
+      const incoming = idSet((data as any)[c.key])
+      if (!incoming.size) continue
+      const have = idSet((state.value as any)[c.key])
+      let add = 0
+      for (const id of incoming) if (!have.has(id)) add++
+      rows.push({ label: c.label, add, match: incoming.size - add })
+      totalAdd += add
+    }
+    const incomingMonths = data.months && typeof data.months === 'object' ? Object.keys(data.months) : []
+    const haveMonths = new Set(Object.keys(state.value.months || {}))
+    let monthsAdd = 0
+    for (const k of incomingMonths) if (!haveMonths.has(k)) monthsAdd++
+    totalAdd += monthsAdd
+    importPreview.value = {
+      fileName: file.name,
+      data: data as State,
+      rows,
+      monthsAdd,
+      monthsMatch: incomingMonths.length - monthsAdd,
+      totalAdd,
     }
   }
   reader.readAsText(file)
+}
+
+// Confirmed merge: union into current data (existing entries win on id conflict,
+// so nothing is overwritten), then push the union straight to the team workspace.
+async function confirmMergeImport() {
+  const pre = importPreview.value
+  if (!pre) return
+  importBusy.value = true
+  try {
+    const { merged } = mergeStates(state.value as State, pre.data, { preferRemote: false })
+    replaceState(merged)
+    let synced = false
+    if (cloudIsEnabled()) {
+      await cloudPushNow() // replaceWholeState is silent — push so prod gets the union now
+      synced = true
+    }
+    importMsg.value = {
+      text:
+        `Imported ${pre.fileName}: added ${pre.totalAdd} new row(s).` +
+        (synced ? ' Synced to the team workspace.' : ' Saved locally (cloud sync is off).'),
+      color: 'var(--good)',
+    }
+  } catch (err: any) {
+    importMsg.value = { text: 'Import failed: ' + (err?.message || err), color: 'var(--bad)' }
+  } finally {
+    importBusy.value = false
+    importPreview.value = null
+    refreshStatus()
+  }
+}
+
+function confirmReplaceImport() {
+  const pre = importPreview.value
+  if (!pre) return
+  if (
+    !confirm(
+      'Replace ALL your current data with this file? This overwrites your local view. ' +
+        '(The shared cloud copy re-merges on the next pull unless you turn sync off first.)',
+    )
+  )
+    return
+  replaceState(pre.data)
+  importMsg.value = { text: `Replaced local data from ${pre.fileName}.`, color: 'var(--good)' }
+  importPreview.value = null
+  refreshStatus()
+}
+
+function cancelImport() {
+  importPreview.value = null
+  importMsg.value = null
 }
 
 function exportExpensesCsv() {
@@ -424,13 +536,62 @@ function wipeAll() {
       <h3>Data</h3>
       <div style="display: flex; gap: 8px; flex-wrap: wrap">
         <button @click="exportJson">Export JSON</button>
-        <button @click="pickImport">Import JSON</button>
-        <input ref="importFile" type="file" accept="application/json" style="display: none" @change="onImportChange" />
+        <button class="primary" @click="pickImport">Import &amp; merge data…</button>
+        <input ref="importFile" type="file" accept="application/json,.json" style="display: none" @change="onImportChange" />
         <button @click="exportExpensesCsv">Export expenses CSV</button>
         <button class="ghost" @click="resetBackfill">Reset to backfill (Jan–Mar 2026)</button>
         <button class="danger" @click="wipeAll">Wipe all data</button>
       </div>
       <div class="help">
+        <b>Import &amp; merge</b> combines another export — e.g. from the <b>legacy app</b> or a teammate —
+        into your data. Existing entries are kept (nothing is overwritten) and the result syncs to the team
+        workspace. You'll see a preview of exactly what gets added before anything changes.
+      </div>
+
+      <!-- Import preview / confirmation -->
+      <div
+        v-if="importPreview"
+        class="card"
+        style="margin-top: 12px; border: 1px solid var(--border); background: var(--bg-subtle, transparent)"
+      >
+        <h4 style="margin: 0 0 6px">Preview — {{ importPreview.fileName }}</h4>
+        <p class="help" style="margin-top: 0">
+          This <b>adds</b> the rows below to your current data. Existing entries (same ID) are kept as-is.
+        </p>
+        <ul v-if="importPreview.totalAdd" style="margin: 6px 0 10px; padding-left: 18px">
+          <li v-for="r in importPreview.rows" :key="r.label" v-show="r.add || r.match">
+            <b>+{{ r.add }}</b> {{ r.label }}
+            <span v-if="r.match" class="help"> ({{ r.match }} already present)</span>
+          </li>
+          <li v-if="importPreview.monthsAdd || importPreview.monthsMatch">
+            <b>+{{ importPreview.monthsAdd }}</b> months
+            <span v-if="importPreview.monthsMatch" class="help"> ({{ importPreview.monthsMatch }} already present)</span>
+          </li>
+        </ul>
+        <p v-else class="help" style="color: var(--warn)">
+          Nothing new to add — your data already contains everything in this file.
+        </p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+          <button class="primary" :disabled="importBusy || !importPreview.totalAdd" @click="confirmMergeImport">
+            {{ importBusy ? 'Merging…' : `Merge ${importPreview.totalAdd} new row(s) into my data` }}
+          </button>
+          <button class="ghost" :disabled="importBusy" @click="cancelImport">Cancel</button>
+          <button
+            class="ghost small"
+            :disabled="importBusy"
+            style="margin-left: auto"
+            @click="confirmReplaceImport"
+          >
+            Replace all instead (local only)
+          </button>
+        </div>
+      </div>
+
+      <div v-if="importMsg" class="help" :style="{ color: importMsg.color, marginTop: '10px', fontWeight: 600 }">
+        {{ importMsg.text }}
+      </div>
+
+      <div class="help" style="margin-top: 8px">
         Backfill includes 174 expense items, the vendor library, team roster, and refunds parsed from your CSVs.
       </div>
     </div>
