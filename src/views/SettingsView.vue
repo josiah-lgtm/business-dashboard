@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDashboard } from '@/stores/dashboard'
 import { isoDate, isoMonth, monthOf } from '@/lib/format'
@@ -179,7 +179,7 @@ function exportJson() {
   URL.revokeObjectURL(url)
 }
 
-// ---------- Import & merge (preview-first) ----------
+// ---------- Import & merge (preview-first, content-deduped) ----------
 // Collections the server keys by id (mirrors api/src/serialize.ts ID_COLLECTIONS).
 const IMPORT_COLLECTIONS: { key: keyof State; label: string }[] = [
   { key: 'expenses', label: 'expenses' },
@@ -194,37 +194,105 @@ const IMPORT_COLLECTIONS: { key: keyof State; label: string }[] = [
   { key: 'teamPayouts', label: 'team payouts' },
 ]
 
-interface ImportPreview {
-  fileName: string
-  data: State
-  rows: { label: string; add: number; match: number }[]
+// Why a CONTENT key (not just id): the historical rows were seeded into this app
+// from backfill.json with random ids, and the legacy export carries the SAME
+// rows with *different* random ids. An id-only union would re-add every one as a
+// duplicate. So for the collections backfill also seeds (expenses/vendors/refunds/
+// team), we treat a row as already-present when its date+name+amount matches —
+// independent of id. Collections backfill never seeds (tasks/invoices/…) only
+// exist in the export, so id-matching alone is correct for them.
+const norm = (v: unknown) => String(v ?? '').trim().toLowerCase()
+const amt = (v: unknown) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n.toFixed(2) : ''
+}
+function contentKey(coll: string, e: any): string | null {
+  if (!e) return null
+  switch (coll) {
+    case 'expenses':
+      return `${norm(e.vendor)}|${amt(e.amount)}|${e.date || e.month || ''}`
+    case 'refunds':
+      return `${norm(e.recipient)}|${amt(e.amount)}|${e.date || e.month || ''}`
+    case 'vendors':
+      return `${norm(e.name)}|${norm(e.category)}`
+    case 'team':
+      return `${norm(e.name)}|${norm(e.role)}`
+    default:
+      return null // id-only for collections backfill doesn't seed
+  }
+}
+
+interface PlanRow {
+  label: string
+  add: number
+  dup: number
+}
+interface ImportPlan {
+  filtered: State
+  rows: PlanRow[]
   monthsAdd: number
   monthsMatch: number
   totalAdd: number
+  totalDup: number
 }
-const importPreview = ref<ImportPreview | null>(null)
+
+const importData = ref<{ fileName: string; data: State } | null>(null)
+const dedupeOn = ref(true)
 const importMsg = ref<{ text: string; color: string } | null>(null)
 const importBusy = ref(false)
 
-function idSet(arr: unknown): Set<string> {
-  const s = new Set<string>()
-  if (Array.isArray(arr)) for (const e of arr) if (e && e.id != null) s.add(String(e.id))
-  return s
-}
+// Recomputed live against current data (and the dedupe toggle): drops incoming
+// rows whose id OR content already exists, so the preview counts equal exactly
+// what the confirmed merge will add.
+const importPlan = computed<ImportPlan | null>(() => {
+  if (!importData.value) return null
+  const data: any = importData.value.data
+  const filtered: any = { ...data }
+  const rows: PlanRow[] = []
+  let totalAdd = 0
+  let totalDup = 0
+  for (const c of IMPORT_COLLECTIONS) {
+    const incoming: any[] = Array.isArray(data[c.key]) ? data[c.key] : []
+    if (!incoming.length) continue
+    const curArr: any[] = Array.isArray((state.value as any)[c.key]) ? (state.value as any)[c.key] : []
+    const ids = new Set<string>(curArr.filter((x) => x && x.id != null).map((x) => String(x.id)))
+    const content = new Set<string>()
+    if (dedupeOn.value) for (const x of curArr) { const k = contentKey(c.key, x); if (k) content.add(k) }
+    const kept: any[] = []
+    let dup = 0
+    for (const e of incoming) {
+      const id = e && e.id != null ? String(e.id) : null
+      const ck = dedupeOn.value ? contentKey(c.key, e) : null
+      if ((id && ids.has(id)) || (ck && content.has(ck))) { dup++; continue }
+      kept.push(e)
+      if (id) ids.add(id) // collapse duplicates WITHIN the import too
+      if (ck) content.add(ck)
+    }
+    filtered[c.key] = kept
+    rows.push({ label: c.label, add: kept.length, dup })
+    totalAdd += kept.length
+    totalDup += dup
+  }
+  const incomingMonths = data.months && typeof data.months === 'object' ? Object.keys(data.months) : []
+  const haveMonths = new Set(Object.keys(state.value.months || {}))
+  let monthsAdd = 0
+  for (const k of incomingMonths) if (!haveMonths.has(k)) monthsAdd++
+  totalAdd += monthsAdd
+  return { filtered: filtered as State, rows, monthsAdd, monthsMatch: incomingMonths.length - monthsAdd, totalAdd, totalDup }
+})
 
 const importFile = ref<HTMLInputElement | null>(null)
 function pickImport() {
   importFile.value?.click()
 }
 
-// Parse the chosen file and build a preview of what a MERGE would add — without
-// touching anything yet. The user confirms from the preview card.
+// Parse the chosen file and stage it for preview — without touching anything yet.
 function onImportChange(ev: Event) {
   const input = ev.target as HTMLInputElement
   const file = input.files && input.files[0]
   input.value = ''
   importMsg.value = null
-  importPreview.value = null
+  importData.value = null
   if (!file) return
   const reader = new FileReader()
   reader.onload = (e) => {
@@ -255,43 +323,20 @@ function onImportChange(ev: Event) {
       }
       return
     }
-    // Build the delta vs. current data (which already reflects the synced team copy).
-    const rows: { label: string; add: number; match: number }[] = []
-    let totalAdd = 0
-    for (const c of IMPORT_COLLECTIONS) {
-      const incoming = idSet((data as any)[c.key])
-      if (!incoming.size) continue
-      const have = idSet((state.value as any)[c.key])
-      let add = 0
-      for (const id of incoming) if (!have.has(id)) add++
-      rows.push({ label: c.label, add, match: incoming.size - add })
-      totalAdd += add
-    }
-    const incomingMonths = data.months && typeof data.months === 'object' ? Object.keys(data.months) : []
-    const haveMonths = new Set(Object.keys(state.value.months || {}))
-    let monthsAdd = 0
-    for (const k of incomingMonths) if (!haveMonths.has(k)) monthsAdd++
-    totalAdd += monthsAdd
-    importPreview.value = {
-      fileName: file.name,
-      data: data as State,
-      rows,
-      monthsAdd,
-      monthsMatch: incomingMonths.length - monthsAdd,
-      totalAdd,
-    }
+    importData.value = { fileName: file.name, data: data as State }
   }
   reader.readAsText(file)
 }
 
-// Confirmed merge: union into current data (existing entries win on id conflict,
-// so nothing is overwritten), then push the union straight to the team workspace.
+// Confirmed merge: union the deduped rows into current data (existing entries win
+// on conflict, so nothing is overwritten), then push straight to the team workspace.
 async function confirmMergeImport() {
-  const pre = importPreview.value
-  if (!pre) return
+  const plan = importPlan.value
+  const src = importData.value
+  if (!plan || !src) return
   importBusy.value = true
   try {
-    const { merged } = mergeStates(state.value as State, pre.data, { preferRemote: false })
+    const { merged } = mergeStates(state.value as State, plan.filtered, { preferRemote: false })
     replaceState(merged)
     let synced = false
     if (cloudIsEnabled()) {
@@ -300,7 +345,9 @@ async function confirmMergeImport() {
     }
     importMsg.value = {
       text:
-        `Imported ${pre.fileName}: added ${pre.totalAdd} new row(s).` +
+        `Imported ${src.fileName}: added ${plan.totalAdd} new row(s)` +
+        (plan.totalDup ? `, skipped ${plan.totalDup} already present` : '') +
+        '.' +
         (synced ? ' Synced to the team workspace.' : ' Saved locally (cloud sync is off).'),
       color: 'var(--good)',
     }
@@ -308,14 +355,14 @@ async function confirmMergeImport() {
     importMsg.value = { text: 'Import failed: ' + (err?.message || err), color: 'var(--bad)' }
   } finally {
     importBusy.value = false
-    importPreview.value = null
+    importData.value = null
     refreshStatus()
   }
 }
 
 function confirmReplaceImport() {
-  const pre = importPreview.value
-  if (!pre) return
+  const src = importData.value
+  if (!src) return
   if (
     !confirm(
       'Replace ALL your current data with this file? This overwrites your local view. ' +
@@ -323,14 +370,14 @@ function confirmReplaceImport() {
     )
   )
     return
-  replaceState(pre.data)
-  importMsg.value = { text: `Replaced local data from ${pre.fileName}.`, color: 'var(--good)' }
-  importPreview.value = null
+  replaceState(src.data)
+  importMsg.value = { text: `Replaced local data from ${src.fileName}.`, color: 'var(--good)' }
+  importData.value = null
   refreshStatus()
 }
 
 function cancelImport() {
-  importPreview.value = null
+  importData.value = null
   importMsg.value = null
 }
 
@@ -550,38 +597,41 @@ function wipeAll() {
 
       <!-- Import preview / confirmation -->
       <div
-        v-if="importPreview"
+        v-if="importData && importPlan"
         class="card"
         style="margin-top: 12px; border: 1px solid var(--border); background: var(--bg-subtle, transparent)"
       >
-        <h4 style="margin: 0 0 6px">Preview — {{ importPreview.fileName }}</h4>
+        <h4 style="margin: 0 0 6px">Preview — {{ importData.fileName }}</h4>
         <p class="help" style="margin-top: 0">
-          This <b>adds</b> the rows below to your current data. Existing entries (same ID) are kept as-is.
+          This <b>adds</b> the rows below to your current data. Existing entries are kept as-is — nothing is
+          overwritten.
         </p>
-        <ul v-if="importPreview.totalAdd" style="margin: 6px 0 10px; padding-left: 18px">
-          <li v-for="r in importPreview.rows" :key="r.label" v-show="r.add || r.match">
+        <label
+          style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 4px 0 10px; font-size: 0.92em"
+        >
+          <input type="checkbox" v-model="dedupeOn" :disabled="importBusy" />
+          <span>Skip rows already present (same <b>date, name &amp; amount</b>) — recommended</span>
+        </label>
+        <ul v-if="importPlan.totalAdd" style="margin: 6px 0 10px; padding-left: 18px">
+          <li v-for="r in importPlan.rows" :key="r.label" v-show="r.add || r.dup">
             <b>+{{ r.add }}</b> {{ r.label }}
-            <span v-if="r.match" class="help"> ({{ r.match }} already present)</span>
+            <span v-if="r.dup" class="help"> ({{ r.dup }} already present, skipped)</span>
           </li>
-          <li v-if="importPreview.monthsAdd || importPreview.monthsMatch">
-            <b>+{{ importPreview.monthsAdd }}</b> months
-            <span v-if="importPreview.monthsMatch" class="help"> ({{ importPreview.monthsMatch }} already present)</span>
+          <li v-if="importPlan.monthsAdd || importPlan.monthsMatch">
+            <b>+{{ importPlan.monthsAdd }}</b> months
+            <span v-if="importPlan.monthsMatch" class="help"> ({{ importPlan.monthsMatch }} already present)</span>
           </li>
         </ul>
         <p v-else class="help" style="color: var(--warn)">
-          Nothing new to add — your data already contains everything in this file.
+          Nothing new to add — your data already contains everything in this file
+          <span v-if="importPlan.totalDup">({{ importPlan.totalDup }} matching rows skipped)</span>.
         </p>
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
-          <button class="primary" :disabled="importBusy || !importPreview.totalAdd" @click="confirmMergeImport">
-            {{ importBusy ? 'Merging…' : `Merge ${importPreview.totalAdd} new row(s) into my data` }}
+          <button class="primary" :disabled="importBusy || !importPlan.totalAdd" @click="confirmMergeImport">
+            {{ importBusy ? 'Merging…' : `Merge ${importPlan.totalAdd} new row(s) into my data` }}
           </button>
           <button class="ghost" :disabled="importBusy" @click="cancelImport">Cancel</button>
-          <button
-            class="ghost small"
-            :disabled="importBusy"
-            style="margin-left: auto"
-            @click="confirmReplaceImport"
-          >
+          <button class="ghost small" :disabled="importBusy" style="margin-left: auto" @click="confirmReplaceImport">
             Replace all instead (local only)
           </button>
         </div>
