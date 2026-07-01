@@ -17,6 +17,7 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { prisma } from './db.js'
 import { handleGet, handlePost } from './store.js'
+import { publish, subscribe } from './events.js'
 import type { State } from './types.js'
 
 const PORT = Number(process.env.PORT) || 3000
@@ -94,10 +95,53 @@ app.post<{ Params: { key: string }; Body: { value?: unknown; updated_by?: unknow
       return reply.code(413).send({ error: `value too large (${approxBytes} > ${MAX_VALUE_BYTES})` })
     }
     const updatedBy = typeof body.updated_by === 'string' ? body.updated_by.slice(0, 80) : null
-    const { updated_at } = await handlePost(key, body.value as State, updatedBy)
+    const { updated_at, changed } = await handlePost(key, body.value as State, updatedBy)
+    // Only nudge live subscribers when the merge actually changed stored data.
+    if (changed) publish(key, { updated_at, updated_by: updatedBy })
     return reply.send({ ok: true, updated_at })
   },
 )
+
+// ---- live updates (SSE) ------------------------------------------------------
+// A browser opens EventSource(/external/kv/:key/events); we hold the connection
+// open and push an `update` event whenever a POST changes that workspace, so the
+// client pulls immediately instead of waiting for its 30s poll. Auth is enforced
+// by the onRequest bearer hook (nginx injects the token in prod). Heartbeats keep
+// the connection alive through proxies; the browser auto-reconnects on drop.
+app.get<{ Params: { key: string } }>('/external/kv/:key/events', async (req, reply) => {
+  const { key } = req.params
+  if (badKey(key)) return reply.code(400).send({ error: 'invalid key' })
+
+  reply.hijack() // take over the raw socket; Fastify won't send a normal reply
+  const res = reply.raw
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no', // ask nginx not to buffer this response
+  })
+  res.write('retry: 5000\n\n') // client reconnect backoff (ms)
+  res.write(': connected\n\n')
+
+  const unsubscribe = subscribe(key, (chunk) => res.write(chunk))
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': ping\n\n')
+    } catch {
+      /* closed — cleanup runs via the close handler */
+    }
+  }, 25_000)
+
+  let cleaned = false
+  const cleanup = () => {
+    if (cleaned) return
+    cleaned = true
+    clearInterval(heartbeat)
+    unsubscribe()
+  }
+  req.raw.on('close', cleanup)
+  req.raw.on('error', cleanup)
+})
 
 // ---- reporting (read-only, key-scoped, password never selected) --------------
 const EXPENSE_COLS = { id: true, date: true, vendor: true, category: true, amount: true, currency: true, month: true }

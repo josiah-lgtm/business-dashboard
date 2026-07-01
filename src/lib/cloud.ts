@@ -206,3 +206,45 @@ export function cloudStartPolling() {
     }
   }, 30_000)
 }
+
+// ---- live updates (SSE) ----
+// Open a Server-Sent Events stream so a teammate's change triggers an immediate
+// pull instead of waiting for the 30s poll. The poll above stays as a fallback
+// for browsers/networks where the stream can't connect. EventSource can't send
+// an Authorization header, but in prod the nginx proxy injects the bearer for
+// same-origin /api requests (same as GET/POST), so no token is needed here.
+let eventStream: EventSource | null = null
+
+export function cloudStartEventStream() {
+  cloudStopEventStream()
+  if (typeof EventSource === 'undefined') return // ancient browser -> poll only
+  if (!cloudIsEnabled()) return
+  const cfg = cloudCfg()
+  try {
+    const es = new EventSource(`${cfg.url}/${encodeURIComponent(cfg.key)}/events`)
+    eventStream = es
+    es.addEventListener('update', (ev) => {
+      try {
+        const payload = JSON.parse((ev as MessageEvent).data)
+        // Ignore the echo of our own write — we already hold that data.
+        if (payload?.updated_by && payload.updated_by === cloudWho()) return
+        // Only pull if the server is ahead of what we last reconciled.
+        if (!payload?.updated_at || payload.updated_at > (cloudLastPulledAt || '')) cloudPull()
+      } catch {
+        cloudPull()
+      }
+    })
+    // On error the browser auto-reconnects (honoring the server's retry hint);
+    // the 30s poll covers the gap. Nothing to do here.
+    es.onerror = () => {}
+  } catch (e) {
+    console.error('cloudStartEventStream failed:', e)
+  }
+}
+
+export function cloudStopEventStream() {
+  if (eventStream) {
+    eventStream.close()
+    eventStream = null
+  }
+}

@@ -42,6 +42,17 @@ single shared workspace key both teammates should land in.
 > After changing any `VITE_*` value you must rebuild the web image:
 > `docker compose up -d --build web`.
 
+> **Immutable after first deploy — never change these on a live server.** They
+> are fixed when the `db_data` volume is first created / the SPA is first built;
+> changing them later makes existing data *appear* to vanish (it stays safe in
+> the volume, but the app now points elsewhere):
+> - `VITE_WORKSPACE_KEY` — the workspace id every Postgres row is scoped to.
+> - `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` — honored only at the
+>   database's first init; Postgres ignores later changes, so the api would then
+>   connect/authenticate against a DB/credentials that no longer match.
+>
+> Only `API_TOKEN` is safe to rotate freely (rebuild `web` + restart `api`).
+
 ## Hosting (TLS / public domain)
 
 Put a host-level reverse proxy (or Cloudflare Tunnel) in front of the `web`
@@ -54,6 +65,12 @@ server {
     # ... certbot/Cloudflare TLS ...
 }
 ```
+
+> **Live updates through the host proxy.** The SSE stream sends `X-Accel-Buffering:
+> no` and heartbeats every 25s, so it works through most proxies unchanged. If
+> live updates ever stall behind your host nginx, add a dedicated location for the
+> events path with `proxy_buffering off;` and `proxy_read_timeout 3600s;` (the
+> container nginx already does this). Cloudflare Tunnel passes SSE through as-is.
 
 Two nginx layers exist: the **container** nginx (serves the SPA + `/api` proxy)
 and the **host** nginx (TLS + forward to `:54331`). The SPA must be served over
@@ -68,6 +85,13 @@ inherit the page's scheme, so there is no mixed-content risk.
   the container nginx proxies it to the api and adds the `Authorization` header.
   (The old cross-origin `tracker.agencyadvanta.com` setup — and its CORS
   headaches — is retired.)
+- **Live updates (SSE).** Each browser also opens an `EventSource` on
+  `/api/external/kv/<key>/events`; when any teammate's change is committed, the
+  api pushes a notification and that browser pulls immediately (no 30s wait).
+  The 30s poll remains as a fallback if the stream can't connect. This is
+  in-process fan-out — fine for the single `api` container; if the api is ever
+  scaled to multiple replicas, switch `api/src/events.ts` to Postgres
+  `LISTEN/NOTIFY` so a change on one replica reaches subscribers on another.
 
 ### Reporting / SQL access
 
@@ -144,6 +168,34 @@ still configured for the old endpoint.)
 on another.
 
 > Before cutover, have each user **Export JSON** as a backup.
+
+## Schema changes (data-safe migrations)
+
+The database is the system of record, so a deploy **must never** let the schema
+"auto-reconcile" against live data. The api uses committed Prisma migrations only:
+
+- On every api start, `api/docker-entrypoint.sh` runs `prisma migrate deploy`
+  (forward-only — applies committed migration SQL in order, never drops data,
+  never resets, needs no TTY). With no new migrations it is a **no-op**, so a
+  routine `git pull && docker compose up -d --build` cannot change your data.
+- The destructive `prisma db push` is **disabled**. It runs only for a brand-new
+  empty database when you explicitly opt in with `INIT_DB_PUSH=1`, and never with
+  `--accept-data-loss`.
+- Your existing production DB (originally created with `db push`) is
+  **auto-baselined** on the next deploy by `api/scripts/db-baseline.mjs`: it marks
+  the initial migration (`0_init`) as already-applied — Prisma bookkeeping only,
+  **no SQL is executed against your tables**. No manual step is required.
+
+**To change the schema later:** edit `api/prisma/schema.prisma`, then locally run
+`cd api && npx prisma migrate dev --name <what_changed>` against a scratch DB to
+generate `api/prisma/migrations/<ts>_<name>/`. **Review the generated SQL** for any
+`DROP` / `ALTER ... DROP` / type-narrowing / `SET NOT NULL` (these can lose data),
+**commit** the migration, then deploy — `migrate deploy` applies exactly that
+reviewed SQL. Take a `pg_dump` (below) first when a migration is destructive.
+
+> ⚠ `deploy/publish.sh` (the old host-nginx `/var/www` path) is **deprecated and
+> refuses to run** — its nginx config has no `/api` proxy, so publishing through
+> it silently breaks cloud sync. Always deploy with `docker compose up -d --build`.
 
 ## Database backups & care
 

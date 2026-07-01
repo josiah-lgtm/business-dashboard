@@ -22,6 +22,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./package.json
+# Migration baseline helper (run by the entrypoint before `migrate deploy`).
+COPY --from=build /app/scripts/db-baseline.mjs ./scripts/db-baseline.mjs
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 EXPOSE 3000

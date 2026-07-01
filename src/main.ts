@@ -3,7 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import { router, NAV_ITEMS } from './router'
 import { useDashboard } from './stores/dashboard'
-import { cloudIsEnabled, cloudPull, cloudStartPolling, setCloudStatus } from './lib/cloud'
+import { cloudIsEnabled, cloudPull, cloudStartPolling, cloudStartEventStream, setCloudStatus } from './lib/cloud'
 import './assets/app.css'
 
 const app = createApp(App)
@@ -33,7 +33,10 @@ router.isReady().then(() => {
   // Cloud sync boot.
   if (cloudIsEnabled()) {
     setCloudStatus('Connecting…', 'syncing')
-    cloudPull().then(() => cloudStartPolling())
+    cloudPull().then(() => {
+      cloudStartPolling() // fallback / backstop
+      cloudStartEventStream() // live push for instant updates
+    })
   }
 })
 
