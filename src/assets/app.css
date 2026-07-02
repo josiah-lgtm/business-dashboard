@@ -1843,7 +1843,10 @@
     border-radius: 9px;
     padding: 12px 14px;
     display: grid;
-    grid-template-columns: 1.4fr 110px 130px auto;
+    /* Amount column holds a number input + a fixed 74px currency select, so it
+       needs enough room for both — 110px left the input ~30px ("no space to
+       input amount"). 180px gives the number field a comfortable ~90px. */
+    grid-template-columns: 1.4fr 180px 130px auto;
     gap: 8px 10px;
     align-items: end;
   }

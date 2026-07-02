@@ -261,7 +261,10 @@ onMounted(() => {
   overflow-y: auto;
 }
 .modal {
-  background: var(--surface, #1c1c1e);
+  /* Opaque panel — --surface is a translucent rgba() overlay, so using it here
+     let the dark backdrop + roster behind the modal bleed through ("see-through"
+     bug). --bg-elevated is the design system's solid elevated-material token. */
+  background: var(--bg-elevated, #1c1c1e);
   border: 1px solid var(--border);
   border-radius: 14px;
   width: 100%;

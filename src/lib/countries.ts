@@ -20,7 +20,7 @@ export const TI_BANK_LABELS: Record<string, string> = {
   accountHolder: 'Account holder',
   sortCode: 'Sort code',
   accountNumber: 'Account number',
-  routingNumber: 'Routing number (ABA)',
+  routingNumber: 'ACH routing number',
   iban: 'IBAN',
   bic: 'BIC / SWIFT',
   intermediaryBic: 'Intermediary BIC',
