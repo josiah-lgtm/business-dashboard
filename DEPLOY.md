@@ -169,6 +169,27 @@ on another.
 
 > Before cutover, have each user **Export JSON** as a backup.
 
+## Cleaning duplicated history (`npm run dedupe`)
+
+Before 2026-07-04 every fresh browser seeded `backfill.json` with its own random
+ids and pushed them, so the shared workspace accumulated one copy of the
+historical rows **per device**. The SPA no longer seeds backfill in team builds
+(it starts empty and pulls from the server), but copies already in the DB stay
+until removed:
+
+```bash
+cd api && npm install
+NEW_KV_URL=https://businessdashboard.agencyadvanta.com/api/external/kv \
+NEW_KEY=bd-agencyadvanta-shared \
+BACKUP_FILE=../seed-data/backup-before-dedupe.json \
+DRY_RUN=1 npm run dedupe        # preview; drop DRY_RUN to actually clean
+```
+
+It groups expenses/refunds/vendors/team by the same content keys the SPA's
+"Import & merge" uses, keeps the richest copy of each duplicate group (e.g. the
+team row with pay/bank details filled in), and **tombstones** the rest — so every
+browser drops its local copies on the next pull. Idempotent; re-running is a no-op.
+
 ## Schema changes (data-safe migrations)
 
 The database is the system of record, so a deploy **must never** let the schema

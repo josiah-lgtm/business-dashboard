@@ -42,8 +42,14 @@ export const TASK_STATUSES = [
 const BF: any = BACKFILL
 
 export function makeInitialState(): State {
+  // Team builds (VITE_WORKSPACE_KEY set) start EMPTY and pull everything from
+  // the shared server on boot. Seeding backfill here gives every fresh browser
+  // its own random uids for the same historical rows, and the server unions by
+  // id — each new device would push a duplicate copy of all of history into the
+  // team workspace. Backfill seeding stays for keyless (solo/dev) builds.
+  const seedBackfill = !import.meta.env.VITE_WORKSPACE_KEY
   const months: State['months'] = {}
-  Object.entries(BF.months).forEach(([id, m]: [string, any]) => {
+  if (seedBackfill) Object.entries(BF.months).forEach(([id, m]: [string, any]) => {
     months[id] = {
       revenue: m.revenue || 0,
       merchantFees: m.merchantFees || 0,
@@ -58,19 +64,21 @@ export function makeInitialState(): State {
       churnedClients: 0,
     }
   })
-  const expenses = BF.expenses.map((e: any) => ({ id: uid(), ...e }))
-  const vendors = BF.vendors.map((v: any) => ({ id: uid(), ...v }))
-  const refunds = BF.refunds.map((r: any) => ({ id: uid(), ...r }))
-  const team = BF.team.map((t: any) => ({
-    id: uid(),
-    ...t,
-    monthlySalary: 0,
-    active: true,
-    email: '',
-    address: '',
-    country: 'GB',
-    bank: {},
-  }))
+  const expenses = seedBackfill ? BF.expenses.map((e: any) => ({ id: uid(), ...e })) : []
+  const vendors = seedBackfill ? BF.vendors.map((v: any) => ({ id: uid(), ...v })) : []
+  const refunds = seedBackfill ? BF.refunds.map((r: any) => ({ id: uid(), ...r })) : []
+  const team = seedBackfill
+    ? BF.team.map((t: any) => ({
+        id: uid(),
+        ...t,
+        monthlySalary: 0,
+        active: true,
+        email: '',
+        address: '',
+        country: 'GB',
+        bank: {},
+      }))
+    : []
   const monthIds = Object.keys(months).sort()
   return {
     meta: {

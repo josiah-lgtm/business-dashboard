@@ -54,18 +54,19 @@ function loadState(): State | null {
     if (!Array.isArray(s.customBuckets)) s.customBuckets = []
     if (!Array.isArray(s.teamPayouts)) s.teamPayouts = []
     if (!s.deletions || typeof s.deletions !== 'object') s.deletions = {}
-    // One-time cutover: existing users have `cloudSync` already persisted with the
-    // retired team-tracker KV URL, so changing CLOUD_DEFAULTS alone won't move
-    // them. Repoint to this app's own backend (same-origin by default), turn sync
-    // on, and seed the shared workspace key if they don't have one.
-    if (s.cloudSync && typeof s.cloudSync === 'object') {
-      if (s.cloudSync.url === 'https://tracker.agencyadvanta.com/api/external/kv') {
-        s.cloudSync.url = import.meta.env.VITE_API_URL || '/api/external/kv'
-        s.cloudSync.enabled = true
-        if (!s.cloudSync.key && import.meta.env.VITE_WORKSPACE_KEY) {
-          s.cloudSync.key = import.meta.env.VITE_WORKSPACE_KEY
-        }
-      }
+    // Self-heal the sync config on EVERY load — not just the one-time tracker
+    // cutover. A persisted cloudSync can silently detach this browser from the
+    // team (sync toggled off, a generated/forked key, a stale URL) and the
+    // symptom is always "my teammate can't see my changes". The endpoint is
+    // always this app's own backend; when the build ships a team workspace key,
+    // pin this device to it with sync ON so everyone shares one dataset.
+    if (!s.cloudSync || typeof s.cloudSync !== 'object') s.cloudSync = {}
+    s.cloudSync.url = import.meta.env.VITE_API_URL || '/api/external/kv'
+    if (import.meta.env.VITE_WORKSPACE_KEY) {
+      s.cloudSync.key = import.meta.env.VITE_WORKSPACE_KEY
+      s.cloudSync.enabled = true
+    } else if (s.cloudSync.enabled == null) {
+      s.cloudSync.enabled = true
     }
     // Unify each team member's pay into one amount + a payType.
     ;(s.team || []).forEach((t: any) => {
@@ -103,7 +104,11 @@ function loadState(): State | null {
     if (s.targets.founderTaxPct == null) s.targets.founderTaxPct = 20
 
     // Auto-merge any new months from BACKFILL that the user doesn't already have.
-    if (typeof BACKFILL !== 'undefined' && BACKFILL.months) {
+    // SOLO/DEV BUILDS ONLY: in a team build (VITE_WORKSPACE_KEY set) the server
+    // is the source of history. These rows get fresh random uids per browser, so
+    // every device that ran this block pushed its own copy of the same expense
+    // to the shared workspace — that's where the duplicated history came from.
+    if (!import.meta.env.VITE_WORKSPACE_KEY && typeof BACKFILL !== 'undefined' && BACKFILL.months) {
       Object.entries(BACKFILL.months).forEach(([id, m]: [string, any]) => {
         if (s.months[id]) return
         s.months[id] = {

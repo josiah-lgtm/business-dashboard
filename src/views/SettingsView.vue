@@ -94,6 +94,10 @@ function resetLogo() {
 // ---------- Cloud sync ----------
 // cloudCfg() returns the reactive store.state.cloudSync object (created if absent).
 const cfg = cloudCfg()
+// When the build ships a team workspace key, sync is managed: always on, pinned
+// to the shared workspace (loadState re-pins on every boot). Hide the toggle/key/
+// URL controls so a device can't silently fork itself out of the team's data.
+const managedWorkspace = !!import.meta.env.VITE_WORKSPACE_KEY
 const csStatus = ref<{ text: string; color: string }>({ text: '', color: 'var(--text-tertiary)' })
 
 function refreshStatus() {
@@ -528,31 +532,40 @@ function wipeAll() {
       <p class="help" style="margin-top: 0">
         The dashboard syncs to <b>this app's own server</b> (Postgres) so the data follows you and your
         team across logins, browsers, and countries. The workspace key is your team's "room number" — anyone with the
-        same key sees the same data. Share it privately. Turn sync off to keep data in this browser only.
+        same key sees the same data.
       </p>
-      <div class="setting-row" style="margin-bottom: 8px">
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
-          <input type="checkbox" :checked="cfg.enabled" @change="onEnabledChange" />
-          <span><b>Enable cloud sync</b> to this app's server</span>
-        </label>
-      </div>
-      <div class="setting-row" style="margin-bottom: 8px">
-        <label for="cs-key">Workspace key</label>
-        <input
-          id="cs-key"
-          type="text"
-          placeholder="bd-myworkspace-abc123"
-          autocomplete="off"
-          :value="cfg.key"
-          @change="onKeyChange"
-        />
-        <button type="button" class="ghost small" @click="genKey">↻ Generate</button>
-        <button type="button" class="ghost small" @click="copyKey">📋 Copy</button>
-      </div>
-      <div class="setting-row" style="margin-bottom: 8px">
-        <label for="cs-url">Endpoint URL</label>
-        <input id="cs-url" type="url" :value="cfg.url || CLOUD_DEFAULTS.url" @change="onUrlChange" />
-      </div>
+      <template v-if="managedWorkspace">
+        <div class="setting-row" style="margin-bottom: 8px">
+          <label>Team workspace</label>
+          <code style="user-select: all">{{ cfg.key }}</code>
+          <span class="help">Sync is always on — this device is pinned to the team workspace, so everyone sees the same data.</span>
+        </div>
+      </template>
+      <template v-else>
+        <div class="setting-row" style="margin-bottom: 8px">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+            <input type="checkbox" :checked="cfg.enabled" @change="onEnabledChange" />
+            <span><b>Enable cloud sync</b> to this app's server</span>
+          </label>
+        </div>
+        <div class="setting-row" style="margin-bottom: 8px">
+          <label for="cs-key">Workspace key</label>
+          <input
+            id="cs-key"
+            type="text"
+            placeholder="bd-myworkspace-abc123"
+            autocomplete="off"
+            :value="cfg.key"
+            @change="onKeyChange"
+          />
+          <button type="button" class="ghost small" @click="genKey">↻ Generate</button>
+          <button type="button" class="ghost small" @click="copyKey">📋 Copy</button>
+        </div>
+        <div class="setting-row" style="margin-bottom: 8px">
+          <label for="cs-url">Endpoint URL</label>
+          <input id="cs-url" type="url" :value="cfg.url || CLOUD_DEFAULTS.url" @change="onUrlChange" />
+        </div>
+      </template>
       <div class="setting-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px">
         <button type="button" class="ghost" @click="pullNow">⬇ Pull from cloud now</button>
         <button type="button" class="primary" @click="pushNow">⬆ Push to cloud now</button>
@@ -561,9 +574,9 @@ function wipeAll() {
         }}</span>
       </div>
       <div class="help" style="margin-top: 10px">
-        <b>How it works:</b> every keystroke saves locally; the local copy is mirrored to the server every ~1.5s. Other
-        devices on the same key poll every 30s and replace their copy when the server is newer. Last-write-wins. Don't
-        enter the same fields on two devices at the exact same time.
+        <b>How it works:</b> every change saves locally, then mirrors to the server ~1.5s later. The server
+        <b>merges</b> everyone's data (nothing is overwritten by a slower device) and pushes live updates to the other
+        browsers, with a 30s poll as backup. Deletes propagate too.
       </div>
     </div>
 
@@ -586,7 +599,7 @@ function wipeAll() {
         <button class="primary" @click="pickImport">Import &amp; merge data…</button>
         <input ref="importFile" type="file" accept="application/json,.json" style="display: none" @change="onImportChange" />
         <button @click="exportExpensesCsv">Export expenses CSV</button>
-        <button class="ghost" @click="resetBackfill">Reset to backfill (Jan–Mar 2026)</button>
+        <button v-if="!managedWorkspace" class="ghost" @click="resetBackfill">Reset to backfill (Jan–Mar 2026)</button>
         <button class="danger" @click="wipeAll">Wipe all data</button>
       </div>
       <div class="help">
