@@ -16,6 +16,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     target: 'es2020',
+    rollupOptions: {
+      output: {
+        // Keep the framework in its own long-cached chunk so app-only deploys
+        // don't force users to re-download vue/pinia/router, and it can
+        // modulepreload in parallel with the app entry.
+        manualChunks: {
+          vue: ['vue', 'vue-router', 'pinia'],
+        },
+      },
+    },
   },
   // Dev only: proxy /api to the running `web` container (which injects the API
   // token and forwards to the api). This keeps `npm run dev` same-origin, so no

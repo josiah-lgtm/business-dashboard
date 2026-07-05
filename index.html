@@ -3,10 +3,135 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#161616" />
   <title>Business Dashboard — P&amp;L, Expenses, Decisions</title>
+  <!-- Critical boot CSS: paints a dark app-shell skeleton instantly, before the
+       JS bundle + app.css load, so a cold start never flashes white-then-blank.
+       Vue's mount() replaces #app's contents, so this self-dismisses with no JS.
+       Metrics (232px sidebar / 52px topbar / 28px 32px main pad / 12px radius)
+       mirror app.css so the swap to the real UI doesn't jump. -->
+  <style>
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: #161616;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+    }
+    #app { min-height: 100vh; }
+    .boot {
+      display: grid;
+      grid-template-columns: 232px 1fr;
+      grid-template-rows: 52px 1fr;
+      min-height: 100vh;
+    }
+    .boot-topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .boot-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 18px 0 6px;
+      min-width: 200px;
+      height: 100%;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .boot-logo { width: 30px; height: 30px; border-radius: 7px; }
+    .boot-sidebar {
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .boot-nav { height: 34px; border-radius: 8px; }
+    .boot-main { padding: 28px 32px 60px; }
+    .boot-grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .boot-kpi {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .boot-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 22px 24px;
+      margin-bottom: 16px;
+    }
+    .sk { background: rgba(255, 255, 255, 0.06); border-radius: 6px; }
+    .sk-lg { background: rgba(255, 255, 255, 0.07); border-radius: 8px; }
+    .boot-pulse { animation: boot-pulse 1.4s ease-in-out infinite; }
+    @keyframes boot-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .boot-pulse { animation: none; }
+    }
+  </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <div class="boot" aria-hidden="true">
+      <!-- topbar -->
+      <div class="boot-topbar">
+        <div class="boot-brand">
+          <div class="boot-logo sk boot-pulse"></div>
+          <div class="sk boot-pulse" style="width: 120px; height: 12px"></div>
+        </div>
+        <div class="sk boot-pulse" style="width: 130px; height: 28px; border-radius: 7px"></div>
+        <div class="sk boot-pulse" style="width: 110px; height: 28px; border-radius: 7px"></div>
+        <div style="flex: 1"></div>
+        <div class="sk boot-pulse" style="width: 96px; height: 26px; border-radius: 999px"></div>
+      </div>
+      <!-- sidebar -->
+      <div class="boot-sidebar">
+        <div class="boot-nav sk boot-pulse"></div>
+        <div class="boot-nav sk boot-pulse"></div>
+        <div class="boot-nav sk boot-pulse"></div>
+        <div class="boot-nav sk boot-pulse"></div>
+        <div class="boot-nav sk boot-pulse"></div>
+        <div class="boot-nav sk boot-pulse"></div>
+      </div>
+      <!-- main -->
+      <div class="boot-main">
+        <div class="sk boot-pulse" style="width: 220px; height: 34px; margin-bottom: 10px"></div>
+        <div class="sk boot-pulse" style="width: 300px; height: 15px; margin-bottom: 24px"></div>
+        <div class="boot-grid3">
+          <div class="boot-kpi">
+            <div class="sk boot-pulse" style="width: 60%; height: 11px; margin-bottom: 14px"></div>
+            <div class="sk boot-pulse" style="width: 75%; height: 26px"></div>
+          </div>
+          <div class="boot-kpi">
+            <div class="sk boot-pulse" style="width: 60%; height: 11px; margin-bottom: 14px"></div>
+            <div class="sk boot-pulse" style="width: 75%; height: 26px"></div>
+          </div>
+          <div class="boot-kpi">
+            <div class="sk boot-pulse" style="width: 60%; height: 11px; margin-bottom: 14px"></div>
+            <div class="sk boot-pulse" style="width: 75%; height: 26px"></div>
+          </div>
+        </div>
+        <div class="boot-card">
+          <div class="sk boot-pulse" style="width: 180px; height: 12px; margin-bottom: 18px"></div>
+          <div class="sk-lg boot-pulse" style="width: 100%; height: 200px"></div>
+        </div>
+        <div class="boot-card">
+          <div class="sk boot-pulse" style="width: 140px; height: 12px; margin-bottom: 18px"></div>
+          <div class="sk-lg boot-pulse" style="width: 100%; height: 200px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

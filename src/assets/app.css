@@ -2818,3 +2818,63 @@
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
     .main { padding: 16px; }
   }
+
+  /* ============================================================
+     Loading — top progress bar, skeletons, view transition
+     ============================================================ */
+
+  /* Slim accent bar pinned to the very top; reflects cloud-sync / load activity.
+     position:fixed keeps it out of the .app grid flow (no phantom grid cell). */
+  .top-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .top-progress.active { opacity: 1; }
+  .top-progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    box-shadow: 0 0 8px var(--accent-shadow), 0 0 3px var(--accent);
+    border-radius: 0 2px 2px 0;
+    transition: width 0.2s ease;
+  }
+
+  /* Skeleton primitive — a muted shimmer block. Composed by every skeleton. */
+  .skl {
+    background-color: var(--surface-raised);
+    background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.07) 50%, transparent 100%);
+    background-size: 180% 100%;
+    background-position: 180% 0;
+    background-repeat: no-repeat;
+    animation: skl-shimmer 1.5s ease-in-out infinite;
+  }
+  .skl-soft { background-color: var(--surface-input); }
+  @keyframes skl-shimmer {
+    from { background-position: 180% 0; }
+    to { background-position: -80% 0; }
+  }
+  /* Ease the skeleton in so it doesn't pop when the async delay elapses. */
+  .skl-view { animation: skl-fade-in 0.18s ease both; }
+  @keyframes skl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Route view cross-fade (paired with <transition name="view" mode="out-in">). */
+  .view-enter-active { transition: opacity 0.16s ease, transform 0.16s ease; }
+  .view-leave-active { transition: opacity 0.08s ease; }
+  .view-enter-from { opacity: 0; transform: translateY(6px); }
+  .view-leave-to { opacity: 0; }
+
+  /* Respect reduced-motion: static skeletons, instant swaps, no marquee. */
+  @media (prefers-reduced-motion: reduce) {
+    .skl { animation: none; background-image: none; }
+    .skl-view { animation: none; }
+    .view-enter-active, .view-leave-active { transition: none; }
+    .view-enter-from { transform: none; }
+    .top-progress, .top-progress-fill { transition: none; }
+  }

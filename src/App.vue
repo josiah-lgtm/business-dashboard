@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useDashboard } from '@/stores/dashboard'
@@ -7,10 +7,21 @@ import { NAV_ITEMS } from '@/router'
 import { sortedMonthIds, fmtMonth } from '@/lib/format'
 import { fxRateFor, CURRENCY_SYMBOLS } from '@/lib/money'
 import { cloudStatus } from '@/lib/cloud'
+import { cloudFirstLoadPending } from '@/lib/hydration'
+import { startProgress, doneProgress } from '@/lib/progress'
+import TopProgressBar from '@/components/TopProgressBar.vue'
+import ViewSkeleton from '@/components/skeleton/ViewSkeleton.vue'
 
 const store = useDashboard()
 const { state, saveStatus, saveDirty } = storeToRefs(store)
 const route = useRoute()
+
+// Drive the top progress bar off cloud-sync activity (the one genuinely-async op).
+watch(
+  () => cloudStatus.value.cls === 'syncing',
+  (syncing) => (syncing ? startProgress() : doneProgress()),
+  { immediate: true },
+)
 
 const monthIds = computed(() => sortedMonthIds())
 const currency = computed(() => state.value.meta.currency || 'GBP')
@@ -42,10 +53,12 @@ function onAddMonth() {
 
 <template>
   <div class="app">
+    <!-- Cloud-sync / loading progress bar -->
+    <TopProgressBar />
     <!-- Top bar -->
     <div class="topbar">
       <div class="brand">
-        <img :src="logoSrc" alt="" />
+        <img :src="logoSrc" alt="" decoding="async" fetchpriority="high" />
         <h1>Agency Advanta</h1>
       </div>
       <div class="control">
@@ -95,7 +108,14 @@ function onAddMonth() {
 
     <!-- Main content -->
     <main class="main">
-      <RouterView />
+      <!-- Fresh, empty team build: show a skeleton until the first cloud pull
+           lands, instead of flashing the "No data" empty states. -->
+      <ViewSkeleton v-if="cloudFirstLoadPending" />
+      <RouterView v-else v-slot="{ Component }">
+        <transition name="view" mode="out-in">
+          <component :is="Component" :key="route.name" />
+        </transition>
+      </RouterView>
     </main>
   </div>
 </template>

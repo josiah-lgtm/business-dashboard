@@ -4,6 +4,7 @@ import App from './App.vue'
 import { router, NAV_ITEMS } from './router'
 import { useDashboard } from './stores/dashboard'
 import { cloudIsEnabled, cloudPull, cloudStartPolling, cloudStartEventStream, setCloudStatus } from './lib/cloud'
+import { computeInitialHydrating, finishHydration } from './lib/hydration'
 import './assets/app.css'
 
 const app = createApp(App)
@@ -13,6 +14,10 @@ app.use(pinia)
 // Instantiate the store now so loadState() + the persistence watch + cloud
 // hooks are live before first render.
 const store = useDashboard()
+
+// Decide the first-load skeleton BEFORE any cloud pull mutates state: only a
+// fresh, empty team build waits on the network; everyone else renders instantly.
+computeInitialHydrating(store.state)
 
 app.use(router)
 
@@ -33,10 +38,29 @@ router.isReady().then(() => {
   // Cloud sync boot.
   if (cloudIsEnabled()) {
     setCloudStatus('Connecting…', 'syncing')
-    cloudPull().then(() => {
-      cloudStartPolling() // fallback / backstop
-      cloudStartEventStream() // live push for instant updates
-    })
+    // Clear the first-load skeleton as soon as the first pull SETTLES — on
+    // success, on failure/offline, or via a safety timeout — so an empty team
+    // build that can't reach the server drops to the normal empty state instead
+    // of spinning forever.
+    const safety = setTimeout(finishHydration, 8000)
+    const settle = () => {
+      clearTimeout(safety)
+      finishHydration()
+    }
+    cloudPull().then(
+      () => {
+        settle()
+        cloudStartPolling() // fallback / backstop
+        cloudStartEventStream() // live push for instant updates
+      },
+      () => {
+        settle()
+        cloudStartPolling()
+        cloudStartEventStream()
+      },
+    )
+  } else {
+    finishHydration()
   }
 })
 
