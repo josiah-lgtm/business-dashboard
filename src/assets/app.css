@@ -2791,8 +2791,11 @@
   @media print {
     @page { margin: 0; }
     .topbar, .sidebar, .panel, .inv-actions-bar { display: none !important; }
-    .app { grid-template-columns: 1fr !important; grid-template-rows: 1fr !important; }
-    .main { padding: 0 !important; }
+    /* The invoice preview is teleported to <body>, so it renders *after* the
+       still-present .app (min-height:100vh) in the print flow — which prints a
+       full blank first page. Hide the app shell entirely; the teleported
+       .invoice-print lives outside .app and stays visible. */
+    .app { display: none !important; }
     .invoice-print { display: block !important; box-shadow: none; margin: 0; max-width: 100%; padding: 24px 32px; border-radius: 0; }
     .invoice-print.contractor-invoice-mode { padding: 0; max-width: 100%; }
     .contractor-invoice-shell { min-height: 95vh; }
