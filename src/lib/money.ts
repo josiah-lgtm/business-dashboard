@@ -64,4 +64,12 @@ export function currencySymbol(cur?: string): string {
   return CURRENCY_SYMBOLS[cur || 'GBP'] || '£'
 }
 
+// Epoch ms when the FX rates were last auto-refreshed server-side (0 if never).
+// Stamped into meta.fxRates._updatedAt by the api's rate job; used only to show
+// freshness in the UI and to resolve the merge (see lib/merge.ts).
+export function fxUpdatedAt(): number {
+  const rates = (S().meta && (S().meta.fxRates as Record<string, number>)) || {}
+  return Number(rates._updatedAt) || 0
+}
+
 export type { Currency }

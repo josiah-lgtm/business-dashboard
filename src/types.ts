@@ -19,7 +19,8 @@ export interface Meta {
   currency: Currency
   fxRates: FxRates // "1 GBP = X foreign"
   fxRate: number // legacy mirror of fxRates.USD
-  invoiceCounter: number
+  invoiceCounter: number // legacy standalone counter — superseded by derive-from-last (see lib/invoice-number.ts)
+  invoiceNumberStart?: number // optional manual "start numbering from N" floor; unset = auto (per-device)
   invoicesTab?: 'outbound' | 'inbound'
   cloudUpdatedAt?: string // ISO of last server sync
 }

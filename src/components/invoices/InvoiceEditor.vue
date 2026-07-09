@@ -7,6 +7,7 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDashboard } from '@/stores/dashboard'
 import { uid, isoDate } from '@/lib/format'
+import { nextInvoiceNumber } from '@/lib/invoice-number'
 import type { Invoice, InvoiceItem, Currency } from '@/types'
 
 const props = defineProps<{ editId: string | null }>()
@@ -23,8 +24,10 @@ const boundId = ref<string | null>(props.editId)
 function newDefaults() {
   const today = isoDate(new Date())
   const yyyy = today.slice(0, 4)
-  const num = state.value.meta.invoiceCounter || 1
-  return { number: `INV-${yyyy}-${String(num).padStart(3, '0')}`, date: today }
+  // Suggest the next number from the highest invoice that actually exists
+  // (continuous, honouring an optional manual start floor) — not a standalone
+  // counter that drifts ahead when drafts are cancelled or invoices deleted.
+  return { number: nextInvoiceNumber(state.value, yyyy), date: today }
 }
 
 const existing = props.editId ? state.value.invoices.find((x) => x.id === props.editId) || null : null
@@ -76,9 +79,10 @@ function autoSave() {
     if (!inv) return
   } else {
     // First keystroke on a new invoice → materialise + remember the id.
+    // The number was derived from the existing invoice list at form-open; once
+    // this row is in state.invoices, the next new invoice derives one higher.
     const fresh = { id: uid(), items: [], client: {} } as unknown as Invoice
     state.value.invoices.push(fresh)
-    state.value.meta.invoiceCounter = (state.value.meta.invoiceCounter || 1) + 1
     boundId.value = fresh.id
     // Re-fetch the reactive proxy so later property writes trigger autosave.
     inv = state.value.invoices.find((x) => x.id === fresh.id)
@@ -132,7 +136,6 @@ function save() {
   } else {
     const inv = { id: uid(), ...payload } as Invoice
     state.value.invoices.push(inv)
-    state.value.meta.invoiceCounter = (state.value.meta.invoiceCounter || 1) + 1
   }
   emit('close')
 }

@@ -16,8 +16,9 @@ import { timingSafeEqual } from 'node:crypto'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { prisma } from './db.js'
-import { handleGet, handlePost } from './store.js'
+import { handleGet, handlePost, updateFxRates } from './store.js'
 import { publish, subscribe } from './events.js'
+import { fetchGbpRates, startFxScheduler } from './fx.js'
 import type { State } from './types.js'
 
 const PORT = Number(process.env.PORT) || 3000
@@ -143,6 +144,20 @@ app.get<{ Params: { key: string } }>('/external/kv/:key/events', async (req, rep
   req.raw.on('error', cleanup)
 })
 
+// ---- FX rates: on-demand refresh ---------------------------------------------
+// Force an immediate GBP-based rate fetch for this workspace (the "Refresh now"
+// button in Settings). The scheduler already refreshes 3x/day; this is for when
+// a user wants to pull the latest rate right away. Auth via the bearer hook.
+app.post<{ Params: { key: string } }>('/external/kv/:key/fx-refresh', async (req, reply) => {
+  const { key } = req.params
+  if (badKey(key)) return reply.code(400).send({ error: 'invalid key' })
+  const rates = await fetchGbpRates()
+  if (!rates) return reply.code(502).send({ error: 'rate source unavailable' })
+  const { changed, updated_at } = await updateFxRates(key, { USD: rates.usd, EUR: rates.eur })
+  if (changed) publish(key, { updated_at, updated_by: 'fx-rates-bot' })
+  return reply.send({ ok: true, rates: { USD: rates.usd, EUR: rates.eur }, date: rates.date, changed, updated_at })
+})
+
 // ---- reporting (read-only, key-scoped, password never selected) --------------
 const EXPENSE_COLS = { id: true, date: true, vendor: true, category: true, amount: true, currency: true, month: true }
 const INVOICE_COLS = {
@@ -248,6 +263,9 @@ if (!API_TOKEN) {
 
 try {
   await app.listen({ host: '0.0.0.0', port: PORT })
+  // Kick off the recurring GBP-based FX refresh (boot + every 8h). Non-blocking;
+  // failures keep last-good rates. Disable with FX_AUTO_UPDATE=0.
+  startFxScheduler(app.log)
 } catch (err) {
   app.log.error(err)
   process.exit(1)

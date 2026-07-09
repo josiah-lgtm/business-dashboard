@@ -5,8 +5,8 @@ import { storeToRefs } from 'pinia'
 import { useDashboard } from '@/stores/dashboard'
 import { NAV_ITEMS } from '@/router'
 import { sortedMonthIds, fmtMonth } from '@/lib/format'
-import { fxRateFor, CURRENCY_SYMBOLS } from '@/lib/money'
-import { cloudStatus } from '@/lib/cloud'
+import { fxRateFor, CURRENCY_SYMBOLS, fxUpdatedAt } from '@/lib/money'
+import { cloudStatus, cloudRelativeTime } from '@/lib/cloud'
 import { cloudFirstLoadPending } from '@/lib/hydration'
 import { startProgress, doneProgress } from '@/lib/progress'
 import TopProgressBar from '@/components/TopProgressBar.vue'
@@ -28,6 +28,13 @@ const currency = computed(() => state.value.meta.currency || 'GBP')
 const fxWrapVisible = computed(() => currency.value !== 'GBP')
 const fxSymbol = computed(() => CURRENCY_SYMBOLS[currency.value] || '$')
 const fxValue = computed(() => fxRateFor(currency.value))
+// Rates auto-update server-side; the top bar just shows the live value.
+const fxTitle = computed(() => {
+  const ts = fxUpdatedAt()
+  return ts
+    ? `Exchange rate updates automatically — last updated ${cloudRelativeTime(new Date(ts).toISOString())}`
+    : 'Exchange rate updates automatically a few times a day'
+})
 
 const logoSrc = computed(() => state.value.business?.logoDataUrl || '/logo.png')
 
@@ -42,9 +49,6 @@ function onMonthChange(e: Event) {
 }
 function onCurrencyChange(e: Event) {
   store.setCurrency((e.target as HTMLSelectElement).value as any)
-}
-function onFxInput(e: Event) {
-  store.setFxRate(parseFloat((e.target as HTMLInputElement).value))
 }
 function onAddMonth() {
   store.addMonth()
@@ -75,10 +79,10 @@ function onAddMonth() {
           <option value="EUR">€ EUR</option>
         </select>
       </div>
-      <div class="control" v-show="fxWrapVisible">
+      <div class="control" v-show="fxWrapVisible" :title="fxTitle">
         <label style="margin: 0">1£=</label>
-        <input type="number" step="0.01" min="0.1" :value="fxValue" @input="onFxInput" />
-        <span style="font-size: 12px; color: var(--text-tertiary)">{{ fxSymbol }}</span>
+        <span style="font-variant-numeric: tabular-nums; font-weight: 600">{{ fxSymbol }}{{ fxValue.toFixed(2) }}</span>
+        <span style="font-size: 11px; color: var(--text-tertiary)">auto</span>
       </div>
       <span class="save-status" :class="{ dirty: saveDirty }">{{ saveStatus }}</span>
       <span

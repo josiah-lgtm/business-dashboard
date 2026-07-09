@@ -152,6 +152,27 @@ export async function cloudPushNow() {
   }
 }
 
+// Ask the server to fetch the latest GBP-based exchange rates right now, then
+// pull so the freshly-written rates land locally. (Rates also auto-refresh
+// server-side a few times a day; this is the Settings "Refresh now" button.)
+export async function cloudRefreshFx(): Promise<{ ok: boolean; error?: string }> {
+  if (!cloudIsEnabled()) return { ok: false, error: 'disabled' }
+  const cfg = cloudCfg()
+  try {
+    const r = await fetch(`${cfg.url}/${encodeURIComponent(cfg.key)}/fx-refresh`, {
+      method: 'POST',
+      headers: cloudHeaders(),
+    })
+    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    await r.json().catch(() => ({}))
+    await cloudPull()
+    return { ok: true }
+  } catch (e: any) {
+    console.error('cloudRefreshFx failed:', e)
+    return { ok: false, error: e?.message }
+  }
+}
+
 // Synchronous best-effort flush during page unload.
 export function cloudFlushNow() {
   if (!cloudIsEnabled() || !cloudPendingPush) return

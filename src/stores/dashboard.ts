@@ -350,6 +350,13 @@ export const useDashboard = defineStore('dashboard', () => {
     state.meta.fxRates[cur] = value || state.meta.fxRates[cur]
     if (cur === 'USD') state.meta.fxRate = state.meta.fxRates.USD
   }
+  // Manual "start next invoice at N" floor. null/0 → back to automatic
+  // (derive from the highest existing invoice). Does not touch existing invoices.
+  function setInvoiceNumberStart(value: number | null) {
+    const n = Number(value)
+    if (!value || !Number.isFinite(n) || n < 1) delete state.meta.invoiceNumberStart
+    else state.meta.invoiceNumberStart = Math.floor(n)
+  }
   function addMonth(): string | null {
     const ids = sortedMonthIds()
     const last = ids[ids.length - 1]
@@ -409,6 +416,7 @@ export const useDashboard = defineStore('dashboard', () => {
     setActiveMonth,
     setCurrency,
     setFxRate,
+    setInvoiceNumberStart,
     addMonth,
     deleteMonth,
   }

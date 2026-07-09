@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDashboard } from '@/stores/dashboard'
 import { isoDate, isoMonth, monthOf } from '@/lib/format'
+import { nextInvoiceNumber } from '@/lib/invoice-number'
 import {
   makeInitialState,
   DEFAULT_BUSINESS,
@@ -17,9 +18,11 @@ import {
   cloudGenerateKey,
   cloudStartPolling,
   cloudRelativeTime,
+  cloudRefreshFx,
   setCloudStatus,
   CLOUD_DEFAULTS,
 } from '@/lib/cloud'
+import { fxRateFor, fxUpdatedAt } from '@/lib/money'
 import type { State } from '@/types'
 
 const store = useDashboard()
@@ -64,6 +67,46 @@ const targetFields: [keyof State['targets'], string][] = [
 function onTargetInput(key: keyof State['targets'], ev: Event) {
   const v = parseFloat((ev.target as HTMLInputElement).value)
   state.value.targets[key] = (isNaN(v) ? 0 : v) as never
+}
+
+// ---------- Invoice numbering ----------
+// Numbers are derived from the highest existing invoice (continuous). An optional
+// manual "start from" floor lets you reset/bump the sequence; existing invoices
+// are never renumbered.
+const invStartInput = ref<string>('')
+const invAuto = computed(() => !state.value.meta.invoiceNumberStart)
+const nextInvNumber = computed(() =>
+  nextInvoiceNumber(state.value, isoDate(new Date()).slice(0, 4)),
+)
+function applyInvStart() {
+  const n = parseInt(invStartInput.value, 10)
+  if (!Number.isFinite(n) || n < 1) return
+  store.setInvoiceNumberStart(n)
+  invStartInput.value = ''
+}
+function clearInvStart() {
+  store.setInvoiceNumberStart(null)
+  invStartInput.value = ''
+}
+
+// ---------- Currency & exchange rates ----------
+// GBP is canonical; USD/EUR rates auto-update server-side. "Refresh now" asks the
+// server to fetch the latest rate immediately, then pulls it in.
+const usdRate = computed(() => fxRateFor('USD'))
+const eurRate = computed(() => fxRateFor('EUR'))
+const fxUpdatedText = computed(() => {
+  const ts = fxUpdatedAt()
+  return ts ? `Rates updated ${cloudRelativeTime(new Date(ts).toISOString())}` : 'Awaiting first automatic update'
+})
+const fxRefreshing = ref(false)
+const fxMsg = ref('')
+async function refreshFxNow() {
+  fxRefreshing.value = true
+  fxMsg.value = ''
+  const r = await cloudRefreshFx()
+  fxMsg.value = r.ok ? '✓ Updated' : 'Refresh failed — check connection'
+  fxRefreshing.value = false
+  setTimeout(() => (fxMsg.value = ''), 2500)
 }
 
 // ---------- Logo ----------
@@ -589,6 +632,67 @@ function wipeAll() {
           <label>{{ label }}</label>
           <input type="number" step="0.1" min="0" :value="state.targets[k]" @input="onTargetInput(k, $event)" />
         </div>
+      </div>
+    </div>
+
+    <!-- Invoice numbering -->
+    <div class="card">
+      <h3>Invoice numbering</h3>
+      <p class="help" style="margin-top: 0">
+        New invoice numbers continue automatically from the highest invoice you already have — so the
+        number always follows your last invoice, with no gaps when a draft is cancelled or an invoice is
+        deleted. Existing invoices are never renumbered.
+      </p>
+      <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+        <div>
+          <label>Next invoice number</label>
+          <input type="text" :value="nextInvNumber" readonly style="font-variant-numeric: tabular-nums" />
+        </div>
+        <div>
+          <label>Start numbering from</label>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            v-model="invStartInput"
+            :placeholder="invAuto ? 'auto' : String(state.meta.invoiceNumberStart)"
+          />
+        </div>
+        <button type="button" class="primary" @click="applyInvStart">Set start number</button>
+        <button v-if="!invAuto" type="button" class="ghost" @click="clearInvStart">Switch to automatic</button>
+      </div>
+      <div class="help" style="margin-top: 8px">
+        <template v-if="invAuto"
+          >Currently <b>automatic</b> — following your highest invoice.</template
+        >
+        <template v-else
+          >Currently <b>starting from {{ state.meta.invoiceNumberStart }}</b> (manual). This device
+          only.</template
+        >
+      </div>
+    </div>
+
+    <!-- Currency & exchange rates -->
+    <div class="card">
+      <h3>Currency &amp; exchange rates</h3>
+      <p class="help" style="margin-top: 0">
+        Everything is stored in British pounds. Exchange rates update automatically from a live GBP feed a
+        few times a day, so your USD/EUR views and any foreign income convert at current rates — no manual
+        entry needed.
+      </p>
+      <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+        <div>
+          <label>£1 equals</label>
+          <div style="font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px">
+            ${{ usdRate.toFixed(4) }} &nbsp;·&nbsp; €{{ eurRate.toFixed(4) }}
+          </div>
+        </div>
+        <button type="button" @click="refreshFxNow" :disabled="fxRefreshing">
+          {{ fxRefreshing ? 'Refreshing…' : 'Refresh now' }}
+        </button>
+      </div>
+      <div class="help" style="margin-top: 8px">
+        {{ fxUpdatedText }}<span v-if="fxMsg"> — {{ fxMsg }}</span>
       </div>
     </div>
 

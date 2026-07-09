@@ -161,11 +161,18 @@ export function mergeStates(
   // --- meta: mix of shared + per-device ---
   const lm = local.meta || ({} as State['meta'])
   const rm = remote.meta || ({} as State['meta'])
+  // FX rates carry an `_updatedAt` epoch stamped by the server's daily auto-refresh.
+  // Take the freshest set (newest _updatedAt wins in BOTH directions) so a client
+  // POSTing older rates can't clobber a just-synced update, and a stale client
+  // adopts the new rates on pull. Equal/absent stamps fall back to the pr tiebreak.
+  const lFxTs = Number((lm.fxRates as any)?._updatedAt) || 0
+  const rFxTs = Number((rm.fxRates as any)?._updatedAt) || 0
+  const fxFromRemote = rFxTs > lFxTs ? true : lFxTs > rFxTs ? false : pr
   merged.meta = {
     ...lm,
     invoiceCounter: Math.max(Number(lm.invoiceCounter) || 0, Number(rm.invoiceCounter) || 0),
-    fxRates: pick(lm.fxRates, rm.fxRates) || lm.fxRates,
-    fxRate: pick(lm.fxRate, rm.fxRate),
+    fxRates: (fxFromRemote ? rm.fxRates : lm.fxRates) || lm.fxRates || rm.fxRates,
+    fxRate: fxFromRemote ? (rm.fxRate ?? lm.fxRate) : (lm.fxRate ?? rm.fxRate),
   }
 
   // --- per-device fields: always keep local ---

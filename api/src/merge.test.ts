@@ -79,6 +79,26 @@ test('invoice counters take the MAX (never reused)', () => {
   assert.equal(merged.meta.invoiceCounter, 7)
 })
 
+test('fx rates: freshest _updatedAt wins in both directions', () => {
+  // Incoming client POST (remote) carries OLDER rates -> the server's fresher
+  // auto-updated rates must survive even though preferRemote is true.
+  const local = base()
+  local.meta.fxRates = { USD: 1.34, EUR: 1.17, _updatedAt: 2000 } as any
+  const remote = base()
+  remote.meta.fxRates = { USD: 1.27, EUR: 1.1, _updatedAt: 1000 } as any
+  const a = mergeStates(local, remote, { preferRemote: true })
+  assert.equal(a.merged.meta.fxRates.USD, 1.34)
+  assert.equal((a.merged.meta.fxRates as any)._updatedAt, 2000)
+
+  // Remote fresher -> remote wins even with preferRemote false (client adopts on pull).
+  const local2 = base()
+  local2.meta.fxRates = { USD: 1.27, EUR: 1.1, _updatedAt: 1000 } as any
+  const remote2 = base()
+  remote2.meta.fxRates = { USD: 1.34, EUR: 1.17, _updatedAt: 2000 } as any
+  const b = mergeStates(local2, remote2, { preferRemote: false })
+  assert.equal(b.merged.meta.fxRates.USD, 1.34)
+})
+
 test('months map unions and tombstoned month is dropped', () => {
   const local = base()
   local.months = { '2026-01': anyMonth(100) }

@@ -225,3 +225,36 @@ export async function handlePost(
   if (result.changed) await pruneSnapshots(key)
   return { updated_at: toIso(result.at), changed: result.changed }
 }
+
+/**
+ * Auto-update a workspace's FX rates (GBP-based) from the scheduled/on-demand
+ * refresh. Runs inside the SAME per-workspace advisory lock as handlePost so it
+ * can't race a concurrent client POST. Stamps meta.fxRates._updatedAt so the
+ * merge treats these as the freshest set everywhere. No-op (changed:false) when
+ * the rates are unchanged, so an unchanged daily rate produces no sync churn.
+ */
+export async function updateFxRates(
+  key: string,
+  rates: { USD: number; EUR: number },
+): Promise<{ updated_at: string; changed: boolean }> {
+  const now = new Date()
+  const result = await prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`
+      const { db, dataUpdatedAt } = await loadDbState(tx, key)
+      if (!db.workspace) return { at: dataUpdatedAt ?? now, changed: false }
+      const current = reconstruct(db)
+      const cur: any = current.meta.fxRates || {}
+      if (Number(cur.USD) === Number(rates.USD) && Number(cur.EUR) === Number(rates.EUR)) {
+        return { at: dataUpdatedAt ?? now, changed: false }
+      }
+      current.meta.fxRates = { ...cur, USD: rates.USD, EUR: rates.EUR, _updatedAt: now.getTime() }
+      current.meta.fxRate = rates.USD // legacy mirror of fxRates.USD
+      await persistMerged(tx, key, current, 'fx-rates-bot', now)
+      return { at: now, changed: true }
+    },
+    { timeout: 30_000, maxWait: 15_000 },
+  )
+  if (result.changed) await pruneSnapshots(key)
+  return { updated_at: toIso(result.at), changed: result.changed }
+}

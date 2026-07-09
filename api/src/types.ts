@@ -19,6 +19,7 @@ export interface Meta {
   fxRates: FxRates
   fxRate: number
   invoiceCounter: number
+  invoiceNumberStart?: number // per-device manual start floor (not persisted server-side)
   invoicesTab?: 'outbound' | 'inbound'
   cloudUpdatedAt?: string
 }
