@@ -39,8 +39,15 @@ export const cloudStatus = ref<{ text: string; cls: string; visible: boolean }>(
 let cloudTimer: ReturnType<typeof setTimeout> | null = null
 let cloudInflight = false
 let cloudPendingPush = false
+let cloudRetryTimer: ReturnType<typeof setTimeout> | null = null
 let cloudLastPulledAt: string | null = null
 let pollTimer: ReturnType<typeof setInterval> | null = null
+
+// A failed push retries on this cadence (slower than the 1.5s edit debounce so
+// an offline spell doesn't hammer the network). Until it lands, cloudPendingPush
+// stays true, which also keeps the poll + SSE handlers from pulling a remote
+// state over the unsynced local edit.
+const PUSH_RETRY_MS = 10_000
 
 // Store-provided hooks (registered on boot) — keep this module free of a
 // hard dependency on the Pinia store (avoids an import cycle).
@@ -129,9 +136,14 @@ export async function cloudPushNow() {
     return
   }
   if (cloudTimer) clearTimeout(cloudTimer)
+  if (cloudRetryTimer) {
+    clearTimeout(cloudRetryTimer)
+    cloudRetryTimer = null
+  }
   cloudInflight = true
   cloudPendingPush = false
   const cfg = cloudCfg()
+  let failed = false
   try {
     const r = await fetch(`${cfg.url}/${encodeURIComponent(cfg.key)}`, {
       method: 'POST',
@@ -145,10 +157,20 @@ export async function cloudPushNow() {
     setCloudStatus(`Synced ✓ ${cloudRelativeTime(updatedAt)}`, 'ok')
   } catch (e) {
     console.error('cloudPushNow failed:', e)
+    failed = true
     setCloudStatus('Cloud save failed — will retry', 'err')
   } finally {
     cloudInflight = false
-    if (cloudPendingPush) cloudPushSoon()
+    if (failed) {
+      // The edit is still only local: keep it flagged pending (so poll/SSE won't
+      // pull a remote state over it) and actually retry — previously "will
+      // retry" was a lie and a wifi blip could strand an edit until the next
+      // keystroke, where a later remote write would then revert it on pull.
+      cloudPendingPush = true
+      cloudRetryTimer = setTimeout(cloudPushNow, PUSH_RETRY_MS)
+    } else if (cloudPendingPush) {
+      cloudPushSoon() // edits arrived while the push was in flight
+    }
   }
 }
 
@@ -165,7 +187,7 @@ export async function cloudRefreshFx(): Promise<{ ok: boolean; error?: string }>
     })
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
     await r.json().catch(() => ({}))
-    await cloudPull()
+    await safePull() // same pending-push guard as the SSE path (hoisted declaration)
     return { ok: true }
   } catch (e: any) {
     console.error('cloudRefreshFx failed:', e)
@@ -236,6 +258,20 @@ export function cloudStartPolling() {
 // same-origin /api requests (same as GET/POST), so no token is needed here.
 let eventStream: EventSource | null = null
 
+// Pull for an SSE nudge without racing a local edit: if a push is debouncing or
+// in flight (the poll already checks this; the SSE path didn't), flush it first
+// so the pull's preferRemote tiebreak can't revert the not-yet-pushed edit, and
+// skip the pull entirely if the push failed (the retry timer owns it from there;
+// the eventual successful push triggers its own SSE round-trip).
+function safePull(): Promise<unknown> {
+  if (cloudPendingPush || cloudInflight) {
+    return cloudPushNow().then(() => {
+      if (!cloudPendingPush) return cloudPull()
+    })
+  }
+  return cloudPull()
+}
+
 export function cloudStartEventStream() {
   cloudStopEventStream()
   if (typeof EventSource === 'undefined') return // ancient browser -> poll only
@@ -250,9 +286,9 @@ export function cloudStartEventStream() {
         // Ignore the echo of our own write — we already hold that data.
         if (payload?.updated_by && payload.updated_by === cloudWho()) return
         // Only pull if the server is ahead of what we last reconciled.
-        if (!payload?.updated_at || payload.updated_at > (cloudLastPulledAt || '')) cloudPull()
+        if (!payload?.updated_at || payload.updated_at > (cloudLastPulledAt || '')) safePull()
       } catch {
-        cloudPull()
+        safePull()
       }
     })
     // On error the browser auto-reconnects (honoring the server's retry hint);

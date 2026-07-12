@@ -2,7 +2,8 @@
 // Outbound (client) invoice editor. Ports showInvoiceForm + autoSaveOutboundInvoice
 // + renderInvoiceItemsForm + recomputeInvoiceTotals + saveInvoice + the Cancel
 // junk-rollback. Per-keystroke autosave materialises a new invoice on first edit
-// (bumping store.state.meta.invoiceCounter); Cancel rolls back an empty draft.
+// (numbered from the highest existing invoice — see lib/invoice-number.ts);
+// Cancel rolls back a draft with no real content.
 import { reactive, ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDashboard } from '@/stores/dashboard'
@@ -145,10 +146,15 @@ function cancel() {
   if (startedNew && boundId.value) {
     const id = boundId.value
     const inv = state.value.invoices.find((x) => x.id === id)
+    // The default line-item row is {description:'', qty:1, rate:0}; its truthy
+    // qty survives autoSave's item filter, so items.length alone would count it
+    // as content and the rollback would never fire — only a description or a
+    // rate makes a row real.
+    const hasRealItems = !!inv && (inv.items || []).some((i) => (i.description || '').trim() !== '' || Number(i.rate) > 0)
     const hasContent =
       inv &&
       ((inv.client && (inv.client.name || inv.client.email || inv.client.address)) ||
-        (inv.items && inv.items.length > 0) ||
+        hasRealItems ||
         (inv.notes && inv.notes.trim() !== 'Thank you for your business.'))
     if (!hasContent) {
       state.value.invoices = state.value.invoices.filter((x) => x.id !== id)

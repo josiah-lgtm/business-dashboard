@@ -37,7 +37,10 @@ defineExpose({ openNew })
 const symbolFor = (c: string) => (c === 'USD' ? '$' : c === 'EUR' ? '€' : '£')
 
 const sorted = computed(() =>
-  state.value.invoices.slice().sort((a, b) => b.date.localeCompare(a.date) || b.number.localeCompare(a.number)),
+  // numeric:true so INV-2026-1000 sorts above INV-2026-999 once padding widens
+  state.value.invoices
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date) || b.number.localeCompare(a.number, undefined, { numeric: true })),
 )
 
 function delInvoice(id: string) {

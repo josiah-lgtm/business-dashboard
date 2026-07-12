@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDashboard } from '@/stores/dashboard'
 import { isoDate, isoMonth, monthOf } from '@/lib/format'
-import { nextInvoiceNumber } from '@/lib/invoice-number'
+import { nextInvoiceNumber, highestInvoiceSeq } from '@/lib/invoice-number'
 import {
   makeInitialState,
   DEFAULT_BUSINESS,
@@ -71,10 +71,17 @@ function onTargetInput(key: keyof State['targets'], ev: Event) {
 
 // ---------- Invoice numbering ----------
 // Numbers are derived from the highest existing invoice (continuous). An optional
-// manual "start from" floor lets you reset/bump the sequence; existing invoices
+// manual "start from" floor can RAISE the sequence (it sits inside a max(), so a
+// value at or below the highest invoice has no effect — the status line below
+// says so honestly instead of pretending the floor is active); existing invoices
 // are never renumbered.
 const invStartInput = ref<string>('')
 const invAuto = computed(() => !state.value.meta.invoiceNumberStart)
+const invHighest = computed(() => highestInvoiceSeq(state.value.invoices))
+// A stored floor at or below the highest invoice can't influence the sequence.
+const invFloorActive = computed(
+  () => !invAuto.value && Number(state.value.meta.invoiceNumberStart) > invHighest.value,
+)
 const nextInvNumber = computed(() =>
   nextInvoiceNumber(state.value, isoDate(new Date()).slice(0, 4)),
 )
@@ -665,9 +672,15 @@ function wipeAll() {
         <template v-if="invAuto"
           >Currently <b>automatic</b> — following your highest invoice.</template
         >
-        <template v-else
+        <template v-else-if="invFloorActive"
           >Currently <b>starting from {{ state.meta.invoiceNumberStart }}</b> (manual). This device
           only.</template
+        >
+        <template v-else
+          >A start number of <b>{{ state.meta.invoiceNumberStart }}</b> is set (this device only),
+          but your highest invoice is already <b>#{{ invHighest }}</b>, so numbers continue from
+          {{ invHighest + 1 }}. Start numbers can only move the sequence <em>up</em> — to lower it,
+          renumber or delete the invoices holding the higher numbers.</template
         >
       </div>
     </div>

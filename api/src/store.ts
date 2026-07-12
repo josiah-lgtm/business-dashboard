@@ -88,7 +88,20 @@ async function loadDbState(c: Client, key: string): Promise<LoadResult> {
   return { db, dataUpdatedAt: ws?.dataUpdatedAt ?? null, updatedBy: ws?.updatedBy ?? null }
 }
 
-async function persistMerged(c: Client, key: string, merged: State, updatedBy: string | null, now: Date) {
+async function persistMerged(
+  c: Client,
+  key: string,
+  merged: State,
+  updatedBy: string | null,
+  now: Date,
+  // FX-bot writes pass a stamp that PRESERVES the prior dataUpdatedAt/updatedBy:
+  // clients decide preferRemote by "server updated_at > my last sync", so letting
+  // an autonomous rate write bump the stamp would make every client's next pull
+  // remote-preferring — able to revert an unsynced human edit that happened to
+  // miss a push. Rates don't need the bump: fxRates carries its own _updatedAt
+  // and merges freshest-wins in both directions regardless of preferRemote.
+  opts: { dataUpdatedAt?: Date; dataUpdatedBy?: string | null; snapshotReason?: string } = {},
+) {
   const db = decompose(merged)
   const ws = db.workspace!
 
@@ -99,8 +112,8 @@ async function persistMerged(c: Client, key: string, merged: State, updatedBy: s
     fxRate: ws.fxRate,
     invoiceCounter: ws.invoiceCounter,
     slackWebhookUrl: ws.slackWebhookUrl,
-    dataUpdatedAt: now,
-    updatedBy,
+    dataUpdatedAt: opts.dataUpdatedAt ?? now,
+    updatedBy: opts.dataUpdatedBy !== undefined ? opts.dataUpdatedBy : updatedBy,
   }
   await c.workspace.upsert({ where: { key }, create: { key, ...wsData }, update: wsData })
 
@@ -178,7 +191,7 @@ async function persistMerged(c: Client, key: string, merged: State, updatedBy: s
 
   // recovery snapshot (passwords stripped)
   await c.snapshot.create({
-    data: { workspaceId: key, updatedBy, reason: 'post', value: stripPasswords(merged) as any },
+    data: { workspaceId: key, updatedBy, reason: opts.snapshotReason || 'post', value: stripPasswords(merged) as any },
   })
 }
 
@@ -232,6 +245,12 @@ export async function handlePost(
  * can't race a concurrent client POST. Stamps meta.fxRates._updatedAt so the
  * merge treats these as the freshest set everywhere. No-op (changed:false) when
  * the rates are unchanged, so an unchanged daily rate produces no sync churn.
+ *
+ * Deliberately does NOT advance the workspace's dataUpdatedAt/updatedBy: a bot
+ * write must not make clients' next pull remote-preferring (that could revert a
+ * human edit whose push had failed). Rates still propagate — the SSE nudge below
+ * carries the write time, and the fxRates._updatedAt freshest-wins merge rule
+ * adopts them on any pull regardless of the preferRemote tiebreak.
  */
 export async function updateFxRates(
   key: string,
@@ -241,7 +260,7 @@ export async function updateFxRates(
   const result = await prisma.$transaction(
     async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`
-      const { db, dataUpdatedAt } = await loadDbState(tx, key)
+      const { db, dataUpdatedAt, updatedBy } = await loadDbState(tx, key)
       if (!db.workspace) return { at: dataUpdatedAt ?? now, changed: false }
       const current = reconstruct(db)
       const cur: any = current.meta.fxRates || {}
@@ -250,7 +269,13 @@ export async function updateFxRates(
       }
       current.meta.fxRates = { ...cur, USD: rates.USD, EUR: rates.EUR, _updatedAt: now.getTime() }
       current.meta.fxRate = rates.USD // legacy mirror of fxRates.USD
-      await persistMerged(tx, key, current, 'fx-rates-bot', now)
+      await persistMerged(tx, key, current, 'fx-rates-bot', now, {
+        dataUpdatedAt: dataUpdatedAt ?? now, // keep the prior human-data stamp
+        dataUpdatedBy: updatedBy, // keep "who last changed the data" honest
+        snapshotReason: 'fx',
+      })
+      // Return the WRITE time (not the preserved stamp) so the SSE nudge is
+      // newer than every client's last pull and they fetch the fresh rates.
       return { at: now, changed: true }
     },
     { timeout: 30_000, maxWait: 15_000 },

@@ -8,19 +8,36 @@
 // automatically, and cancelling/deleting a draft no longer burns a number.
 //
 // meta.invoiceNumberStart is an OPTIONAL manual floor ("start numbering from N")
-// set from Settings; it lets you reset/bump the sequence without touching any
-// existing invoices. Unset (the default) = pure derive-from-last.
+// set from Settings; it can only RAISE the sequence (it sits inside a max()) —
+// lowering it below the highest existing invoice has no effect until the
+// invoices holding the higher numbers are renumbered or deleted.
+// Unset (the default) = pure derive-from-last.
 import type { State } from '@/types'
 
-/** The trailing integer of an invoice number, e.g. "INV-2026-048" -> 48.
- *  Uses the LAST run of digits so the INV-YYYY- year prefix is never mistaken
- *  for the sequence. Returns null for a number with no digits. */
+/** The trailing sequence number of an invoice number, e.g. "INV-2026-048" -> 48.
+ *  Scans the runs of digits from the END and skips runs that can't plausibly be
+ *  a sequence number:
+ *   - 4-digit years 1900-2099, so neither the INV-YYYY- prefix nor a hand-typed
+ *     year SUFFIX ("048/2026", "INV-2026", a half-edited "INV-2026-") ever
+ *     becomes the sequence — one such number would otherwise jump every later
+ *     suggestion to 2027+
+ *   - runs longer than 6 digits (pasted dates/references like "INV-20260701")
+ *  Returns null when no plausible run remains. Trade-off: a genuine sequence in
+ *  1900-2099 would be skipped — decades away at this volume, and the manual
+ *  start floor can force it if ever needed. */
 export function parseInvoiceSeq(number: string | null | undefined): number | null {
   if (!number) return null
   const groups = String(number).match(/\d+/g)
   if (!groups || !groups.length) return null
-  const n = parseInt(groups[groups.length - 1], 10)
-  return Number.isFinite(n) ? n : null
+  for (let i = groups.length - 1; i >= 0; i--) {
+    const g = groups[i]
+    if (g.length > 6) continue // date/reference paste, not a sequence
+    const n = parseInt(g, 10)
+    if (!Number.isFinite(n)) continue
+    if (g.length === 4 && n >= 1900 && n <= 2099) continue // a year, not a sequence
+    return n
+  }
+  return null
 }
 
 /** Highest sequence number among existing invoices, or 0 if none parse. */

@@ -2,6 +2,7 @@
 // no shared-file edits. Mirrors the legacy fhRecalcTeamTotals + the TI payout
 // upsert / accept / decline business logic.
 import { uid, isoDate } from '@/lib/format'
+import { parseInvoiceSeq } from '@/lib/invoice-number'
 import type { State, TeamInvoice, TeamPayout } from '@/types'
 
 // Initials for avatars / invoice numbers, e.g. "Zahi Davis" → "ZD".
@@ -12,14 +13,24 @@ export function tiInitials(name?: string): string {
 }
 
 // Per-member sequential invoice number: "{INITIALS}-{NNN}" e.g. "ZD-003".
+// Derived from the member's highest EXISTING invoice (same approach as the
+// outbound editor) — NOT the old state.teamInvoiceCounters counter, which
+// burned a number every time the editor was merely opened, never gave one back
+// on cancel/delete, and max-merged across devices, so "next" drifted far ahead
+// of the last real invoice (e.g. DE-007 on screen but DE-018 suggested).
+// teamInvoiceCounters stays in the schema/merge for old builds but is vestigial
+// here; deleting the highest invoice frees its number for reuse by design.
 export function tiNextInvoiceNumber(state: State, memberId: string): string {
-  state.teamInvoiceCounters = state.teamInvoiceCounters || {}
-  const next = (state.teamInvoiceCounters[memberId] || 0) + 1
-  state.teamInvoiceCounters[memberId] = next
+  let max = 0
+  for (const inv of state.teamInvoices || []) {
+    if (inv.memberId !== memberId) continue
+    const s = parseInvoiceSeq(inv.number)
+    if (s != null && s > max) max = s
+  }
   const m = state.team.find((t) => t.id === memberId)
   const parts = (m?.name || 'XX').split(/\s+/).filter(Boolean)
   const initials = ((parts[0] || 'X').slice(0, 1) + (parts[1] || parts[0] || 'X').slice(0, 1)).toUpperCase()
-  return `${initials}-${String(next).padStart(3, '0')}`
+  return `${initials}-${String(max + 1).padStart(3, '0')}`
 }
 
 // Recalculate state.months[m].salariesTotal + commissionsTotal from payouts.
