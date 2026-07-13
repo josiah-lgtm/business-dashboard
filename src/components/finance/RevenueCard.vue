@@ -6,9 +6,9 @@ import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDashboard } from '@/stores/dashboard'
 import { calcMonth } from '@/lib/calc'
-import { money } from '@/lib/money'
+import { money, toGbp, fxRateFor, currencySymbol } from '@/lib/money'
 import { uid, isoDate, monthOf, fmtMonth } from '@/lib/format'
-import type { RevenueEntry } from '@/types'
+import type { RevenueEntry, Currency } from '@/types'
 import FhModal from './FhModal.vue'
 
 const props = defineProps<{ monthId: string }>()
@@ -97,12 +97,25 @@ function delEntry(entry: RevenueEntry) {
 const showModal = ref(false)
 const mDate = ref(isoDate(new Date()))
 const mAmount = ref<number | null>(null)
+const mCurrency = ref<Currency>('GBP')
 const mSource = ref('')
 const mNotes = ref('')
+
+// Live GBP equivalent of what's typed — revenue is stored in GBP, so a foreign
+// entry is converted at save time using the live FX rates (same rates the
+// expense form uses). Shown as a preview so the number isn't a surprise.
+const convertedGbp = computed(() => toGbp(Number(mAmount.value) || 0, mCurrency.value))
+const fxHint = computed(() => {
+  if (mCurrency.value === 'GBP' || !(convertedGbp.value > 0)) return ''
+  const sym = currencySymbol(mCurrency.value)
+  const gbp = convertedGbp.value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return `= £${gbp}  ·  £1 = ${sym}${fxRateFor(mCurrency.value).toFixed(4)}`
+})
 
 function openModal() {
   mDate.value = isoDate(new Date())
   mAmount.value = null
+  mCurrency.value = 'GBP'
   mSource.value = ''
   mNotes.value = ''
   showModal.value = true
@@ -136,7 +149,16 @@ function saveModal() {
       source: 'Carryover', notes: 'Imported from previous single-number monthly revenue',
     })
   }
-  state.value.revenueEntries.push({ id: uid(), month, date: mDate.value, amount: amt, source: mSource.value.trim(), notes: mNotes.value.trim() })
+  // Revenue is stored in GBP. If a foreign currency was chosen, convert now and
+  // keep the original figure in the note (revenue entries have no currency field
+  // that would sync, so this preserves the audit trail).
+  const gbp = mCurrency.value === 'GBP' ? amt : Math.round(toGbp(amt, mCurrency.value) * 100) / 100
+  let notes = mNotes.value.trim()
+  if (mCurrency.value !== 'GBP') {
+    const orig = `Entered as ${currencySymbol(mCurrency.value)}${amt.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    notes = notes ? `${notes} · ${orig}` : orig
+  }
+  state.value.revenueEntries.push({ id: uid(), month, date: mDate.value, amount: gbp, source: mSource.value.trim(), notes })
   const monthEntries = state.value.revenueEntries.filter((e) => e.month === month)
   state.value.months[month].revenue = monthEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0)
   showModal.value = false
@@ -212,8 +234,16 @@ function saveModal() {
     <input v-model="mDate" type="date" />
     <div class="grid-2">
       <div>
-        <label>Amount (£)</label>
-        <input v-model.number="mAmount" type="number" step="0.01" min="0" placeholder="0.00" />
+        <label>Amount</label>
+        <div style="display: flex; gap: 6px; align-items: center">
+          <input v-model.number="mAmount" type="number" step="0.01" min="0" placeholder="0.00" style="flex: 1" />
+          <select v-model="mCurrency" title="Entry currency — auto-converted to GBP" style="width: 74px; padding: 6px 8px">
+            <option value="GBP">£ GBP</option>
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+          </select>
+        </div>
+        <div v-if="fxHint" class="re-fx-hint">{{ fxHint }}</div>
       </div>
       <div>
         <label>Source / client</label>
@@ -228,3 +258,12 @@ function saveModal() {
     </div>
   </FhModal>
 </template>
+
+<style scoped>
+.re-fx-hint {
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+</style>

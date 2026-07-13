@@ -2790,15 +2790,36 @@
 
   @media print {
     @page { margin: 0; }
+    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
     .topbar, .sidebar, .panel, .inv-actions-bar { display: none !important; }
     /* The invoice preview is teleported to <body>, so it renders *after* the
        still-present .app (min-height:100vh) in the print flow — which prints a
        full blank first page. Hide the app shell entirely; the teleported
        .invoice-print lives outside .app and stays visible. */
     .app { display: none !important; }
-    .invoice-print { display: block !important; box-shadow: none; margin: 0; max-width: 100%; padding: 24px 32px; border-radius: 0; }
-    .invoice-print.contractor-invoice-mode { padding: 0; max-width: 100%; }
-    .contractor-invoice-shell { min-height: 95vh; }
+    /* The backdrop is teleported to <body>; flatten it so only the sheet prints
+       (no stray margin/padding/scroll adding a blank page). */
+    .inv-print-backdrop { position: static !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: none !important; }
+    /* Kill the on-screen `24px auto` centring margin on BOTH the base sheet and
+       the contractor variant. The contractor selector
+       (.invoice-print.contractor-invoice-mode, specificity 0,2,0) out-specifies a
+       plain `.invoice-print { margin: 0 }` (0,1,0), so its 24px bottom margin used
+       to survive into print and — together with the forced full-viewport height —
+       pushed the sheet onto a trailing blank second page. */
+    .invoice-print,
+    .invoice-print.contractor-invoice-mode {
+      display: block !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+      border-radius: 0 !important;
+    }
+    .invoice-print { padding: 24px 32px; }
+    .invoice-print.contractor-invoice-mode { padding: 0; }
+    /* Print at natural content height — never force a full viewport height, which
+       (plus any sub-pixel rounding) overflowed onto a blank second page. The flex
+       column still gives the footer a ~120px gap via .ci-spacer's min-height. */
+    .contractor-invoice-shell { min-height: 0 !important; }
     /* Force black backgrounds to actually print */
     .ci-header, .ci-footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
