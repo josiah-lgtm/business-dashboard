@@ -19,6 +19,9 @@ import { prisma } from './db.js'
 import { handleGet, handlePost, updateFxRates } from './store.js'
 import { publish, subscribe } from './events.js'
 import { fetchGbpRates, startFxScheduler } from './fx.js'
+import { mcpConfig } from './mcp/config.js'
+import { setLogger } from './mcp/log.js'
+import { isMcpPath, registerMcp } from './mcp/routes.js'
 import type { State } from './types.js'
 
 const PORT = Number(process.env.PORT) || 3000
@@ -38,10 +41,19 @@ const app = Fastify({
   disableRequestLogging: true,
 })
 
+// CORS. The sync path allows only the configured app origins; the MCP path also
+// has to admit the connector hosts (claude.ai, chatgpt.com…), which call from a
+// browser and therefore DO send an Origin header. Everything else is unchanged.
 await app.register(cors, {
-  origin: ALLOWED_ORIGINS.length ? ALLOWED_ORIGINS : false,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin(origin, cb) {
+    if (!origin) return cb(null, true) // server-side callers send no Origin
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
+    if (mcpConfig.enabled && mcpConfig.browserOrigins.includes(origin)) return cb(null, true)
+    return cb(null, false)
+  },
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Mcp-Session-Id', 'Mcp-Protocol-Version', 'Last-Event-ID'],
+  exposedHeaders: ['WWW-Authenticate', 'Mcp-Session-Id', 'Mcp-Protocol-Version'],
   maxAge: 86400,
 })
 
@@ -59,6 +71,10 @@ function tokenOk(header?: string): boolean {
 app.addHook('onRequest', async (req, reply) => {
   if (req.method === 'OPTIONS') return
   if (req.url === '/health' || req.url.startsWith('/health?')) return
+  // The MCP surface carries its own auth (OAuth bearer / the MCP secret) and
+  // must NOT be gated by API_TOKEN: the nginx proxy deliberately does not inject
+  // that header there, or it would overwrite the caller's own bearer.
+  if (mcpConfig.enabled && isMcpPath(req.url)) return
   if (!tokenOk(req.headers['authorization'] as string | undefined)) {
     reply.code(401).send({ error: 'unauthorized' })
   }
@@ -255,6 +271,17 @@ app.get<{ Params: { key: string }; Querystring: { month?: string } }>(
     return reply.send({ count: rows.length, rows })
   },
 )
+
+// ---- MCP connector -----------------------------------------------------------
+// Mounted on this same app so it answers at <baseURL>/mcp. Off unless
+// MCP_SECRET_KEY is set — an MCP endpoint with no secret would be an open door
+// to the whole workspace.
+setLogger(app.log)
+if (mcpConfig.enabled) {
+  registerMcp(app)
+} else {
+  app.log.warn('MCP connector disabled — set MCP_SECRET_KEY in .env to enable /mcp.')
+}
 
 // ---- boot --------------------------------------------------------------------
 if (!API_TOKEN) {

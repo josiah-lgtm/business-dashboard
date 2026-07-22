@@ -105,6 +105,100 @@ docker compose exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
 The api also exposes read-only JSON endpoints (key-scoped, password never
 returned): `/api/reports/<key>/{expenses,invoices,team,months,pnl}`.
 
+## MCP connector (Claude + ChatGPT)
+
+The api also serves a **remote MCP server** at `https://businessdashboard.agencyadvanta.com/mcp`
+— 92 tools over the whole workspace (P&L and analytics, expenses, vendors,
+revenue, refunds, team, payouts, invoices in both directions, tasks, budgets,
+buckets, settings, read-only SQL, snapshots/recovery) plus 3 MCP resources and 4
+prompts. Code lives in `api/src/mcp/`; no extra container. It adds four tables
+(`mcp_oauth_clients`, `mcp_auth_codes`, `mcp_tokens`, `mcp_audit_log`) via the
+committed migration `20260722000000_mcp_oauth`, applied by the normal
+`prisma migrate deploy` at boot — no existing table is touched.
+
+### Turning it on
+
+1. Put **one secret** in `.env` and pick the public origin:
+
+   ```bash
+   openssl rand -hex 32           # -> MCP_SECRET_KEY
+   ```
+
+   ```ini
+   MCP_SECRET_KEY=<the 64-hex value>
+   MCP_PUBLIC_URL=https://businessdashboard.agencyadvanta.com   # origin root, no path
+   ```
+
+   With `MCP_SECRET_KEY` empty the connector is **not mounted at all** — `/mcp`
+   404s. That is the intended off switch.
+
+2. `docker compose up -d --build` (the api needs the rebuild; the `web` image
+   needs it too, for the new nginx locations).
+
+Check it: `curl https://businessdashboard.agencyadvanta.com/.well-known/oauth-protected-resource/mcp`
+should return JSON naming the resource, and `/mcp-info` renders a short human
+page with the URL to paste into a client.
+
+### Connecting a client
+
+| Client | How |
+|---|---|
+| **Claude** (web/desktop) | Settings → Connectors → *Add custom connector* → paste `https://businessdashboard.agencyadvanta.com/mcp` → a login page appears → paste the access key. |
+| **ChatGPT** | Settings → Connectors (or a Developer-mode / Deep-Research custom connector) → same URL → same key. The `search` + `fetch` tools required by ChatGPT are implemented. |
+| **Claude Code** | `claude mcp add --transport http business-dashboard https://businessdashboard.agencyadvanta.com/mcp --header "Authorization: Bearer $MCP_SECRET_KEY"` |
+| **MCP Inspector / curl** | Same static bearer, or run the full OAuth flow. |
+
+The OAuth side is a complete authorization server: RFC 7591 dynamic client
+registration, authorization-code with **mandatory PKCE S256**, single-use codes,
+rotating refresh tokens with family revocation on reuse, RFC 7009 revocation,
+and RFC 8414/9728 discovery. Everything it stores is a sha-256 hash — a database
+dump yields no live token. The "user database" is the single `MCP_SECRET_KEY`,
+which is what the login page checks (brute-force locked out per IP).
+
+### What it can do to your data
+
+Writes go through **the same advisory-locked union merge a browser save uses**
+(`mutateState` in `api/src/store.ts`), then push the same SSE nudge, so an edit
+made from Claude appears in both teammates' open tabs within a second or two and
+can never clobber a concurrent browser edit. Every changed write also takes a
+recovery snapshot (`reason='mcp'`) and an audit row in `mcp_audit_log`
+(`list_mcp_activity` reads it back).
+
+Guard rails, in the order you'd reach for them:
+
+- `MCP_ALLOW_WRITES=0` — read-only connector; the write tools vanish from
+  `tools/list` entirely rather than failing when called.
+- `MCP_ALLOW_SQL=0` — hides `query_sql` / `list_tables` / `describe_table`.
+- `MCP_ALLOW_STATIC_TOKEN=0` — forces every client through OAuth (no raw-key bearer).
+- Destructive tools require `confirm:true`; bulk ones (`recategorize_expenses`,
+  `restore_snapshot`) preview unless you pass `apply:true`.
+- Team-member **portal passwords are never returned by any tool**, including
+  through `query_sql` — results are walked and password-ish keys redacted, which
+  also covers the `raw` jsonb column.
+
+### Rotating the key
+
+Change `MCP_SECRET_KEY` in `.env` and `docker compose up -d api`. Existing OAuth
+tokens keep working (they are independent of the key); to cut them too:
+
+```bash
+docker compose exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  -c "update mcp_tokens set revoked = true where not revoked;"
+```
+
+### If a client can't connect
+
+- **401 loop** — `MCP_PUBLIC_URL` must match the public hostname byte for byte.
+  Tokens carry it as their audience; a mismatch is rejected.
+- **"unauthorized" from the sync API instead of an OAuth challenge** — the host
+  nginx is routing `/mcp` into the `/api/` location, which injects `API_TOKEN`
+  and overwrites the caller's bearer. The container nginx has dedicated
+  `/mcp`, `/mcp-oauth/`, `/mcp-info` and `/.well-known/` locations that must not
+  set `Authorization`.
+- **406 Not Acceptable** — a client sending only `Accept: application/json`. The
+  connector already rewrites that header; if you see it, the request never
+  reached the api.
+
 ## Migrating existing data onto the new backend
 
 No data is lost. The new DB starts **empty** — nothing auto-seeds at deploy — so

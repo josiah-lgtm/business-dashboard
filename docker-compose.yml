@@ -33,6 +33,13 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       PORT: "3000"
       NODE_ENV: production
+      # --- MCP connector (Claude / ChatGPT). Unset MCP_SECRET_KEY = not mounted.
+      MCP_SECRET_KEY: ${MCP_SECRET_KEY:-}
+      MCP_PUBLIC_URL: ${MCP_PUBLIC_URL:-https://businessdashboard.agencyadvanta.com}
+      MCP_WORKSPACE_KEY: ${MCP_WORKSPACE_KEY:-${VITE_WORKSPACE_KEY}}
+      MCP_ALLOW_WRITES: ${MCP_ALLOW_WRITES:-1}
+      MCP_ALLOW_SQL: ${MCP_ALLOW_SQL:-1}
+      MCP_ALLOW_STATIC_TOKEN: ${MCP_ALLOW_STATIC_TOKEN:-1}
     healthcheck:
       # Node 22 has global fetch; no curl/wget needed in the slim image.
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

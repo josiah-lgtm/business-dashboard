@@ -165,6 +165,19 @@ async function persistMerged(
     })
   }
 
+  // Tombstones the merged state no longer carries have been deliberately
+  // withdrawn (MCP `undelete` / `restore_snapshot`). Without this delete they
+  // would be re-read from the table on the very next load and re-applied below,
+  // silently re-deleting the row that was just brought back.
+  //
+  // Safe for the browser path: mergeStates UNIONS the deletion maps, so a POST
+  // can never arrive with fewer tombstones than the server already holds — the
+  // only way a key disappears here is an explicit withdrawal.
+  const liveTombstones = Object.keys(db.deletions)
+  await c.tombstone.deleteMany({
+    where: { workspaceId: key, ...(liveTombstones.length ? { key: { notIn: liveTombstones } } : {}) },
+  })
+
   // tombstones: record the deletion map, then soft-delete matching rows (delete-wins)
   for (const [tkey, iso] of Object.entries(db.deletions)) {
     await c.tombstone.upsert({
@@ -237,6 +250,66 @@ export async function handlePost(
   )
   if (result.changed) await pruneSnapshots(key)
   return { updated_at: toIso(result.at), changed: result.changed }
+}
+
+/**
+ * Read the current State of a workspace WITHOUT the empty-workspace null that
+ * handleGet returns. Used by the MCP read tools, which want a usable (possibly
+ * empty) State rather than having to special-case `value: null`.
+ */
+export async function readState(
+  key: string,
+): Promise<{ state: State; exists: boolean; updated_at: string | null; updated_by: string | null }> {
+  const { db, dataUpdatedAt, updatedBy } = await loadDbState(prisma, key)
+  return {
+    state: reconstruct(db),
+    exists: !isEmptyDb(db),
+    updated_at: dataUpdatedAt ? toIso(dataUpdatedAt) : null,
+    updated_by: updatedBy ?? null,
+  }
+}
+
+/**
+ * Apply an in-place mutation to a workspace inside the SAME per-workspace
+ * advisory lock handlePost uses, then persist it.
+ *
+ * This is the ONLY write path the MCP tools use, and the shape is deliberate.
+ * The obvious alternative — build a partial State and POST it through
+ * handlePost — is unsafe here: mergeStates runs with preferRemote:true, so
+ * `merged.business = pick(local.business, remote.business)` takes the POSTed
+ * side verbatim. A patch that omits `business`/`targets` would therefore erase
+ * them. Mutating the authoritative current state under the lock has no such
+ * hole, and it closes the read-modify-write race a load-outside-the-lock would
+ * leave open.
+ *
+ * `mutator` receives the live State and returns whatever the tool wants to
+ * report; throw from inside it to abort the transaction with nothing written.
+ * Persistence is skipped when the mutation left the state byte-identical, so a
+ * no-op edit produces no snapshot, no SSE nudge and no sync churn.
+ */
+export async function mutateState<T>(
+  key: string,
+  updatedBy: string | null,
+  mutator: (state: State) => T | Promise<T>,
+): Promise<{ result: T; changed: boolean; updated_at: string }> {
+  const now = new Date()
+  const out = await prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`
+      const { db, dataUpdatedAt } = await loadDbState(tx, key)
+      const current = reconstruct(db)
+      const before = JSON.stringify(current)
+      const result = await mutator(current)
+      if (JSON.stringify(current) === before) {
+        return { result, changed: false, at: dataUpdatedAt ?? now }
+      }
+      await persistMerged(tx, key, current, updatedBy, now, { snapshotReason: 'mcp' })
+      return { result, changed: true, at: now }
+    },
+    { timeout: 30_000, maxWait: 15_000 },
+  )
+  if (out.changed) await pruneSnapshots(key)
+  return { result: out.result, changed: out.changed, updated_at: toIso(out.at) }
 }
 
 /**

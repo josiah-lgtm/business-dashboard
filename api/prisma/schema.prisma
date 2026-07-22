@@ -342,6 +342,100 @@ model Tombstone {
   @@map("tombstones")
 }
 
+// ============================================================
+// MCP connector (see src/mcp/) — OAuth 2.1 authorization server state.
+//
+// These four tables are the ONLY schema the MCP adds; every business fact it
+// reads or writes goes through the existing workspace tables via the same
+// merge/lock path the SPA uses. Codes and tokens are stored as sha-256 hashes
+// only, so a database leak never yields a live bearer.
+// ============================================================
+
+// RFC 7591 dynamically-registered client (claude.ai / ChatGPT self-register).
+model McpOAuthClient {
+  clientId                String   @id
+  clientSecretHash        String? // null for public (PKCE-only) clients
+  clientName              String?
+  redirectUris            String[]
+  grantTypes              String[]
+  responseTypes           String[]
+  tokenEndpointAuthMethod String   @default("none")
+  scope                   String?
+  metadata                Json?
+  createdAt               DateTime @default(now())
+
+  codes  McpAuthCode[]
+  tokens McpToken[]
+
+  @@map("mcp_oauth_clients")
+}
+
+// Short-lived single-use authorization code (PKCE S256 mandatory).
+model McpAuthCode {
+  codeHash            String   @id
+  clientId            String
+  redirectUri         String
+  codeChallenge       String
+  codeChallengeMethod String   @default("S256")
+  scope               String?
+  resource            String?
+  subject             String   @default("owner")
+  consumed            Boolean  @default(false)
+  expiresAt           DateTime
+  createdAt           DateTime @default(now())
+
+  client McpOAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("mcp_auth_codes")
+}
+
+// Access + refresh pair. `familyId` groups a rotation chain so reuse of an
+// already-rotated refresh token can revoke the whole family.
+model McpToken {
+  id               String    @id @default(cuid())
+  accessTokenHash  String    @unique
+  refreshTokenHash String?   @unique
+  clientId         String
+  subject          String    @default("owner")
+  scope            String?
+  resource         String?
+  familyId         String
+  revoked          Boolean   @default(false)
+  accessExpiresAt  DateTime
+  refreshExpiresAt DateTime
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  client McpOAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([familyId])
+  @@index([accessExpiresAt])
+  @@map("mcp_tokens")
+}
+
+// One row per tool call. Writes are the reason this exists: "who changed that
+// expense" must be answerable after the fact, and the SPA has no other trace of
+// an MCP-originated edit beyond `updatedBy`.
+model McpAuditLog {
+  id          String   @id @default(cuid())
+  at          DateTime @default(now())
+  clientId    String?
+  clientName  String?
+  tool        String
+  workspaceId String?
+  write       Boolean  @default(false)
+  ok          Boolean  @default(true)
+  durationMs  Int      @default(0)
+  args        Json?
+  error       String?
+
+  @@index([at])
+  @@index([tool])
+  @@map("mcp_audit_log")
+}
+
 // Full post-merge blob snapshot for recovery (password stripped).
 model Snapshot {
   id          String   @id @default(cuid())
