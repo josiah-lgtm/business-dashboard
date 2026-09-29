@@ -2789,14 +2789,12 @@
   }
 
   @media print {
-    @page { margin: 0; }
+    @page { size: A4; margin: 0; }
     html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
     .topbar, .sidebar, .panel, .inv-actions-bar { display: none !important; }
-    /* The invoice preview is teleported to <body>, so it renders *after* the
-       still-present .app (min-height:100vh) in the print flow — which prints a
-       full blank first page. Hide the app shell entirely; the teleported
-       .invoice-print lives outside .app and stays visible. */
-    .app { display: none !important; }
+    /* The teleported preview is outside #app. The mount element itself has
+       min-height:100vh in index.html, so hiding only .app leaves a blank page. */
+    #app { display: none !important; }
     /* The backdrop is teleported to <body>; flatten it so only the sheet prints
        (no stray margin/padding/scroll adding a blank page). */
     .inv-print-backdrop { position: static !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: none !important; }
@@ -2816,10 +2814,9 @@
     }
     .invoice-print { padding: 24px 32px; }
     .invoice-print.contractor-invoice-mode { padding: 0; }
-    /* Print at natural content height — never force a full viewport height, which
-       (plus any sub-pixel rounding) overflowed onto a blank second page. The flex
-       column still gives the footer a ~120px gap via .ci-spacer's min-height. */
-    .contractor-invoice-shell { min-height: 0 !important; }
+    /* Let the flex spacer place the black footer at the bottom of an A4 sheet.
+       Extra content can still extend the shell onto a following page. */
+    .contractor-invoice-shell { min-height: 297mm; }
     /* Force black backgrounds to actually print */
     .ci-header, .ci-footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
